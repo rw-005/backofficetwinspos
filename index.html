@@ -502,6 +502,7 @@ function vMProduk(){
  <select onchange="PM.cat=this.value;mpRows()"><option value="">Semua kategori</option>${cats.map(c=>`<option value="${esc(c)}" ${PM.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
  <button class="btn ${PM.low?'on':''}" onclick="PM.low=!PM.low;render()">Stok menipis</button>
  <button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button>
+ <button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button>
  <button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>
  <div class="tw" id="mpt">${mpTable(l)}</div></div>`;
 }
@@ -568,6 +569,110 @@ function saveStock(id,btn){
  if(q===''||isNaN(+q)||(mode==='add'&&!(+q>0))||(mode==='set'&&+q<0)){alert(mode==='add'?'Isi jumlah lebih dari 0':'Isi jumlah stok sebenarnya');return}
  if(mode==='add'&&bp!==''&&!(+bp>=0)){alert('Harga beli tidak valid');return}
  safe(()=>push('stock',{id,mode,qty:+q,note:v('f_note').trim(),buyPrice:mode==='add'&&bp!==''?+bp:0,hppMode:v('f_hpp')}),btn);
+}
+
+/* ---------- Isi Stok Massal (template stok masuk & opname) ---------- */
+const BK={mode:'add',rows:[],ok:[]};
+function bkTpl(mode){
+ const set=mode==='set',l=D.products.filter(p=>p.trackStock!==false).sort((a,b)=>String(a.cat||'').localeCompare(String(b.cat||''))||String(a.name).localeCompare(String(b.name)));
+ if(!l.length){alert('Belum ada produk dengan hitung stok');return}
+ csv(set?'Template-Stok-Opname':'Template-Stok-Masuk',[['ID','Kode','Nama','Kategori','Satuan','Stok Sekarang','Jumlah','Harga Beli (opsional)','Catatan (opsional)'],...l.map(p=>[p.id,p.sku||'',p.name,p.cat||'',p.unit||'',+p.stock||0,set?(+p.stock||0):'','',''])]);
+}
+function bkNum(s){s=String(s==null?'':s).replace(/rp/ig,'').replace(/\s/g,'');if(!s)return null;if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(',','.');const n=parseFloat(s);return isNaN(n)?NaN:n}
+function bkCsv(txt){
+ txt=txt.replace(/^\uFEFF/,'').replace(/^sep=.?\r?\n/i,'');
+ const first=txt.split(/\r?\n/).find(x=>x.trim())||'';
+ const c=[[';',(first.match(/;/g)||[]).length],[',',(first.match(/,/g)||[]).length],['\t',(first.match(/\t/g)||[]).length]].sort((a,b)=>b[1]-a[1])[0][0];
+ const rows=[];let row=[],cur='',q=false;
+ for(let i=0;i<txt.length;i++){const ch=txt[i];
+  if(q){if(ch==='"'){if(txt[i+1]==='"'){cur+='"';i++}else q=false}else cur+=ch}
+  else if(ch==='"')q=true;
+  else if(ch===c){row.push(cur);cur=''}
+  else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&txt[i+1]==='\n')i++;row.push(cur);cur='';if(row.some(x=>x.trim()!==''))rows.push(row);row=[]}
+  else cur+=ch}
+ row.push(cur);if(row.some(x=>x.trim()!==''))rows.push(row);
+ return rows;
+}
+function bkOpen(){
+ BK.mode='add';BK.rows=[];BK.ok=[];
+ dlg(`<h3>Isi Stok Massal</h3>
+ <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template. 2. Isi kolom <b>Jumlah</b> (kosongkan baris yang tidak diubah). 3. Simpan sebagai CSV, lalu unggah di bawah.</div>
+ <div class="acts2" style="margin-top:10px"><button class="btn" onclick="bkTpl('add')">${ic('dl',16)} Template stok masuk</button><button class="btn" onclick="bkTpl('set')">${ic('dl',16)} Template opname</button></div>
+ <label>Jenis pengisian</label><select id="bk_mode" onchange="BK.mode=this.value;bkMode()"><option value="add">Stok masuk (jumlah ditambahkan ke stok)</option><option value="set">Opname (jumlah = stok sebenarnya)</option></select>
+ <div id="bk_hw"><label>Update HPP produk (bila Harga Beli diisi)</label><select id="bk_hpp"><option value="avg">Rata-rata tertimbang (disarankan)</option><option value="last">Ikut harga beli terakhir</option><option value="none">Jangan ubah HPP</option></select></div>
+ <label>Unggah file CSV</label><input type="file" id="bk_file" accept=".csv,.txt,text/csv" onchange="bkRead(this.files[0])">
+ <div id="bk_prev" style="margin-top:12px"></div>
+ <div class="acts2"><button class="btn" onclick="closeDlg()">Batal</button><button class="btn pri" id="bk_go" disabled onclick="bkApply(this)">Terapkan</button></div>`,true);
+}
+function bkMode(){const w=$('#bk_hw');if(w)w.style.display=BK.mode==='set'?'none':'';bkPrev()}
+function bkRead(f){
+ if(!f)return;
+ const rd=new FileReader();
+ rd.onload=e=>{
+  const rows=bkCsv(String(e.target.result||'')),el=$('#bk_prev');
+  BK.rows=[];
+  if(rows.length<2){el.innerHTML='<div class="mut">File kosong atau formatnya tidak dikenali.</div>';bkPrev();return}
+  const h=rows[0].map(x=>String(x).toLowerCase().replace(/[^a-z]/g,'')),ix=k=>h.findIndex(x=>x.startsWith(k));
+  const c={id:h.indexOf('id'),sku:ix('kode'),name:ix('nama'),qty:ix('jumlah'),bp:ix('hargabeli'),note:ix('catatan')};
+  if(c.qty<0||(c.id<0&&c.sku<0&&c.name<0)){el.innerHTML='<div class="mut" style="color:var(--bad)">Kolom tidak dikenali. Pakai template dari tombol di atas (kolom ID/Kode/Nama dan Jumlah wajib ada).</div>';bkPrev();return}
+  const g=(r,k)=>k>=0?String(r[k]==null?'':r[k]).trim():'';
+  BK.rows=rows.slice(1).map(r=>({id:g(r,c.id),sku:g(r,c.sku),name:g(r,c.name),qty:bkNum(g(r,c.qty)),bp:c.bp>=0?bkNum(g(r,c.bp)):null,note:g(r,c.note).slice(0,40)}));
+  bkPrev();
+ };
+ rd.readAsText(f);
+}
+function bkPrev(){
+ const el=$('#bk_prev'),go=$('#bk_go');if(!el)return;
+ if(!BK.rows.length){BK.ok=[];if(go)go.disabled=true;return}
+ const set=BK.mode==='set',byId={},bySku={},byName={},seen={};
+ D.products.forEach(p=>{byId[String(p.id)]=p;if(p.sku)bySku[String(p.sku).toLowerCase()]=p;byName[String(p.name).trim().toLowerCase()]=p});
+ const out=[];BK.ok=[];let blank=0,bad=0,same=0;
+ BK.rows.forEach(r=>{
+  if(r.qty===null){blank++;return}
+  const p=byId[r.id]||(r.sku&&bySku[r.sku.toLowerCase()])||(r.name&&byName[r.name.toLowerCase()])||null,s=p?(+p.stock||0):0;
+  let st='ok',msg='';
+  if(!p){st='bad';msg='Produk tidak ditemukan'}
+  else if(p.trackStock===false){st='bad';msg='Produk tanpa hitung stok'}
+  else if(seen[p.id]){st='bad';msg='Produk dobel di file'}
+  else if(isNaN(r.qty)){st='bad';msg='Jumlah bukan angka'}
+  else if(!set&&!(r.qty>0)){st='bad';msg='Jumlah harus lebih dari 0'}
+  else if(set&&r.qty<0){st='bad';msg='Stok tidak boleh minus'}
+  else if(r.bp!=null&&isNaN(r.bp)){st='bad';msg='Harga beli bukan angka'}
+  else if(set&&Math.abs(r.qty-s)<0.0004)st='same';
+  if(p)seen[p.id]=1;
+  if(st==='bad')bad++;else if(st==='same')same++;
+  else BK.ok.push({p,qty:r.qty,bp:r.bp>0?r.bp:0,note:r.note});
+  out.push({r,p,s,st,msg});
+ });
+ el.innerHTML=`<div style="margin-bottom:8px"><span class="badge g">${BK.ok.length} akan diperbarui</span> ${bad?`<span class="badge v">${bad} bermasalah (dilewati)</span> `:''}${same?`<span class="badge">${same} tidak berubah</span> `:''}${blank?`<span class="badge">${blank} baris kosong</span>`:''}</div>
+ ${out.length?`<div class="tw" style="max-height:34vh;overflow:auto"><table><tr><th>Produk</th><th class="r">Sekarang</th><th class="r">${set?'Stok sebenarnya':'Tambah'}</th><th class="r">Sesudah</th><th>Status</th></tr>${out.slice(0,300).map(o=>{const nm=o.p?o.p.name:(o.r.name||o.r.sku||o.r.id||'?'),aft=o.st==='ok'?(set?o.r.qty:Math.round((o.s+o.r.qty)*1000)/1000):null;return`<tr><td><b>${esc(nm)}</b></td><td class="r">${o.p?fq(o.s):'—'}</td><td class="r">${isNaN(o.r.qty)?'?':fq(o.r.qty)}</td><td class="r">${aft==null?'—':'<b>'+fq(aft)+'</b>'}</td><td>${o.st==='ok'?'<span class="badge g">OK</span>':o.st==='same'?'<span class="badge">Tidak berubah</span>':'<span class="badge v">'+esc(o.msg)+'</span>'}</td></tr>`}).join('')}</table></div>${out.length>300?'<div class="mut" style="font-size:12.5px;margin-top:6px">Menampilkan 300 baris pertama; semua baris valid tetap diproses.</div>':''}`:''}`;
+ if(go)go.disabled=!BK.ok.length;
+}
+async function pushQuiet(kind,payload){
+ const u=baseUrl(),q='action=bopush&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||'')+'&kind='+encodeURIComponent(kind)+'&payload='+encodeURIComponent(JSON.stringify(payload));
+ const r=await fetch(u+(u.includes('?')?'&':'?')+q,{redirect:'follow'});
+ const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
+}
+async function bkApply(btn){
+ if(!BK.ok.length)return;
+ const items=BK.ok.map(r=>{const o={id:r.p.id,qty:r.qty};if(r.bp>0)o.buyPrice=r.bp;if(r.note)o.note=r.note;return o});
+ const chunks=[];let cur=[],len=0;
+ items.forEach(it=>{const l=encodeURIComponent(JSON.stringify(it)).length+3;if(cur.length&&(len+l>1400||cur.length>=40)){chunks.push(cur);cur=[];len=0}cur.push(it);len+=l});
+ if(cur.length)chunks.push(cur);
+ btn.disabled=true;let done=0;
+ try{
+  for(const c of chunks){
+   btn.textContent='Menyimpan '+done+'/'+items.length+'…';
+   await pushQuiet('stock_bulk',{mode:BK.mode,hppMode:v('bk_hpp')||'avg',items:c});
+   done+=c.length;
+  }
+  busy=false;await load();closeDlg();render();
+  alert(done+' produk berhasil diperbarui.');
+ }catch(e){
+  alert('Gagal setelah '+done+' dari '+items.length+' produk: '+e.message+'\n\nProduk yang sudah tersimpan tidak akan dobel bila Anda mengunggah ulang file dengan mode Opname. Untuk Stok masuk, unduh template baru dulu agar tidak terhitung dua kali.');
+  btn.disabled=false;btn.textContent='Terapkan';
+  try{busy=false;await load();render()}catch(_){}
+ }
 }
 
 /* ---------- Riwayat Stok ---------- */
