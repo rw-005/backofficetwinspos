@@ -180,8 +180,8 @@ async function load(){
   const u=baseUrl(),r=await fetch(u+(u.includes('?')?'&':'?')+'action=bopull&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||''),{redirect:'follow'});
   const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
   const gone=j.dels||{},dat=j.data||{},o={};
-  ['tx','refunds','shifts','cash'].forEach(k=>{const g=new Set(gone[k]||[]);o[k]=(dat[k]||[]).filter(x=>!g.has(x.id))});
-  o.products=dat.products||[];o.promos=dat.promos||[];o.stocklog=dat.stocklog||[];o.outlet=dat.outlet||{};o.receipt=dat.receipt||{};
+  ['tx','refunds','shifts','cash','products','promos'].forEach(k=>{const g=new Set(gone[k]||[]);o[k]=(dat[k]||[]).filter(x=>!g.has(x.id))});
+  o.stocklog=dat.stocklog||[];const st=dat.settings||[];o.outlet=st.find(x=>x.id==='outlet')||{};o.receipt=st.find(x=>x.id==='receipt')||{};
   D=o;cfg.nm=j.name||'';loadedAt=Date.now();busy=false;return true;
  }catch(e){busy=false;throw e}
 }
@@ -575,12 +575,12 @@ function slList(){
  const q=SL.q.toLowerCase();
  return[...D.stocklog].sort((a,b)=>b.ts-a.ts).filter(x=>(!SL.type||x.type===SL.type)&&(!q||((x.name||nameOf(x.id))+' '+(x.note||'')+' '+(x.by||'')).toLowerCase().includes(q)));
 }
-const slType=x=>x.type==='set'?'<span class="badge k">Koreksi</span>':x.type==='init'?'<span class="badge">Stok awal</span>':x.type==='sale'?'<span class="badge v">Terjual</span>':'<span class="badge g">Masuk</span>';
+const slType=x=>x.type==='set'?'<span class="badge k">Koreksi</span>':x.type==='init'?'<span class="badge">Stok awal</span>':x.type==='sale'?'<span class="badge v">Terjual</span>':x.type==='refund'?'<span class="badge">Refund</span>':x.type==='adj'?'<span class="badge k">Koreksi kasir</span>':'<span class="badge g">Masuk</span>';
 function vMStok(){
  const l=slList(),inn=sum(l.filter(x=>x.type==='add'||x.type==='init'),x=>+x.qty||0);
  return`<div class="kg"><div class="kc"><small>Jumlah catatan</small><b>${l.length}</b></div><div class="kc"><small>Total stok masuk (tampil)</small><b>${fq(inn)}</b></div></div>
  <div class="card"><div class="tool"><input placeholder="Cari produk, catatan, petugas…" value="${esc(SL.q)}" oninput="SL.q=this.value;slRows()">
- <select onchange="SL.type=this.value;slRows()"><option value="">Semua jenis</option><option value="add" ${SL.type==='add'?'selected':''}>Stok masuk</option><option value="set" ${SL.type==='set'?'selected':''}>Koreksi</option><option value="init" ${SL.type==='init'?'selected':''}>Stok awal</option></select>
+ <select onchange="SL.type=this.value;slRows()"><option value="">Semua jenis</option><option value="add" ${SL.type==='add'?'selected':''}>Stok masuk</option><option value="set" ${SL.type==='set'?'selected':''}>Koreksi</option><option value="init" ${SL.type==='init'?'selected':''}>Stok awal</option><option value="sale" ${SL.type==='sale'?'selected':''}>Terjual</option><option value="refund" ${SL.type==='refund'?'selected':''}>Refund</option><option value="adj" ${SL.type==='adj'?'selected':''}>Koreksi kasir</option></select>
  <button class="btn" onclick="exportStok()">${ic('dl',16)} CSV</button></div><div class="mut" id="slc" style="margin-bottom:8px"></div><div class="tw" id="slt"></div></div>`;
 }
 function slRows(){
