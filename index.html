@@ -100,6 +100,15 @@ tr.ft td{font-weight:800;border-top:2px solid var(--bd);background:var(--soft)}
  .two{grid-template-columns:1fr}.kc.hero b{font-size:28px}.tb .r{display:none}
 }
 @media(max-width:560px){.g2{grid-template-columns:1fr}}
+.rs-s{border:1px solid var(--bd);border-radius:14px;overflow:hidden;margin-bottom:14px;background:var(--card)}
+.rs-h{padding:13px 14px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;font-size:14px}
+.rs-h.g{background:rgba(18,161,80,.13)}.rs-h.y{background:rgba(217,138,6,.15)}.rs-h.b{background:rgba(36,87,245,.12)}.rs-h.p{background:rgba(124,58,237,.13)}
+.rs-r{display:flex;justify-content:space-between;gap:12px;padding:13px 14px;border-top:1px solid var(--bd);font-size:14px}
+.rs-r span:last-child{text-align:right;white-space:nowrap}
+.rs-r.tot{font-weight:800}
+.rs-k .kc{border-bottom-width:4px}
+.kc.k1{border-bottom-color:#00c897}.kc.k2{border-bottom-color:#f5c518}.kc.k3{border-bottom-color:#0b84e5}.kc.k4{border-bottom-color:#6cb8f5}.kc.k5{border-bottom-color:#7c3aed}.kc.k6{border-bottom-color:#12a150}
+.rs-h.o{background:rgba(229,56,79,.12)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.NOXLSX=1"></script>
 </head>
@@ -150,11 +159,11 @@ const ic=(n,s)=>`<svg width="${s||18}" height="${s||18}" viewBox="0 0 24 24" fil
 
 const NAV=[
  ['Utama',[['ring','Ringkasan','home'],['analisa','Analisa Bisnis','trend']]],
- ['Laporan Penjualan',[['detail','Detail Penjualan','file'],['produk','Penjualan per Produk','box'],['kasir','Penjualan per Kasir','user'],['pkasir','Produk per Kasir','layers']]],
+ ['Laporan Penjualan',[['rsum','Ringkasan Penjualan','file'],['detail','Detail Penjualan','file'],['produk','Penjualan per Produk','box'],['kasir','Penjualan per Kasir','user'],['pkasir','Produk per Kasir','layers']]],
  ['Operasional',[['shift','Laporan Shift','clock'],['cash','Kas Masuk & Keluar','wallet']]],
  ['Pengaturan',[['mproduk','Produk & Stok','plus'],['mstok','Riwayat Stok','hist'],['mpromo','Promo','tag'],['moutlet','Outlet & Struk','store']]]
 ];
-const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],
+const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],
  mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mpromo:['Promo','Atur diskon otomatis di kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk']};
 const MG=['mproduk','mstok','mpromo','moutlet'];
 
@@ -233,7 +242,7 @@ function agg(a,b){
  rf.forEach(r=>{day[dk(r.ts)]=(day[dk(r.ts)]||0)-r.amount});
  const cbycat={};cs.filter(x=>x.type==='out').forEach(x=>cbycat[x.cat]=(cbycat[x.cat]||0)+x.amount);
  const disc=sum(tx,t=>(t.autoDisc||0)+(t.manualDisc||0));
- return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-cout,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0)};
+ return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-cout,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0),subtotal:sum(tx,t=>t.subtotal||0),autoD:sum(tx,t=>t.autoDisc||0),manD:sum(tx,t=>t.manualDisc||0),rnd:sum(tx,t=>t.rounding||0),taxEx:sum(tx.filter(t=>!t.taxIncl),t=>t.tax||0)};
 }
 function calc(){const[a,b]=range();return agg(a,b)}
 function prevAgg(){
@@ -276,7 +285,7 @@ function render(){
   return;
  }
  CUR=calc();
- const V={ring:vRing,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,mproduk:vMProduk,mstok:vMStok,mpromo:vMPromo,moutlet:vMOutlet};
+ const V={ring:vRing,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,mproduk:vMProduk,mstok:vMStok,mpromo:vMPromo,moutlet:vMOutlet};
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
  $('#app').innerHTML=`<div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">TWINS<span>BACKOFFICE</span></div><small>${esc((D.outlet&&D.outlet.name)||cfg.nm||'Laporan pusat')}</small></div>
  ${NAV.map(([g,l])=>`<div class="ng">${g}</div>${l.map(([k,n,i])=>`<button class="ni ${tab===k?'on':''}" onclick="go('${k}');toggleSide(false)">${ic(i,19)}<span>${n}</span></button>`).join('')}`).join('')}
@@ -309,6 +318,32 @@ function vRing(d){
  <div class="two"><div class="card"><h4>Metode Pembayaran</h4><p>Penerimaan dan refund</p><div class="tw"><table><tr><th>Metode</th><th class="r">Masuk</th><th class="r">Refund</th><th class="r">Bersih</th></tr>${pm.map(m=>`<tr><td>${METHODS[m]||m}</td><td class="r">${rp(d.by[m])}</td><td class="r">${rp(d.rby[m])}</td><td class="r"><b>${rp(d.by[m]-d.rby[m])}</b></td></tr>`).join('')||'<tr><td colspan="4" class="mut">Belum ada data</td></tr>'}</table></div></div>
  <div class="card"><h4>Tipe Order &amp; Channel</h4><p>Dine In, Take Away, ojek online</p><div class="tw"><table><tr><th>Tipe</th><th class="r">Nota</th><th class="r">Total</th></tr>${Object.entries(d.chan).map(([k,o])=>`<tr><td>${esc(k)}</td><td class="r">${o.n}</td><td class="r"><b>${rp(o.total)}</b></td></tr>`).join('')||'<tr><td colspan="3" class="mut">Belum ada data</td></tr>'}</table></div></div></div>`;
 }
+
+/* ---------- Ringkasan Penjualan ---------- */
+function vRsum(d){
+ const pend=d.subtotal+d.svc+d.taxEx+d.rnd,promo=d.autoD+d.manD,lain=d.omzet-d.net,lk=d.net-d.cogs,lb=lk-d.cout,oc=Object.entries(d.cbycat).sort((a,b)=>b[1]-a[1]);
+ const neg=v=>'( '+rp(v)+' )';
+ const R=(l,v,n)=>`<div class="rs-r"><span>${l}</span><span>${n?neg(v):rp(v)}</span></div>`;
+ const N=(l,v)=>R(l,Math.abs(v),v>0);
+ const T=(l,v,n)=>`<div class="rs-r tot"><span>${l}</span><span>${n?neg(v):rp(v)}</span></div>`;
+ const H=(t,c)=>`<div class="rs-h ${c}">${t}</div>`;
+ const Kc=(l,v,c)=>`<div class="kc ${c}"><small>${l}</small><b>${rp(v)}</b></div>`;
+ window._rsum=[['PENDAPATAN',''],['Penjualan Kotor',d.subtotal],['Biaya Pelayanan (service)',d.svc],['Pajak',d.taxEx],['Pembulatan',d.rnd],['TOTAL PENDAPATAN',pend],
+  ['BIAYA PROMOSI',''],['Promo Otomatis (jadwal)',d.autoD],['Diskon Manual Kasir',d.manD],['TOTAL BIAYA PROMOSI',promo],
+  ['PENJUALAN BERSIH',''],['Total Penjualan',d.gross],['Pengembalian',d.refAmt],['TOTAL PENJUALAN BERSIH',d.omzet],
+  ['LABA KOTOR',''],['Total Penjualan Bersih',d.omzet],['Pajak, service dan pembulatan (bukan laba)',lain],['Penjualan setelah diskon',d.net],['HPP',d.cogs],['TOTAL LABA KOTOR',lk],
+  ['BIAYA OPERASIONAL',''],...oc.map(([k,v])=>[k,v]),['TOTAL BIAYA OPERASIONAL',d.cout],['LABA BERSIH',''],['Total Laba Kotor',lk],['Total Biaya Operasional',d.cout],['TOTAL LABA BERSIH',lb]];
+ return`<div class="kg rs-k">${Kc('Total Pendapatan',pend,'k1')}${Kc('Biaya Promosi',promo,'k2')}${Kc('Total Penjualan',d.gross,'k3')}${Kc('Penjualan Bersih',d.omzet,'k4')}${Kc('Total Laba Kotor',lk,'k5')}${Kc('Total Laba Bersih',lb,'k6')}</div>
+ <div class="ch" style="margin-bottom:12px;align-items:center"><div class="mut">${esc(perLabel())} · ${d.tx.length} nota</div><button class="btn" onclick="exportRsum()">${ic('dl',16)} Ekspor Laporan</button></div>
+ <div class="rs-s">${H('Pendapatan','g')}${R('Penjualan Kotor',d.subtotal)}${R('Biaya Pelayanan (service)',d.svc)}${R('Pajak',d.taxEx)}${R('Pembulatan',d.rnd)}${T('TOTAL PENDAPATAN',pend)}</div>
+ <div class="rs-s">${H('Biaya Promosi','y')}${R('Promo Otomatis (jadwal)',d.autoD,1)}${R('Diskon Manual Kasir',d.manD,1)}${T('TOTAL BIAYA PROMOSI',promo,1)}</div>
+ <div class="rs-s">${H('Penjualan Bersih','b')}${R('Total Penjualan',d.gross)}${R('Pengembalian',d.refAmt,1)}${T('TOTAL PENJUALAN BERSIH',d.omzet)}</div>
+ <div class="rs-s">${H('Laba Kotor','p')}${R('Total Penjualan Bersih',d.omzet)}${N('Pajak, service dan pembulatan (bukan laba)',lain)}${R('Penjualan setelah diskon',d.net)}${R('HPP (harga pokok penjualan)',d.cogs,1)}${T('TOTAL LABA KOTOR',lk)}${R('Margin laba kotor',0).replace(rp(0),pct(d.net?lk/d.net*100:0))}</div>
+ <div class="rs-s">${H('Biaya Operasional','o')}${oc.length?oc.map(([k,v])=>R(esc(k),v,1)).join(''):'<div class="rs-r"><span class="mut">Belum ada pengeluaran pada periode ini</span><span></span></div>'}${T('TOTAL BIAYA OPERASIONAL',d.cout,1)}</div>
+ <div class="rs-s">${H('Laba Bersih','g')}${R('Total Laba Kotor',lk)}${R('Total Biaya Operasional',d.cout,1)}${T('TOTAL LABA BERSIH',lb)}${R('Margin laba bersih',0).replace(rp(0),pct(d.net?lb/d.net*100:0))}</div>
+ <div class="note">Ongkos kirim, biaya layanan transaksi, asuransi, komplimen, dan biaya administrasi belum dicatat oleh aplikasi kasir, jadi tidak ditampilkan.</div>`;
+}
+function exportRsum(){csv('Ringkasan-Penjualan',[['Keterangan','Nilai (Rp)'],['Periode',perLabel()],...(window._rsum||[])])}
 
 /* ---------- Analisa Bisnis ---------- */
 function vAnalisa(d){
