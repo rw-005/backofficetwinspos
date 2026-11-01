@@ -101,6 +101,7 @@ tr.ft td{font-weight:800;border-top:2px solid var(--bd);background:var(--soft)}
 }
 @media(max-width:560px){.g2{grid-template-columns:1fr}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.NOXLSX=1"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -576,7 +577,14 @@ const BK={mode:'add',rows:[],ok:[]};
 function bkTpl(mode){
  const set=mode==='set',l=D.products.filter(p=>p.trackStock!==false).sort((a,b)=>String(a.cat||'').localeCompare(String(b.cat||''))||String(a.name).localeCompare(String(b.name)));
  if(!l.length){alert('Belum ada produk dengan hitung stok');return}
- csv(set?'Template-Stok-Opname':'Template-Stok-Masuk',[['ID','Kode','Nama','Kategori','Satuan','Stok Sekarang','Jumlah','Harga Beli (opsional)','Catatan (opsional)'],...l.map(p=>[p.id,p.sku||'',p.name,p.cat||'',p.unit||'',+p.stock||0,set?(+p.stock||0):'','',''])]);
+ bkSave(set?'Template-Stok-Opname':'Template-Stok-Masuk',[['ID','Kode','Nama','Kategori','Satuan','Stok Sekarang','Jumlah','Harga Beli (opsional)','Catatan (opsional)'],...l.map(p=>[p.id,p.sku||'',p.name,p.cat||'',p.unit||'',+p.stock||0,set?(+p.stock||0):'','',''])]);
+}
+function bkSave(name,rows){
+ if(window.XLSX){
+  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:14},{wch:12},{wch:30},{wch:14},{wch:8},{wch:14},{wch:10},{wch:20},{wch:24}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Stok');XLSX.writeFile(wb,name+'-'+dk(Date.now())+'.xlsx');return;
+ }
+ csv(name,rows);
 }
 function bkNum(s){s=String(s==null?'':s).replace(/rp/ig,'').replace(/\s/g,'');if(!s)return null;if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(',','.');const n=parseFloat(s);return isNaN(n)?NaN:n}
 function bkCsv(txt){
@@ -596,20 +604,20 @@ function bkCsv(txt){
 function bkOpen(){
  BK.mode='add';BK.rows=[];BK.ok=[];
  dlg(`<h3>Isi Stok Massal</h3>
- <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template. 2. Isi kolom <b>Jumlah</b> (kosongkan baris yang tidak diubah). 3. Simpan sebagai CSV, lalu unggah di bawah.</div>
+ <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template. 2. Isi kolom <b>Jumlah</b> (kosongkan baris yang tidak diubah). 3. Simpan (tetap format Excel .xlsx, atau CSV), lalu unggah di bawah.</div>
  <div class="acts2" style="margin-top:10px"><button class="btn" onclick="bkTpl('add')">${ic('dl',16)} Template stok masuk</button><button class="btn" onclick="bkTpl('set')">${ic('dl',16)} Template opname</button></div>
  <label>Jenis pengisian</label><select id="bk_mode" onchange="BK.mode=this.value;bkMode()"><option value="add">Stok masuk (jumlah ditambahkan ke stok)</option><option value="set">Opname (jumlah = stok sebenarnya)</option></select>
  <div id="bk_hw"><label>Update HPP produk (bila Harga Beli diisi)</label><select id="bk_hpp"><option value="avg">Rata-rata tertimbang (disarankan)</option><option value="last">Ikut harga beli terakhir</option><option value="none">Jangan ubah HPP</option></select></div>
- <label>Unggah file CSV</label><input type="file" id="bk_file" accept=".csv,.txt,text/csv" onchange="bkRead(this.files[0])">
+ <label>Unggah file Excel / CSV</label><input type="file" id="bk_file" accept=".xlsx,.xls,.csv,.txt" onchange="bkRead(this.files[0])">
  <div id="bk_prev" style="margin-top:12px"></div>
  <div class="acts2"><button class="btn" onclick="closeDlg()">Batal</button><button class="btn pri" id="bk_go" disabled onclick="bkApply(this)">Terapkan</button></div>`,true);
 }
 function bkMode(){const w=$('#bk_hw');if(w)w.style.display=BK.mode==='set'?'none':'';bkPrev()}
 function bkRead(f){
  if(!f)return;
- const rd=new FileReader();
- rd.onload=e=>{
-  const rows=bkCsv(String(e.target.result||'')),el=$('#bk_prev');
+ const el=$('#bk_prev'),rd=new FileReader(),isX=/\.xlsx?$/i.test(f.name);
+ if(isX&&!window.XLSX){el.innerHTML='<div class="mut" style="color:var(--bad)">Pembaca Excel belum termuat (cek internet). Simpan file sebagai CSV lalu unggah lagi.</div>';return}
+ const proc=rows=>{
   BK.rows=[];
   if(rows.length<2){el.innerHTML='<div class="mut">File kosong atau formatnya tidak dikenali.</div>';bkPrev();return}
   const h=rows[0].map(x=>String(x).toLowerCase().replace(/[^a-z]/g,'')),ix=k=>h.findIndex(x=>x.startsWith(k));
@@ -619,7 +627,13 @@ function bkRead(f){
   BK.rows=rows.slice(1).map(r=>({id:g(r,c.id),sku:g(r,c.sku),name:g(r,c.name),qty:bkNum(g(r,c.qty)),bp:c.bp>=0?bkNum(g(r,c.bp)):null,note:g(r,c.note).slice(0,40)}));
   bkPrev();
  };
- rd.readAsText(f);
+ rd.onload=e=>{
+  try{
+   if(isX){const wb=XLSX.read(e.target.result,{type:'array'});proc(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}).map(r=>r.map(x=>x==null?'':String(x))).filter(r=>r.some(x=>x.trim()!=='')))}
+   else proc(bkCsv(String(e.target.result||'')));
+  }catch(err){el.innerHTML='<div class="mut" style="color:var(--bad)">File tidak bisa dibaca: '+esc(err.message)+'</div>'}
+ };
+ isX?rd.readAsArrayBuffer(f):rd.readAsText(f);
 }
 function bkPrev(){
  const el=$('#bk_prev'),go=$('#bk_go');if(!el)return;
