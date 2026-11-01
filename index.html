@@ -478,7 +478,8 @@ function vCash(d){
 /* =================== PENGATURAN (tulis ke server) =================== */
 const v=id=>($('#'+id)||{}).value||'',ck=id=>!!($('#'+id)||{}).checked;
 async function push(kind,payload){
- const r=await fetch(baseUrl(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'bopush',hp:cfg.hp,pin:cfg.pin,kind,payload})});
+ const u=baseUrl(),q='action=bopush&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||'')+'&kind='+encodeURIComponent(kind)+'&payload='+encodeURIComponent(JSON.stringify(payload));
+ const r=await fetch(u+(u.includes('?')?'&':'?')+q,{redirect:'follow'});
  const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
  busy=false;await load();
 }
