@@ -901,7 +901,7 @@ async function pushPost(kind,payload){
  const u=baseUrl();
  const r=await fetch(u,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'bopush',hp:cfg.hp||'',pin:cfg.pin||'',kind,payload})});
  const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
- busy=false;await load();
+ scheduleLoad();
 }
 if(window.PL)PL.init({
  data:()=>({customers:D.customers||[],groups:D.cgroups||[],products:D.products||[],tx:D.tx||[]}),
@@ -922,11 +922,11 @@ async function push(kind,payload){
  const u=baseUrl(),q='action=bopush&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||'')+'&kind='+encodeURIComponent(kind)+'&payload='+encodeURIComponent(JSON.stringify(payload));
  const r=await fetch(u+(u.includes('?')?'&':'?')+q,{redirect:'follow'});
  const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
- busy=false;await load();
+ scheduleLoad();
 }
 async function safe(f,btn){
- if(btn)btn.disabled=true;
- try{await f();closeDlg();render()}catch(e){alert('Gagal menyimpan: '+e.message);if(btn)btn.disabled=false}
+ let t0='';if(btn){btn.disabled=true;t0=btn.textContent;btn.textContent='Menyimpan…'}
+ try{await f();closeDlg();render()}catch(e){alert('Gagal menyimpan: '+e.message);if(btn){btn.disabled=false;btn.textContent=t0}}
 }
 const fld=(id,l,val,t,ph,extra)=>`<div><label>${l}</label><input id="${id}" type="${t||'text'}" ${t==='number'?'inputmode="decimal" step="any" min="0"':''} value="${esc(val==null?'':val)}" placeholder="${esc(ph||'')}" ${extra||''}></div>`;
 const chk=(id,l,on,fn)=>`<label class="ck"><input id="${id}" type="checkbox" ${on?'checked':''} ${fn?'onchange="'+fn+'"':''}> ${l}</label>`;
@@ -1108,6 +1108,8 @@ function bkPrev(){
  ${out.length?`<div class="tw" style="max-height:34vh;overflow:auto"><table><tr><th>Produk</th><th class="r">Sekarang</th><th class="r">${set?'Stok sebenarnya':'Tambah'}</th><th class="r">Sesudah</th><th>Status</th></tr>${out.slice(0,300).map(o=>{const nm=o.p?o.p.name:(o.r.name||o.r.sku||o.r.id||'?'),aft=o.st==='ok'?(set?o.r.qty:Math.round((o.s+o.r.qty)*1000)/1000):null;return`<tr><td><b>${esc(nm)}</b></td><td class="r">${o.p?fq(o.s):'—'}</td><td class="r">${isNaN(o.r.qty)?'?':fq(o.r.qty)}</td><td class="r">${aft==null?'—':'<b>'+fq(aft)+'</b>'}</td><td>${o.st==='ok'?'<span class="badge g">OK</span>':o.st==='same'?'<span class="badge">Tidak berubah</span>':'<span class="badge v">'+esc(o.msg)+'</span>'}</td></tr>`}).join('')}</table></div>${out.length>300?'<div class="mut" style="font-size:12.5px;margin-top:6px">Menampilkan 300 baris pertama; semua baris valid tetap diproses.</div>':''}`:''}`;
  if(go)go.disabled=!BK.ok.length;
 }
+let LT=0;
+function scheduleLoad(){clearTimeout(LT);LT=setTimeout(()=>{busy=false;load().then(()=>render()).catch(()=>{})},500)}
 async function pushQuiet(kind,payload){
  const u=baseUrl(),q='action=bopush&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||'')+'&kind='+encodeURIComponent(kind)+'&payload='+encodeURIComponent(JSON.stringify(payload));
  const r=await fetch(u+(u.includes('?')?'&':'?')+q,{redirect:'follow'});
@@ -1626,14 +1628,14 @@ async function purSave(btn){
  const mode=v('p_pay');let amt=mode==='lunas'?total:mode==='sebagian'?Math.min(total,Math.max(0,+v('p_amt')||0)):0;
  if(mode==='sebagian'&&!(amt>0)){alert('Isi jumlah yang dibayar');return}
  const rec={id:'fb'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),no,ts:dts(v('p_date')),supplierId:sp.id,supplierName:sp.name,items,sub:C.sub,disc:C.disc,ship:C.ship,taxPct:C.pct,tax:C.tax,total,payments:amt>0?[{ts:Date.now(),amount:amt,acc:v('p_acc'),method:v('p_acc')?accName(v('p_acc')):'Tidak dicatat'}]:[],due:v('p_due')?dts(v('p_due')):0,note:v('p_note').trim(),stock:ck('p_stk'),by:cfg.nm||''};
- btn.disabled=true;let stokOk=false;
+ btn.disabled=true;btn.textContent='Menyimpan…';let stokOk=false;
  try{
   if(rec.stock){await pushPost('stock_bulk',{mode:'add',hppMode:'avg',note:'[FB] '+no,items:items.map(x=>({id:x.pid,qty:x.qty,buyPrice:C.sub>0?Math.round(x.price+(C.ship-C.disc)*(x.price/C.sub)):x.price,note:('[FB] '+no+' · '+sp.name).slice(0,100)}))});stokOk=true}
   await pushPost('purchase',rec);
-  if(rec.payments[0]&&rec.payments[0].acc){try{await cfBuy(rec.payments[0].acc,rec.payments[0].amount,'Faktur '+no+' · '+sp.name,'fb:'+rec.id,rec.payments[0].ts);busy=false;await load()}catch(e){alert('Faktur tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
+  if(rec.payments[0]&&rec.payments[0].acc){try{await cfBuy(rec.payments[0].acc,rec.payments[0].amount,'Faktur '+no+' · '+sp.name,'fb:'+rec.id,rec.payments[0].ts);scheduleLoad()}catch(e){alert('Faktur tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
   closeDlg();render();
  }catch(e){
-  btn.disabled=false;
+  btn.disabled=false;btn.textContent='Simpan Faktur';
   alert(stokOk?'Stok sudah bertambah, tetapi faktur belum tersimpan: '+e.message+'\n\nSimpan ulang faktur ini dengan MENGHILANGKAN centang “Tambah stok produk otomatis”, supaya stok tidak bertambah dua kali.':'Gagal menyimpan: '+e.message);
  }
 }
@@ -1892,15 +1894,15 @@ async function sinSave(btn){
  const kurang=ck('j_stk')?items.filter(x=>x.trackStock&&(+(D.products.find(p=>p.id===x.pid)||{}).stock||0)<x.qty):[];
  if(kurang.length&&!confirm('Stok tidak cukup untuk: '+kurang.map(x=>x.name).join(', ')+'. Lanjutkan? Stok akan menjadi minus.'))return;
  const rec={id:'fj'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),no,ts:dts(v('j_date')),customerId:cu.id,customerName:cu.name,items:items.map(x=>({pid:x.pid,name:x.name,unit:x.unit,cat:x.cat,cogs:x.cogs,qty:x.qty,price:x.price})),sub:C.sub,disc:C.disc,ship:C.ship,taxPct:C.pct,tax:C.tax,total,payments:amt>0?[{ts:Date.now(),amount:amt,acc,method:accName(acc)}]:[],due:v('j_due')?dts(v('j_due')):0,note:v('j_note').trim(),stock:ck('j_stk'),by:cfg.nm||''};
- btn.disabled=true;let stokOk=false;
+ btn.disabled=true;btn.textContent='Menyimpan…';let stokOk=false;
  try{
   const st=items.filter(x=>x.trackStock);
   if(rec.stock&&st.length){await pushPost('stock_bulk',{mode:'out',note:'[FJ] '+no,items:st.map(x=>({id:x.pid,qty:x.qty,note:('[FJ] '+no+' · '+cu.name).slice(0,100)}))});stokOk=true}
   await pushPost('sinvoice',rec);
-  if(rec.payments[0]){try{await cfIn(acc,amt,'Pelunasan '+no+' · '+cu.name,'fj:'+rec.id,rec.payments[0].ts);busy=false;await load()}catch(e){alert('Faktur tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
+  if(rec.payments[0]){try{await cfIn(acc,amt,'Pelunasan '+no+' · '+cu.name,'fj:'+rec.id,rec.payments[0].ts);scheduleLoad()}catch(e){alert('Faktur tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
   closeDlg();render();
  }catch(e){
-  btn.disabled=false;
+  btn.disabled=false;btn.textContent='Simpan Faktur';
   alert(stokOk?'Stok sudah berkurang, tetapi faktur belum tersimpan: '+e.message+'\n\nSimpan ulang faktur ini dengan MENGHILANGKAN centang “Kurangi stok produk otomatis”, supaya stok tidak berkurang dua kali.':'Gagal menyimpan: '+e.message);
  }
 }
@@ -1927,7 +1929,7 @@ function sinPay(id,btn){
  const pm={ts:dts(v('y_date')),amount:a,acc,method:accName(acc)};
  safe(async()=>{
   await pushPost('sinvoice',Object.assign({},f,{payments:[...(f.payments||[]),pm]}));
-  try{await cfIn(acc,a,'Pelunasan '+f.no+' · '+(f.customerName||''),'fj:'+f.id,pm.ts);busy=false;await load()}catch(e){alert('Pembayaran tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}
+  try{await cfIn(acc,a,'Pelunasan '+f.no+' · '+(f.customerName||''),'fj:'+f.id,pm.ts);scheduleLoad()}catch(e){alert('Pembayaran tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}
  },btn);
 }
 function sinDel(id){
@@ -2092,7 +2094,7 @@ function purPay(id,btn){
  const pm={ts:dts(v('y_date')),amount:a,acc,method:acc?accName(acc):'Tidak dicatat'};
  safe(async()=>{
   await pushPost('purchase',Object.assign({},f,{payments:[...(f.payments||[]),pm]}));
-  if(acc){try{await cfBuy(acc,a,'Faktur '+f.no+' · '+(f.supplierName||''),'fb:'+f.id,pm.ts);busy=false;await load()}catch(e){alert('Pembayaran tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
+  if(acc){try{await cfBuy(acc,a,'Faktur '+f.no+' · '+(f.supplierName||''),'fb:'+f.id,pm.ts);scheduleLoad()}catch(e){alert('Pembayaran tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
  },btn);
 }
 function purDel(id){
