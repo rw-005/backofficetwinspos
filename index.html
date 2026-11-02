@@ -117,7 +117,7 @@ html,body{background:var(--bg);letter-spacing:-.005em}
 *{scrollbar-width:thin;scrollbar-color:var(--bd) transparent}
 .content{animation:fin .35s ease both}@keyframes fin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 /* sidebar */
-.side{box-shadow:6px 0 30px rgba(13,33,96,.18);position:sticky}
+.side{box-shadow:6px 0 30px rgba(13,33,96,.18)}
 .side .brand{padding:26px 24px 14px}.logo{letter-spacing:.34em;font-size:20px;font-weight:800}.logo span{font-weight:300;letter-spacing:.34em}
 .side .brand small{opacity:.7;letter-spacing:.02em}
 .ng{opacity:.5;letter-spacing:.16em;font-size:10.5px;padding:20px 24px 6px}
@@ -177,6 +177,13 @@ tr.ft td{background:var(--soft);border-top:0}
 .lockbox{border-radius:28px;padding:32px;box-shadow:0 30px 70px rgba(5,15,60,.45)}
 #dlgb{border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
 #dlg{backdrop-filter:blur(4px)}
+@media(max-width:1000px){
+ .side{position:fixed;left:0;top:0;height:100vh;height:100dvh;transform:translateX(-102%)}.side.open{transform:none}
+ .kc.hero b{font-size:clamp(24px,8.5vw,34px);overflow-wrap:anywhere}.kc.hero{padding:18px}
+ .kc b{font-size:19px}.card{padding:16px;border-radius:20px}
+ .cv .ax{font-size:19px}.cv .vl{font-size:20px}.cv .ln{stroke-width:4}
+ .tb h2{font-size:19px}
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.NOXLSX=1"></script>
 </head>
