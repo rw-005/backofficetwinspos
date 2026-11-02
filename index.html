@@ -193,7 +193,7 @@ async function load(){
   const u=baseUrl(),r=await fetch(u+(u.includes('?')?'&':'?')+'action=bopull&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||''),{redirect:'follow'});
   const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
   const gone=j.dels||{},dat=j.data||{},o={};
-  ['tx','refunds','shifts','cash','products','promos','customers'].forEach(k=>{const g=new Set(gone[k]||[]);o[k]=(dat[k]||[]).filter(x=>!g.has(x.id))});
+  ['tx','refunds','shifts','cash','products','promos','customers','cgroups'].forEach(k=>{const g=new Set(gone[k]||[]);o[k]=(dat[k]||[]).filter(x=>!g.has(x.id))});
   o.stocklog=dat.stocklog||[];const st=dat.settings||[];o.outlet=st.find(x=>x.id==='outlet')||{};o.receipt=st.find(x=>x.id==='receipt')||{};
   D=o;cfg.nm=j.name||'';loadedAt=Date.now();busy=false;return true;
  }catch(e){busy=false;throw e}
@@ -526,9 +526,11 @@ async function pushPost(kind,payload){
  busy=false;await load();
 }
 if(window.PL)PL.init({
- data:()=>({customers:D.customers||[],products:D.products||[],tx:D.tx||[]}),
+ data:()=>({customers:D.customers||[],groups:D.cgroups||[],products:D.products||[],tx:D.tx||[]}),
  save:c=>pushPost('customer',c),
  del:id=>pushPost('customer_del',{id}),
+ saveGroup:g=>pushPost('cgroup',g),
+ delGroup:id=>pushPost('cgroup_del',{id}),
  openDlg:(h,w)=>dlg(h,w),
  back:()=>{closeDlg();render()},
  range:()=>range(),periodLabel:()=>perLabel(),
