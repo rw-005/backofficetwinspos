@@ -115,6 +115,7 @@ tr.ft td{font-weight:800;border-top:2px solid var(--bd);background:var(--soft)}
 <body>
 <div id="app"></div>
 <div id="dlg" onclick="if(event.target===this)closeDlg()"><div id="dlgb"></div></div>
+<script src="pelanggan.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -153,6 +154,7 @@ const IC={
  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
  tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
  store:'<path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/>',
+ users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
  hist:'<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><polyline points="12 7 12 12 15 14"/>'
 };
 const ic=(n,s)=>`<svg width="${s||18}" height="${s||18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[n]||''}</svg>`;
@@ -161,10 +163,11 @@ const NAV=[
  ['Utama',[['ring','Ringkasan','home'],['analisa','Analisa Bisnis','trend']]],
  ['Laporan Penjualan',[['rsum','Ringkasan Penjualan','file'],['detail','Detail Penjualan','file'],['produk','Penjualan per Produk','box'],['kasir','Penjualan per Kasir','user'],['pkasir','Produk per Kasir','layers']]],
  ['Operasional',[['shift','Laporan Shift','clock'],['cash','Kas Masuk & Keluar','wallet']]],
+ ['Pelanggan',[['pelanggan','Pelanggan','users']]],
  ['Pengaturan',[['mproduk','Produk & Stok','plus'],['mstok','Riwayat Stok','hist'],['mpromo','Promo','tag'],['moutlet','Outlet & Struk','store']]]
 ];
 const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],
- mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mpromo:['Promo','Atur diskon otomatis di kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk']};
+ pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mpromo:['Promo','Atur diskon otomatis di kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk']};
 const MG=['mproduk','mstok','mpromo','moutlet'];
 
 /* Isi dengan URL Web App (Apps Script) agar login hanya perlu PIN. Kosongkan = URL diminta sekali di layar login. */
@@ -190,7 +193,7 @@ async function load(){
   const u=baseUrl(),r=await fetch(u+(u.includes('?')?'&':'?')+'action=bopull&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||''),{redirect:'follow'});
   const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
   const gone=j.dels||{},dat=j.data||{},o={};
-  ['tx','refunds','shifts','cash','products','promos'].forEach(k=>{const g=new Set(gone[k]||[]);o[k]=(dat[k]||[]).filter(x=>!g.has(x.id))});
+  ['tx','refunds','shifts','cash','products','promos','customers'].forEach(k=>{const g=new Set(gone[k]||[]);o[k]=(dat[k]||[]).filter(x=>!g.has(x.id))});
   o.stocklog=dat.stocklog||[];const st=dat.settings||[];o.outlet=st.find(x=>x.id==='outlet')||{};o.receipt=st.find(x=>x.id==='receipt')||{};
   D=o;cfg.nm=j.name||'';loadedAt=Date.now();busy=false;return true;
  }catch(e){busy=false;throw e}
@@ -285,7 +288,7 @@ function render(){
   return;
  }
  CUR=calc();
- const V={ring:vRing,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,mproduk:vMProduk,mstok:vMStok,mpromo:vMPromo,moutlet:vMOutlet};
+ const V={ring:vRing,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,pelanggan:vPelanggan,mproduk:vMProduk,mstok:vMStok,mpromo:vMPromo,moutlet:vMOutlet};
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
  $('#app').innerHTML=`<div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">TWINS<span>BACKOFFICE</span></div><small>${esc((D.outlet&&D.outlet.name)||cfg.nm||'Laporan pusat')}</small></div>
  ${NAV.map(([g,l])=>`<div class="ng">${g}</div>${l.map(([k,n,i])=>`<button class="ni ${tab===k?'on':''}" onclick="go('${k}');toggleSide(false)">${ic(i,19)}<span>${n}</span></button>`).join('')}`).join('')}
@@ -297,6 +300,7 @@ function render(){
  if(tab==='produk')ppRender();
  if(tab==='moutlet')prevStruk();
  if(tab==='mstok')slRows();
+ if(tab==='pelanggan'&&window.PL)PL.mount('plv');
 }
 function periodBar(){
  const L=[['today','Hari ini'],['7d','7 hari'],['month','Bulan ini'],['all','Semua'],['custom','Kustom']];
@@ -510,6 +514,27 @@ function vCash(d){
  <div class="two"><div class="card"><h4>Pengeluaran per Kategori</h4><p>${esc(perLabel())}</p>${Object.keys(d.cbycat).length?`<div class="tw"><table><tr><th>Kategori</th><th class="r">Total</th></tr>${Object.entries(d.cbycat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r"><b>${rp(v)}</b></td></tr>`).join('')}</table></div>`:'<div class="empty">Belum ada pengeluaran</div>'}</div>
  <div class="card"><h4>Catatan Kas</h4><p>Pengeluaran dan uang masuk</p><div class="tw">${d.cs.length?`<table><tr><th>Waktu</th><th>Kategori</th><th>Catatan</th><th class="r">Nominal</th></tr>${d.cs.slice(0,200).map(x=>`<tr><td>${fmtT(x.ts)}</td><td>${esc(x.cat)}${x.src==='luar'?' <span class="badge k">luar laci</span>':''}</td><td>${esc(x.note||'—')}</td><td class="r" style="color:var(--${x.type==='out'?'bad':'ok'})">${x.type==='out'?'−':'+'}${rp(x.amount)}</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada catatan</div>'}</div></div></div>`;
 }
+
+/* ---------- Pelanggan (logika ada di pelanggan.js) ---------- */
+function vPelanggan(){
+ return window.PL?'<div id="plv"></div>':'<div class="card"><div class="empty">File <b>pelanggan.js</b> tidak ditemukan. Taruh di folder yang sama dengan file ini.</div></div>';
+}
+async function pushPost(kind,payload){
+ const u=baseUrl();
+ const r=await fetch(u,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'bopush',hp:cfg.hp||'',pin:cfg.pin||'',kind,payload})});
+ const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
+ busy=false;await load();
+}
+if(window.PL)PL.init({
+ data:()=>({customers:D.customers||[],products:D.products||[],tx:D.tx||[]}),
+ save:c=>pushPost('customer',c),
+ del:id=>pushPost('customer_del',{id}),
+ openDlg:(h,w)=>dlg(h,w),
+ back:()=>{closeDlg();render()},
+ range:()=>range(),periodLabel:()=>perLabel(),
+ export:(n,r)=>csv(n,r),
+ openTx:id=>txDetail(id)
+});
 
 /* =================== PENGATURAN (tulis ke server) =================== */
 const v=id=>($('#'+id)||{}).value||'',ck=id=>!!($('#'+id)||{}).checked;
