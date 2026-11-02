@@ -299,12 +299,12 @@ function perLabel(){return{today:'Hari ini','7d':'7 hari terakhir',month:'Bulan 
 const dk=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 function agg(a,b){
  const inR=t=>t>=a&&t<b;
- const tx=D.tx.filter(t=>inR(t.ts)).sort((x,y)=>y.ts-x.ts),rf=D.refunds.filter(r=>inR(r.ts)),cs=D.cash.filter(x=>inR(x.ts)).sort((x,y)=>y.ts-x.ts),sh=D.shifts.filter(s=>inR(s.openTs)).sort((x,y)=>y.openTs-x.openTs);
+ const tx=D.tx.filter(t=>inR(t.ts)).sort((x,y)=>y.ts-x.ts),rf=D.refunds.filter(r=>inR(r.ts)),cs=[...D.cash,...(D.cf||[]).filter(x=>(x.type==='in'||x.type==='out')&&!(x.type==='out'&&x.nonop)).map(x=>({...x,src:'arus'}))].filter(x=>inR(x.ts)).sort((x,y)=>y.ts-x.ts),sh=D.shifts.filter(s=>inR(s.openTs)).sort((x,y)=>y.openTs-x.openTs);
  const gross=sum(tx,t=>t.total-(t.compAmt||0)),refAmt=sum(rf,r=>r.amount),omzet=gross-refAmt,cmp=sum(tx,t=>t.compAmt||0),fMdr=sum(tx,t=>(t.fee&&t.fee.mdr||0)*(feeNet(t)/(t.feeTot||1))),fSvc=sum(tx,t=>(t.fee&&t.fee.svc||0)*(feeNet(t)/(t.feeTot||1))),fAdm=sum(tx,t=>(t.fee&&t.fee.adm||0)*(feeNet(t)/(t.feeTot||1))),fShip=sum(tx,t=>(t.fee&&t.fee.ship||0)*(feeNet(t)/(t.feeTot||1))),fees=fMdr+fSvc+fAdm+fShip;
  const net=sum(tx,t=>(t.net||0)*(1-cRatio(t)))-sum(rf,r=>r.net||0);
  const cogs=sum(tx,t=>sum(t.items,i=>i.qty*(i.cogs||0)))-sum(rf,r=>sum(r.items,i=>i.qty*(i.cogs||0)));
  const cout=sum(cs.filter(x=>x.type==='out'),x=>x.amount),cin=sum(cs.filter(x=>x.type==='in'),x=>x.amount);
- const pyp=(D.payroll||[]).filter(p=>p.status==='paid'&&p.paidTs&&inR(+p.paidTs)),gaji=sum(pyp,p=>Math.max(0,(+p.total||0)-(+p.comm||0))),komisi=sum(pyp,p=>+p.comm||0),opex=cout+gaji+komisi;
+ const pyp=(D.payroll||[]).filter(p=>p.status==='paid'&&p.paidTs&&inR(+p.paidTs)),gaji=sum(pyp,p=>Math.max(0,(+p.total||0)-(+p.comm||0))),komisi=sum(pyp,p=>+p.comm||0),opex=cout+gaji+komisi,nopl=(D.cf||[]).filter(x=>x.type==='out'&&x.nonop&&inR(x.ts)),nonop=sum(nopl,x=>x.amount),nonopcat={},cincat={};nopl.forEach(x=>{const k=x.cat||'Lainnya';nonopcat[k]=(nonopcat[k]||0)+x.amount});cs.filter(x=>x.type==='in').forEach(x=>{cincat[x.cat]=(cincat[x.cat]||0)+x.amount});
  const by={},rby={};Object.keys(METHODS).forEach(m=>{by[m]=0;rby[m]=0});
  tx.forEach(t=>t.payments.forEach(p=>by[p.m]=(by[p.m]||0)+p.ap));rf.forEach(r=>rby[r.method]=(rby[r.method]||0)+r.amount);
  const prod={},kprod={},cat={};let items=0;
@@ -324,7 +324,7 @@ function agg(a,b){
  rf.forEach(r=>{day[dk(r.ts)]=(day[dk(r.ts)]||0)-r.amount});
  const cbycat={};cs.filter(x=>x.type==='out').forEach(x=>cbycat[x.cat]=(cbycat[x.cat]||0)+x.amount);
  const disc=sum(tx,t=>(t.custDisc||0)+(t.autoDisc||0)+(t.voucherDisc||0)+(t.ptDisc||0)+(t.manualDisc||0));
- return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-opex-fees,gaji,komisi,opex,cmp,fMdr,fSvc,fAdm,fShip,fees,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0),subtotal:sum(tx,t=>(t.subtotal||0)+(t.custDisc||0)),cD:sum(tx,t=>t.custDisc||0),autoD:sum(tx,t=>t.autoDisc||0),vD:sum(tx,t=>t.voucherDisc||0),pD:sum(tx,t=>t.ptDisc||0),manD:sum(tx,t=>t.manualDisc||0),rnd:sum(tx,t=>t.rounding||0),taxEx:sum(tx.filter(t=>!t.taxIncl),t=>t.tax||0)};
+ return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-opex-fees,gaji,komisi,opex,cincat,nonop,nonopcat,cmp,fMdr,fSvc,fAdm,fShip,fees,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0),subtotal:sum(tx,t=>(t.subtotal||0)+(t.custDisc||0)),cD:sum(tx,t=>t.custDisc||0),autoD:sum(tx,t=>t.autoDisc||0),vD:sum(tx,t=>t.voucherDisc||0),pD:sum(tx,t=>t.ptDisc||0),manD:sum(tx,t=>t.manualDisc||0),rnd:sum(tx,t=>t.rounding||0),taxEx:sum(tx.filter(t=>!t.taxIncl),t=>t.tax||0)};
 }
 function calc(){const[a,b]=range();return agg(a,b)}
 function prevAgg(){
@@ -448,7 +448,7 @@ function vRsum(d){
   ['BIAYA PROMOSI',''],['Harga Pelanggan & Grup',d.cD],['Promo Otomatis',d.autoD],['Voucher',d.vD],['Tukar Poin',d.pD],['Diskon Manual Kasir',d.manD],['Komplimen',d.cmp],['TOTAL BIAYA PROMOSI',promo],
   ['PENJUALAN BERSIH',''],['Total Penjualan',d.gross],['Pengembalian',d.refAmt],['TOTAL PENJUALAN BERSIH',d.omzet],
   ['LABA KOTOR',''],['Total Penjualan Bersih',d.omzet],['Pajak, service dan pembulatan (bukan laba)',lain],['Penjualan setelah diskon',d.net],['HPP',d.cogs],['TOTAL LABA KOTOR',lk],
-  ['BIAYA LAYANAN & PLATFORM',''],['MDR Metode Bayar',d.fMdr],['Biaya Layanan / Komisi Platform',d.fSvc],['Biaya Administrasi Platform',d.fAdm],['Ongkir Ditanggung Toko',d.fShip],['TOTAL BIAYA LAYANAN & PLATFORM',d.fees],['BIAYA OPERASIONAL',''],...oc.map(([k,v])=>[k,v]),['Gaji Karyawan',d.gaji],['Komisi Karyawan',d.komisi],['TOTAL BIAYA OPERASIONAL',d.opex],['LABA BERSIH',''],['Total Laba Kotor',lk],['Total Biaya Layanan & Platform',d.fees],['Total Biaya Operasional',d.opex],['TOTAL LABA BERSIH',lb]];
+  ['BIAYA LAYANAN & PLATFORM',''],['MDR Metode Bayar',d.fMdr],['Biaya Layanan / Komisi Platform',d.fSvc],['Biaya Administrasi Platform',d.fAdm],['Ongkir Ditanggung Toko',d.fShip],['TOTAL BIAYA LAYANAN & PLATFORM',d.fees],['BIAYA OPERASIONAL',''],...oc.map(([k,v])=>[k,v]),['Gaji Karyawan',d.gaji],['Komisi Karyawan',d.komisi],['TOTAL BIAYA OPERASIONAL',d.opex],['UANG MASUK LAIN (BUKAN LABA)',''],...Object.entries(d.cincat).map(([k,v])=>[k,v]),['TOTAL UANG MASUK LAIN',d.cin],['PENGELUARAN NON-OPERASIONAL (TIDAK MENGURANGI LABA)',''],...Object.entries(d.nonopcat).map(([k,v])=>[k,v]),['TOTAL NON-OPERASIONAL',d.nonop],['LABA BERSIH',''],['Total Laba Kotor',lk],['Total Biaya Layanan & Platform',d.fees],['Total Biaya Operasional',d.opex],['TOTAL LABA BERSIH',lb]];
  return`<div class="kg rs-k">${Kc('Total Pendapatan',pend,'k1')}${Kc('Biaya Promosi',promo,'k2')}${Kc('Total Penjualan',d.gross,'k3')}${Kc('Penjualan Bersih',d.omzet,'k4')}${Kc('Total Laba Kotor',lk,'k5')}${Kc('Total Laba Bersih',lb,'k6')}</div>
  <div class="ch" style="margin-bottom:12px;align-items:center"><div class="mut">${esc(perLabel())} · ${d.tx.length} nota</div><button class="btn" onclick="exportRsum()">${ic('dl',16)} Ekspor Laporan</button></div>
  <div class="rs-s">${H('Pendapatan','g')}${R('Penjualan Kotor',d.subtotal)}${R('Biaya Pelayanan (service)',d.svc)}${R('Pajak',d.taxEx)}${R('Pembulatan',d.rnd)}${T('TOTAL PENDAPATAN',pend)}</div>
@@ -457,6 +457,8 @@ function vRsum(d){
  <div class="rs-s">${H('Laba Kotor','p')}${R('Total Penjualan Bersih',d.omzet)}${N('Pajak, service dan pembulatan (bukan laba)',lain)}${R('Penjualan setelah diskon',d.net)}${R('HPP (harga pokok penjualan)',d.cogs,1)}${T('TOTAL LABA KOTOR',lk)}${R('Margin laba kotor',0).replace(rp(0),pct(d.net?lk/d.net*100:0))}</div>
  <div class="rs-s">${H('Biaya Layanan &amp; Platform','y')}${R('MDR Metode Bayar',d.fMdr,1)}${R('Biaya Layanan / Komisi Platform',d.fSvc,1)}${R('Biaya Administrasi Platform',d.fAdm,1)}${R('Ongkir Ditanggung Toko',d.fShip,1)}${T('TOTAL BIAYA LAYANAN &amp; PLATFORM',d.fees,1)}</div>
  <div class="rs-s">${H('Biaya Operasional','o')}${oc.map(([k,v])=>R(esc(k),v,1)).join('')}${d.gaji?R('Gaji Karyawan',d.gaji,1):''}${d.komisi?R('Komisi Karyawan',d.komisi,1):''}${d.opex?'':'<div class="rs-r"><span class="mut">Belum ada pengeluaran pada periode ini</span><span></span></div>'}${T('TOTAL BIAYA OPERASIONAL',d.opex,1)}</div>
+ ${d.cin?`<div class="rs-s">${H('Uang Masuk Lain (bukan laba)','y')}${Object.entries(d.cincat).map(([k,v])=>R(esc(k),v)).join('')}${T('TOTAL UANG MASUK LAIN',d.cin)}</div>`:''}
+ ${d.nonop?`<div class="rs-s">${H('Pengeluaran Non-Operasional (tidak mengurangi laba)','o')}${Object.entries(d.nonopcat).map(([k,v])=>R(esc(k),v,1)).join('')}${T('TOTAL NON-OPERASIONAL',d.nonop,1)}</div>`:''}
  <div class="rs-s">${H('Laba Bersih','g')}${R('Total Laba Kotor',lk)}${R('Total Biaya Layanan &amp; Platform',d.fees,1)}${R('Total Biaya Operasional',d.opex,1)}${T('TOTAL LABA BERSIH',lb)}${R('Margin laba bersih',0).replace(rp(0),pct(d.net?lb/d.net*100:0))}</div>
  <div class="note">Ongkos kirim, biaya layanan transaksi, asuransi, komplimen, dan biaya administrasi belum dicatat oleh aplikasi kasir, jadi tidak ditampilkan.</div>`;
 }
@@ -678,14 +680,14 @@ function shiftDetail(id){
 }
 
 /* ---------- Arus Kas & Rekening ---------- */
-const AK={acc:''},BT={tunai:'Kas Tunai',bank:'Bank',ewallet:'E-Wallet'},MKEYS=['tunai','qris','debit','kredit','transfer','ewallet','luar','gaji'];
+const AK={acc:''},BT={tunai:'Kas Tunai (kasir/laci)',penampung:'Bank Penampung (belum cair)',bank:'Bank',ewallet:'E-Wallet'},MKEYS=['tunai','qris','debit','kredit','transfer','ewallet','luar','gaji'];
 const CFC={out:['Belanja Bahan','Gaji','Sewa','Listrik & Air','Transportasi','Marketing','Peralatan','Pajak','Lainnya'],in:['Setoran Modal','Pinjaman','Pendapatan Lain','Lainnya']};
 const BANKS=()=>(D&&D.banks)||[],CFS=()=>(D&&D.cf)||[],CMAP=()=>(D&&D.cfmap)||{};
 const accName=id=>{const b=BANKS().find(x=>x.id===id);return b?b.name:'Belum diatur'};
 function accOf(m){
  const all=BANKS(),b=all.filter(x=>x.active!==false),mp=CMAP()[m];
  if(mp&&all.some(x=>x.id===mp))return mp;
- const f=(m==='tunai'||m==='luar'||m==='gaji')?b.find(x=>x.type==='tunai'):b.find(x=>x.type!=='tunai');
+ const f=(m==='tunai'||m==='luar'||m==='gaji')?b.find(x=>x.type==='tunai'):(b.find(x=>x.type==='penampung')||b.find(x=>x.type!=='tunai'));
  return f?f.id:'-';
 }
 function cfFlows(){
@@ -733,9 +735,9 @@ function vArus(){
  const tin=sum(rows.filter(ex),r=>r.inn),tout=sum(rows.filter(ex),r=>r.out);
  return`${bk.length?'':'<div class="note">Belum ada rekening. Klik <b>Rekening & Saldo Awal</b> untuk membuat akun, misalnya <b>Kas Tunai</b>, <b>BCA</b>, atau <b>QRIS/E-Wallet</b>, lalu isi saldo awalnya.</div>'}
  <div class="card"><div class="tool"><select onchange="AK.acc=this.value;render()"><option value="">Semua rekening</option><option value="g:tunai" ${sel==='g:tunai'?'selected':''}>Laci Kas (tunai)</option><option value="g:non" ${sel==='g:non'?'selected':''}>Rekening (QRIS, debit, transfer, e-wallet)</option>${accs.map(s=>`<option value="${s.id}" ${sel===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
- <button class="btn pri" onclick="cfForm('in')">${ic('plus',16)} Dana Masuk</button><button class="btn pri" onclick="cfForm('out')">${ic('plus',16)} Pengeluaran</button><button class="btn" onclick="cfForm('tf')">Transfer</button>
+ <button class="btn pri" onclick="cfForm('in')">${ic('plus',16)} Dana Masuk</button><button class="btn pri" onclick="cfForm('out')">${ic('plus',16)} Pengeluaran</button><button class="btn" onclick="cfForm('tf')">Transfer / Pencairan / Setoran</button>
  <button class="btn" onclick="rkDlg()">Rekening & Saldo Awal</button><button class="btn" onclick="mapDlg()">Atur Penjualan → Rekening</button><button class="btn" onclick="exportArus()">${ic('dl',16)} CSV</button></div></div>
- <div class="kg"><div class="kc"><small>Saldo awal periode</small><b>${rp(sum(sc,s=>s.start))}</b></div><div class="kc"><small>Dana masuk</small><b style="color:var(--ok)">${rp(tin)}</b></div><div class="kc"><small>Dana keluar</small><b style="color:var(--bad)">${rp(tout)}</b></div><div class="kc"><small>Saldo akhir</small><b>${rp(sum(sc,s=>s.bal))}</b></div></div>
+ <div class="kg"><div class="kc"><small>Saldo awal periode</small><b>${rp(sum(sc,s=>s.start))}</b></div><div class="kc"><small>Dana masuk</small><b style="color:var(--ok)">${rp(tin)}</b></div><div class="kc"><small>Dana keluar</small><b style="color:var(--bad)">${rp(tout)}</b></div><div class="kc"><small>Saldo akhir</small><b>${rp(sum(sc,s=>s.bal))}</b></div>${accs.some(s=>s.type==='penampung')?`<div class="kc"><small>Belum cair (penampung)</small><b>${rp(sum(accs.filter(s=>s.type==='penampung'),s=>s.bal))}</b></div>`:''}</div>
  <div class="card"><h4>Saldo per Hari</h4><p>${esc(perLabel())}</p>${saldoChart(pts)}</div>
  <div class="card"><h4>Saldo per Rekening</h4><p>${esc(perLabel())} · klik baris untuk memfilter · transfer antar rekening ikut dihitung per rekening</p><div class="tw">${accs.length?`<table><tr><th>Rekening</th><th>Jenis</th><th class="r">Saldo awal</th><th class="r">Masuk</th><th class="r">Keluar</th><th class="r">Saldo akhir</th></tr>${accs.map(s=>`<tr class="cl" onclick="AK.acc='${s.id}';render()"><td><b>${esc(s.name)}</b></td><td>${BT[s.type]||'-'}</td><td class="r">${rp(s.start)}</td><td class="r" style="color:var(--ok)">${rp(s.inn)}</td><td class="r" style="color:var(--bad)">${rp(s.out)}</td><td class="r"><b>${rp(s.bal)}</b></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada rekening</div>'}</div></div>
  ${cfStmt(rows,st0)}
@@ -770,10 +772,11 @@ function cfForm(type,id){
  if(!bk.length){alert('Buat rekening dulu (tombol Rekening & Saldo Awal).');rkDlg();return}
  const opt=s=>bk.map(x=>`<option value="${x.id}" ${s===x.id?'selected':''}>${esc(x.name)}</option>`).join(''),
   cats=[...new Set([...(CFC[tp]||[]),...CFS().filter(x=>x.type===tp).map(x=>x.cat)].filter(Boolean))];
- dlg(`<h3>${id?'Ubah':'Catat'} ${tp==='in'?'Dana Masuk':tp==='out'?'Pengeluaran':'Transfer Antar Rekening'}</h3><datalist id="cl">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+ dlg(`<h3>${id?'Ubah':'Catat'} ${tp==='in'?'Dana Masuk':tp==='out'?'Pengeluaran':'Transfer / Pencairan / Setoran'}</h3><datalist id="cl">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>${tp==='tf'?'<div class="mut" style="margin-bottom:8px">Contoh: pencairan dari Bank Penampung ke BCA, atau setoran dari Kas Kasir ke bank.</div>':''}
  <div class="g2">${fld('c_dt','Tanggal',dk(e.ts),'date')}<div><label>${tp==='tf'?'Dari rekening':'Rekening'}</label><select id="c_acc">${opt(e.acc)}</select></div>
- ${tp==='tf'?`<div><label>Ke rekening</label><select id="c_to">${opt(e.to)}</select></div>`:fld('c_cat','Kategori',e.cat,'text','','list="cl"')}
+ ${tp==='tf'?`<div><label>Ke rekening</label><select id="c_to">${opt(e.to)}</select></div>`:fld('c_cat','Kategori',e.cat,'text','','list="cl" oninput="if(/belanja|peralatan|stok|bahan|prive|cicilan/i.test(this.value)){var c=document.getElementById(\'c_nop\');if(c)c.checked=true}"')}
  ${fld('c_amt','Nominal (Rp)',e.amount,'number')}${fld('c_note','Catatan',e.note)}</div>
+ ${tp==='out'?chk('c_nop','Bukan biaya operasional (belanja stok, peralatan, cicilan pokok, prive): tetap tercatat di Arus Kas, tapi tidak mengurangi laba',e.nonop):''}
  <div class="acts2"><button class="btn pri" onclick="saveCf('${id||''}','${tp}',this)">Simpan</button>${id?`<button class="btn del" onclick="delCf('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
 function saveCf(id,tp,btn){
@@ -781,12 +784,12 @@ function saveCf(id,tp,btn){
  if(!d||amt<=0){alert('Isi tanggal dan nominal');return}
  if(tp==='tf'&&v('c_acc')===v('c_to')){alert('Rekening asal dan tujuan harus berbeda');return}
  const ts=old&&dk(old.ts)===d?old.ts:(d===dk(Date.now())?Date.now():new Date(d+'T12:00').getTime());
- safe(()=>push('cf',{id:id||'cf'+Date.now().toString(36),ts,type:tp,acc:v('c_acc'),to:tp==='tf'?v('c_to'):'',cat:tp==='tf'?'Transfer':(v('c_cat').trim()||'Lainnya'),amount:amt,note:v('c_note').trim(),by:cfg.nm||''}),btn);
+ safe(()=>push('cf',{id:id||'cf'+Date.now().toString(36),ts,type:tp,acc:v('c_acc'),to:tp==='tf'?v('c_to'):'',cat:tp==='tf'?'Transfer':(v('c_cat').trim()||'Lainnya'),amount:amt,note:v('c_note').trim(),nonop:tp==='out'&&ck('c_nop'),by:cfg.nm||''}),btn);
 }
 function delCf(id){if(confirm('Hapus catatan ini?'))safe(()=>push('cf_del',{id}))}
 function rkDlg(){
  const l=BANKS();
- dlg(`<h3>Rekening & Akun Kas</h3><div class="mut" style="margin-bottom:10px">Contoh: Kas Tunai (laci), BCA 1234567890, QRIS/E-Wallet.</div>
+ dlg(`<h3>Rekening & Akun Kas</h3><div class="mut" style="margin-bottom:10px">Contoh: Kas Kasir (tunai), Penampung QRIS/EDC (belum cair), BCA 1234567890.</div>
  <div class="tw">${l.length?`<table><tr><th>Nama</th><th>Jenis</th><th>No. rek</th><th class="r">Saldo awal</th><th></th></tr>${l.map(x=>`<tr><td><b>${esc(x.name)}</b>${x.active===false?' <span class="badge">Nonaktif</span>':''}</td><td>${BT[x.type]||'-'}</td><td>${esc(x.no||'-')}</td><td class="r">${rp(x.open)}</td><td><button class="btn sm" onclick="rkForm('${x.id}')">Ubah</button></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada rekening</div>'}</div>
  <div class="acts2"><button class="btn pri" onclick="rkForm()">${ic('plus',16)} Tambah Rekening</button><button class="btn" onclick="closeDlg();render()">Tutup</button></div>`,true);
 }
