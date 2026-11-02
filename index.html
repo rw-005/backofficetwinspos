@@ -185,6 +185,7 @@ tr.ft td{background:var(--soft);border-top:0}
  .tb h2{font-size:19px}
 }
 </style>
+<script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.NOXLSX=1"></script>
 </head>
 <body>
@@ -236,18 +237,18 @@ const IC={
 const ic=(n,s)=>`<svg width="${s||18}" height="${s||18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[n]||''}</svg>`;
 
 /* ---------- Kunci fitur per klien (data master di Google Sheet milik admin, dicocokkan dengan hash URL script klien) ---------- */
-const MASTER_URL='https://script.google.com/macros/s/AKfycbx5FGMO82d9OIzGrgxp-aezLVSbusfsHH6veu-V_7P7KNb9qfQFyorG86mCZjLd8uHTJw/exec';   // <- tempel URL Web App script MASTER di sini (…/exec)
+const MASTER_URL=(window.TWINS_CFG&&window.TWINS_CFG.master)||'';   // diisi lewat config.js (jangan ubah di sini)
 const FT={on:new Set(),code:'',wa:'',msg:'',nama:'',exp:false};
 const hasF=k=>FT.on.has(k);
 async function urlCode(u){try{const n=String(u||'').trim().split('?')[0].replace(/\/+$/,'').toLowerCase();if(!n||!(window.crypto&&crypto.subtle))return'';const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(n));return[...new Uint8Array(b)].slice(0,6).map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return''}}
-async function loadFitur(u){
+async function loadFitur(u,fast){
  FT.code=await urlCode(u);let j=null;const CK='twins_fitur_'+FT.code;
- if(MASTER_URL&&FT.code){try{const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);const r=await fetch(MASTER_URL+(MASTER_URL.includes('?')?'&':'?')+'kode='+FT.code,{redirect:'follow',signal:c.signal});clearTimeout(t);const x=await r.json();if(x&&x.ok){j=x;try{localStorage.setItem(CK,JSON.stringify(x))}catch(e){}}}catch(e){}}
+ if(!fast&&MASTER_URL&&FT.code){try{const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);const r=await fetch(MASTER_URL+(MASTER_URL.includes('?')?'&':'?')+'kode='+FT.code,{redirect:'follow',signal:c.signal});clearTimeout(t);const x=await r.json();if(x&&x.ok){j=x;try{localStorage.setItem(CK,JSON.stringify(x))}catch(e){}}}catch(e){}}
  if(!j){try{j=JSON.parse(localStorage.getItem(CK))}catch(e){}}
  FT.on=new Set((j&&j.fitur)||[]);FT.wa=(j&&j.wa)||'';FT.msg=(j&&j.pesan)||'';FT.nama=(j&&j.nama)||'';FT.exp=!!(j&&j.exp);
 }
-const FG={karyawan:'karyawan',komisi:'komisi',gaji:'gaji'};
-const FTN={karyawan:'Data Karyawan',komisi:'Komisi',gaji:'Penggajian',bep:'Analisa BEP'};
+const FG={karyawan:'karyawan',komisi:'komisi',gaji:'gaji',analisa:'analisa'};
+const FTN={karyawan:'Data Karyawan',komisi:'Komisi',gaji:'Penggajian',analisa:'Analisa Bisnis',bep:'Analisa BEP'};
 IC.lock='<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
 function upsell(k){
  const n=FTN[k]||k,tk=(D&&D.outlet&&D.outlet.name)||cfg.nm||FT.nama||'toko saya';
@@ -279,22 +280,61 @@ let D=null,CUR=null,loadedAt=0,tab='ring',P={k:'today',from:'',to:''},busy=false
 const DT={mode:'nota',kasir:'',status:'',q:''},PP={q:'',cat:'',k:'rev',d:-1},PK={k:''},PM={q:'',cat:'',low:false},SL={q:'',type:''};
 
 function toggleTheme(){cfg.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=cfg.theme;saveCfg()}
-function logout(){cfg.pin='';cfg.nm='';saveCfg();D=null;clearInterval(timer);render()}
+function logout(){clearCache();cfg.pin='';cfg.nm='';saveCfg();D=null;clearInterval(timer);render()}
 function closeDlg(){$('#dlg').classList.remove('on')}
 function dlg(html,wide){$('#dlgb').className=wide?'wide':'';$('#dlgb').innerHTML=html;$('#dlg').classList.add('on')}
 function toggleSide(f){const s=$('#side');if(s)s.classList.toggle('open',f===undefined?!s.classList.contains('open'):f)}
 function go(k){if(FG[k]&&!hasF(FG[k])){upsell(k);return}tab=k;render();window.scrollTo(0,0)}
 
+/* ---------- Cache lokal (IndexedDB) + penarikan data bertahap: Backoffice tampil instan, lalu hanya mengambil yang berubah ---------- */
+const IDB={_d:null,
+ _o(){return this._d||(this._d=new Promise((res,rej)=>{try{const q=indexedDB.open('twinsbo',1);q.onupgradeneeded=()=>q.result.createObjectStore('c');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}catch(e){rej(e)}}))},
+ async get(k){try{const d=await this._o();return await new Promise((res,rej)=>{const r=d.transaction('c').objectStore('c').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){return null}},
+ async set(k,v){try{const d=await this._o();await new Promise((res,rej)=>{const t=d.transaction('c','readwrite');t.objectStore('c').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}}
+};
+const KEYS=['tx','refunds','shifts','cash','products','promos','customers','cgroups','employees','payroll','stocklog','settings'];
+const idOf=(k,o)=>k==='stocklog'?(o.ts+'|'+o.name+'|'+o.type+'|'+o.delta+'|'+o.after):o.id;
+let RAW=null,SINCE=0,FULLTS=0,SAVET=0;
+const ckey=()=>baseUrl()+'|'+(cfg.hp||'');
+async function readCache(){
+ const c=await IDB.get(ckey());
+ if(!c||c.v!==1||!c.raw)return null;
+ RAW={};KEYS.forEach(k=>{RAW[k]=new Map((c.raw[k]||[]).map(o=>[idOf(k,o),o]))});
+ SINCE=c.since||0;FULLTS=c.full||0;loadedAt=c.loadedAt||0;return c;
+}
+function saveCache(){
+ clearTimeout(SAVET);
+ SAVET=setTimeout(()=>{if(!RAW)return;const raw={};KEYS.forEach(k=>raw[k]=RAW[k]?[...RAW[k].values()]:[]);IDB.set(ckey(),{v:1,raw,since:SINCE,full:FULLTS,loadedAt})},800);
+}
+function clearCache(){clearTimeout(SAVET);const k=ckey();RAW=null;SINCE=0;FULLTS=0;IDB.set(k,null)}
+function mergeIn(dat,gone){
+ KEYS.forEach(k=>{const m=RAW[k]||(RAW[k]=new Map());(dat[k]||[]).forEach(o=>{if(o)m.set(idOf(k,o),o)});(gone[k]||[]).forEach(id=>m.delete(id))});
+}
+const AC=new Map();
+function buildD(){
+ const o={},L=k=>RAW[k]?[...RAW[k].values()]:[],emp=hasF('karyawan')||hasF('komisi')||hasF('gaji')||hasF('bep');
+ ['tx','refunds','shifts','cash','products','promos','customers','cgroups','stocklog'].forEach(k=>o[k]=L(k));
+ o.employees=emp?L('employees'):[];o.payroll=emp?L('payroll'):[];
+ const st=L('settings');o.outlet=st.find(x=>x.id==='outlet')||{};o.receipt=st.find(x=>x.id==='receipt')||{};o.commission=st.find(x=>x.id==='commission')||null;
+ AC.clear();return o;
+}
 async function load(){
  if(busy)return;busy=true;
  try{
-  const u=baseUrl();await loadFitur(u);
-  const r=await fetch(u+(u.includes('?')?'&':'?')+'action=bopull&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||''),{redirect:'follow'});
+  const u=baseUrl();
+  if(!RAW)await readCache();
+  const full=!RAW||!SINCE||(Date.now()-FULLTS>43200000);   // sinkron penuh tiap 12 jam, selain itu hanya yang berubah
+  const url=u+(u.includes('?')?'&':'?')+'action=bopull&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||'')+(full?'':'&since='+Math.max(0,SINCE-30000));
+  const [,r]=await Promise.all([loadFitur(u),fetch(url,{redirect:'follow'})]);
   const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
-  const gone=j.dels||{},dat=j.data||{},o={};
-  ['tx','refunds','shifts','cash','products','promos','customers','cgroups','employees','payroll'].forEach(k=>{const g=new Set(gone[k]||[]);const skip=(k==='employees'||k==='payroll')&&!(hasF('karyawan')||hasF('komisi')||hasF('gaji')||hasF('bep'));o[k]=skip?[]:(dat[k]||[]).filter(x=>!g.has(x.id))});
-  o.stocklog=dat.stocklog||[];const st=dat.settings||[];o.outlet=st.find(x=>x.id==='outlet')||{};o.receipt=st.find(x=>x.id==='receipt')||{};o.commission=st.find(x=>x.id==='commission')||null;
-  D=o;cfg.nm=j.name||'';loadedAt=Date.now();busy=false;return true;
+  const dat=j.data||{},gone=j.dels||{};
+  if(full){RAW={};FULLTS=Date.now()}
+  let changed=full;KEYS.forEach(k=>{if((dat[k]||[]).length||(gone[k]||[]).length)changed=true});
+  mergeIn(dat,gone);
+  SINCE=j.now||Date.now();
+  D=buildD();cfg.nm=j.name||'';loadedAt=Date.now();busy=false;
+  if(changed)saveCache();
+  return true;
  }catch(e){busy=false;throw e}
 }
 async function doLogin(){
@@ -304,7 +344,7 @@ async function doLogin(){
  $('#e').style.color='var(--mut)';$('#e').textContent='Mengambil data…';
  try{await load();saveCfg();start()}catch(e){cfg.pin='';$('#e').style.color='var(--bad)';$('#e').textContent='Gagal: '+e.message}
 }
-function start(){render();clearInterval(timer);timer=setInterval(()=>{if($('#dlg').classList.contains('on')||MG.includes(tab))return;load().then(render).catch(()=>{})},60000)}
+function start(){render();clearInterval(timer);timer=setInterval(()=>{if(document.hidden||busy||$('#dlg').classList.contains('on')||MG.includes(tab))return;load().then(render).catch(()=>{})},90000)}
 async function refresh(){try{await load();render()}catch(e){alert('Gagal ambil data: '+e.message)}}
 
 /* ---------- rentang & agregasi ---------- */
@@ -318,7 +358,8 @@ function range(){
 }
 function perLabel(){return{today:'Hari ini','7d':'7 hari terakhir',month:'Bulan ini',all:'Semua data'}[P.k]||('Kustom '+(P.from||'…')+' s/d '+(P.to||'…'))}
 const dk=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
-function agg(a,b){
+function agg(a,b){const k=a+'|'+b;let r=AC.get(k);if(!r){r=agg0(a,b);AC.set(k,r);if(AC.size>40)AC.delete(AC.keys().next().value)}return r}
+function agg0(a,b){
  const inR=t=>t>=a&&t<b;
  const tx=D.tx.filter(t=>inR(t.ts)).sort((x,y)=>y.ts-x.ts),rf=D.refunds.filter(r=>inR(r.ts)),cs=D.cash.filter(x=>inR(x.ts)).sort((x,y)=>y.ts-x.ts),sh=D.shifts.filter(s=>inR(s.openTs)).sort((x,y)=>y.openTs-x.openTs);
  const gross=sum(tx,t=>t.total-(t.compAmt||0)),refAmt=sum(rf,r=>r.amount),omzet=gross-refAmt,cmp=sum(tx,t=>t.compAmt||0),fMdr=sum(tx,t=>(t.fee&&t.fee.mdr||0)*(feeNet(t)/(t.feeTot||1))),fSvc=sum(tx,t=>(t.fee&&t.fee.svc||0)*(feeNet(t)/(t.feeTot||1))),fAdm=sum(tx,t=>(t.fee&&t.fee.adm||0)*(feeNet(t)/(t.feeTot||1))),fShip=sum(tx,t=>(t.fee&&t.fee.ship||0)*(feeNet(t)/(t.feeTot||1))),fees=fMdr+fSvc+fAdm+fShip;
@@ -1309,10 +1350,17 @@ function bepFromEmp(){
 (async function init(){
  if(baseUrl()&&cfg.hp&&cfg.pin){
   $('#app').innerHTML='<div class="lock"><div class="lockbox" style="text-align:center">Memuat data…</div></div>';
+  const c=await readCache();
+  if(c){
+   await loadFitur(baseUrl(),true);D=buildD();start();
+   load().then(()=>{if(!$('#dlg').classList.contains('on')&&!MG.includes(tab))render()}).catch(e=>{if(/salah|dikunci|Terlalu|Ditolak/i.test(String(e&&e.message))){cfg.pin='';saveCfg();D=null;render()}});
+   return;
+  }
   try{await load();start();return}catch(e){}
  }
  render();
 })();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&D&&!busy&&Date.now()-loadedAt>60000&&!$('#dlg').classList.contains('on')&&!MG.includes(tab))load().then(render).catch(()=>{})});
 </script>
 </body>
 </html>
