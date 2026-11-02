@@ -41,6 +41,8 @@ svg{flex-shrink:0;vertical-align:middle}
 .tb{position:sticky;top:0;z-index:30;background:var(--bg);display:flex;align-items:center;gap:12px;padding:14px 26px;border-bottom:1px solid var(--bd)}
 .tb h2{margin:0;font-size:21px;font-weight:800}.tb .sub{font-size:13px;color:var(--mut)}
 .tb .r{margin-left:auto;text-align:right;font-size:12.5px;color:var(--mut)}
+.who2{display:flex;align-items:center;gap:10px;padding-left:14px;margin-left:6px;border-left:1px solid var(--bd);min-width:0}.who2 .av{width:36px;height:36px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px;flex-shrink:0}.who2 .wn{font-weight:700;font-size:13px;line-height:1.2;text-transform:uppercase;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:700px){.who2{margin-left:auto;padding-left:0;border:0}.who2 .wn{display:none}}
 .hb{display:none;width:44px;height:44px;border-radius:12px;border:1.5px solid var(--bd);background:var(--card);place-items:center;cursor:pointer}
 .scrim{display:none;position:fixed;inset:0;background:rgba(5,10,25,.5);z-index:55}
 .content{padding:20px 26px 40px;max-width:1500px}
@@ -79,6 +81,25 @@ tr.ft td{font-weight:800;border-top:2px solid var(--bd);background:var(--soft)}
 .empty{text-align:center;color:var(--mut);padding:26px 0}
 .ins{margin:0;padding:0;list-style:none}.ins li{padding:9px 0 9px 26px;border-bottom:1px solid var(--bd);position:relative}.ins li:last-child{border:0}.ins li:before{content:'💡';position:absolute;left:0}
 .lock{min-height:100vh;display:grid;place-items:center;padding:16px;background:linear-gradient(160deg,var(--hd1),var(--hd2))}
+.lgs{min-height:100vh;display:grid;grid-template-columns:1.15fr 1fr;background:var(--bg)}
+.lgl{position:relative;overflow:hidden}
+.lgbrand{position:absolute;top:26px;left:34px;z-index:3;color:#fff}
+.lgsl{position:absolute;inset:0}
+.lgsl .sl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity .8s;pointer-events:none}
+.lgsl .sl.on{opacity:1;pointer-events:auto}
+.lgph{width:min(78%,310px);height:min(50vh,390px);object-fit:cover;object-position:62% 30%;border-radius:26px;box-shadow:0 24px 50px rgba(3,10,50,.45);border:4px solid rgba(255,255,255,.85);margin-top:50px}
+.lgph+.lgtx{padding:18px 40px 60px}
+.lgph+.lgtx .lgart{display:none}
+.lgtx{display:flex;flex-direction:column;align-items:center;text-align:center;padding:60px 40px 80px}
+.lgdots{position:absolute;bottom:28px;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:3}
+.lgdots i{width:9px;height:9px;border-radius:9px;background:rgba(255,255,255,.4);cursor:pointer;transition:all .3s}.lgdots i.on{width:26px;background:#fff}
+@media(max-width:860px){.lgl{min-height:330px}.lgbrand{top:14px;left:18px}.lgtx{padding:46px 18px 40px}.lgdots{bottom:12px}.lgph{height:170px;width:min(62%,210px);margin-top:46px}.lgph+.lgtx{padding:10px 18px 34px}}
+.lgl{background:radial-gradient(900px 500px at 15% 10%,#3b7bff 0%,transparent 60%),linear-gradient(160deg,#1a44cc,#0d2160);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px;text-align:center}
+.lgl h2{margin:14px 0 0;font-size:30px;font-weight:800;letter-spacing:-.02em;max-width:460px}.lgl p{margin:0;opacity:.85;max-width:420px;font-size:15px}
+.lgart{width:100%;max-width:470px;height:auto;margin-top:18px;filter:drop-shadow(0 18px 30px rgba(3,10,50,.35))}
+.lgr{display:grid;place-items:center;padding:24px}
+.lgr .lockbox .logo{display:none}
+@media(max-width:860px){.lgs{grid-template-columns:1fr}.lgl{padding:22px 18px 10px}.lgl h2{font-size:21px;margin-top:6px}.lgl p{display:none}.lgart{max-width:250px;margin-top:8px}}
 .lockbox{width:100%;max-width:420px;background:var(--card);border-radius:22px;padding:26px;box-shadow:var(--sh)}
 .err{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
 #dlg{position:fixed;inset:0;background:rgba(5,10,25,.55);display:none;align-items:center;justify-content:center;padding:12px;z-index:80}
@@ -458,14 +479,52 @@ function bars(vals,labels,type){
 const noData='<div class="empty">Belum ada data pada periode ini</div>';
 
 /* ---------- kerangka ---------- */
+
+/* ---------- halaman masuk: 3 slide bergambar orang ---------- */
+function lgPer(x,y,sk,hr,sh,o){o=o||{};
+ const hair=o.long?`<path d="M${x-31} ${y-6}c-2-30 14-40 31-40s33 10 31 40c-3-14-12-22-31-22s-28 8-31 22z" fill="${hr}"/><rect x="${x-33}" y="${y-8}" width="12" height="40" rx="6" fill="${hr}"/><rect x="${x+21}" y="${y-8}" width="12" height="40" rx="6" fill="${hr}"/>`:`<path d="M${x-30} ${y-4}c-3-30 13-38 30-38s33 8 30 38c-4-12-13-17-30-17s-26 5-30 17z" fill="${hr}"/>`;
+ return`<g><rect x="${x-46}" y="${y+34}" width="92" height="${o.h||120}" rx="30" fill="${sh}"/><rect x="${x-9}" y="${y+22}" width="18" height="18" rx="6" fill="${sk}"/><circle cx="${x}" cy="${y}" r="30" fill="${sk}"/>${hair}<circle cx="${x-10}" cy="${y+2}" r="3" fill="#1b2340"/><circle cx="${x+10}" cy="${y+2}" r="3" fill="#1b2340"/><path d="M${x-9} ${y+13}q9 8 18 0" stroke="#1b2340" stroke-width="3" fill="none" stroke-linecap="round"/></g>`;
+}
+function lgArm(x1,y1,x2,y2,sh,sk){return`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${sh}" stroke-width="22" stroke-linecap="round"/><circle cx="${x2}" cy="${y2}" r="9" fill="${sk}"/>`}
+function lgScenes(){
+ const bg='<circle cx="260" cy="190" r="170" fill="#ffffff" opacity=".12"/><circle cx="420" cy="90" r="46" fill="#ffffff" opacity=".1"/><ellipse cx="260" cy="372" rx="215" ry="16" fill="#06154a" opacity=".28"/>';
+ const A=`<svg viewBox="0 0 520 400" class="lgart">${bg}
+ ${lgPer(250,120,'#f2c29b','#2b2118','#2457f5')}${lgArm(214,200,196,258,'#2457f5','#f2c29b')}${lgArm(286,200,318,256,'#2457f5','#f2c29b')}
+ <rect x="60" y="262" width="400" height="104" rx="16" fill="#ffffff"/><rect x="60" y="262" width="400" height="22" rx="11" fill="#dbe6ff"/>
+ <g transform="rotate(-8 170 246)"><rect x="132" y="206" width="84" height="58" rx="8" fill="#16224f"/><rect x="138" y="212" width="72" height="42" rx="4" fill="#5b8cff"/><rect x="146" y="222" width="30" height="6" rx="3" fill="#fff"/><rect x="146" y="234" width="46" height="6" rx="3" fill="#cfe0ff"/></g>
+ <rect x="318" y="228" width="58" height="34" rx="6" fill="#e7eeff"/><rect x="330" y="214" width="34" height="22" rx="3" fill="#fff"/><rect x="394" y="232" width="40" height="30" rx="8" fill="#ffd66b"/><rect x="82" y="300" width="130" height="10" rx="5" fill="#c9d6f5"/><rect x="82" y="320" width="90" height="10" rx="5" fill="#c9d6f5"/></svg>`;
+ const B=`<svg viewBox="0 0 520 400" class="lgart">${bg}
+ ${lgPer(190,128,'#c68a62','#161616','#12a150',{h:140})}${lgArm(150,214,168,300,'#12a150','#c68a62')}${lgArm(230,214,300,170,'#12a150','#c68a62')}
+ <rect x="292" y="70" width="118" height="196" rx="20" fill="#16224f"/><rect x="300" y="82" width="102" height="172" rx="12" fill="#fff"/><rect x="310" y="94" width="50" height="8" rx="4" fill="#2457f5"/><rect x="310" y="112" width="82" height="34" rx="8" fill="#eaf0ff"/><rect x="316" y="152" width="14" height="26" rx="3" fill="#9db4f2"/><rect x="336" y="140" width="14" height="38" rx="3" fill="#5b8cff"/><rect x="356" y="128" width="14" height="50" rx="3" fill="#2457f5"/><rect x="376" y="118" width="14" height="60" rx="3" fill="#12a150"/><rect x="310" y="190" width="82" height="8" rx="4" fill="#c9d6f5"/><rect x="310" y="206" width="60" height="8" rx="4" fill="#c9d6f5"/><rect x="310" y="226" width="82" height="20" rx="8" fill="#2457f5"/>
+ <g transform="translate(400 250)"><circle r="24" fill="#ffd66b"/><circle r="17" fill="none" stroke="#e8a900" stroke-width="3"/><text y="7" text-anchor="middle" font-family="Arial" font-weight="800" font-size="19" fill="#b27c00">Rp</text></g>
+ <g transform="translate(78 92)"><rect width="104" height="52" rx="12" fill="#fff"/><circle cx="26" cy="26" r="12" fill="#7be0b0"/><path d="M20 26l5 5 9-10" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="46" y="16" width="46" height="8" rx="4" fill="#2457f5"/><rect x="46" y="30" width="34" height="7" rx="3.5" fill="#c9d6f5"/></g></svg>`;
+ const C=`<svg viewBox="0 0 520 400" class="lgart">${bg}
+ ${lgPer(190,128,'#f2c29b','#6b3a1d','#ff6b8a',{long:1,h:150})}${lgArm(150,214,170,290,'#ff6b8a','#f2c29b')}${lgArm(230,214,300,248,'#ff6b8a','#f2c29b')}
+ <rect x="280" y="226" width="62" height="104" rx="10" fill="#16224f"/><rect x="287" y="233" width="48" height="90" rx="6" fill="#fff"/><path d="M296 248h14v14h-14zM316 248h14v14h-14zM296 270h14v14h-14zM316 274h8v8h-8zM326 284h8v8h-8z" fill="#2457f5"/><rect x="290" y="300" width="42" height="7" rx="3.5" fill="#c9d6f5"/>
+ <rect x="60" y="326" width="400" height="40" rx="14" fill="#ffffff"/>
+ <rect x="296" y="196" width="56" height="30" rx="6" fill="#16224f"/><rect x="301" y="200" width="46" height="22" rx="3" fill="#5b8cff"/>
+ <g transform="translate(392 150)"><circle r="34" fill="#12a150"/><path d="M-15 0l10 11 21-23" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+ <text x="392" y="214" text-anchor="middle" font-family="Arial" font-weight="800" font-size="16" fill="#fff">Berhasil</text></svg>`;
+ return[A,B,C];
+}
+function lgArt(){
+ const sc=lgScenes().slice(0,1),cap=[['Kelola toko dari mana saja','Kasir, laporan penjualan, stok, dan keuangan toko kamu dalam satu tempat.']];
+ return`<div class="lgbrand logo">TWINS<span>POS</span></div><div class="lgsl">${sc.map((svg,i)=>`<div class="sl ${i?'':'on'}"><img class="lgph" src="login.jpg" alt="" onerror="this.remove()"><div class="lgtx">${svg}<h2>${cap[i][0]}</h2><p>${cap[i][1]}</p></div></div>`).join('')}</div>${sc.length>1?`<div class="lgdots">${sc.map((_,i)=>`<i class="${i?'':'on'}" onclick="lgGo(${i})"></i>`).join('')}</div>`:''}`;
+}
+let LGI=0,LGT=0;
+function lgGo(n){const sl=document.querySelectorAll('.lgsl .sl'),dt=document.querySelectorAll('.lgdots i');if(!sl.length)return;LGI=n%sl.length;sl.forEach((e,i)=>e.classList.toggle('on',i===LGI));dt.forEach((e,i)=>e.classList.toggle('on',i===LGI))}
+function lgStart(){clearInterval(LGT);LGI=0;if(document.querySelectorAll('.lgsl .sl').length<2)return;LGT=setInterval(()=>{if(!document.querySelector('.lgsl')){clearInterval(LGT);return}lgGo(LGI+1)},4500)}
+
+const ini=n=>String(n||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'TP';
 function render(){
  if(!baseUrl()||!cfg.hp||!cfg.pin||!D){
-  $('#app').innerHTML=`<div class="lock"><div class="lockbox"><div class="logo" style="color:var(--pri)">TWINS<span style="color:var(--tx)">POS</span></div><p class="mut">Masuk dengan nomor HP dan PIN.</p>
-  ${API_URL?'':`<label>URL Web App (Apps Script) — cukup diisi sekali</label><input id="u" value="${esc(cfg.url||'')}" placeholder="https://script.google.com/macros/s/.../exec">`}
+  $('#app').innerHTML=`<div class="lgs"><div class="lgl">${lgArt()}</div><div class="lgr"><div class="lockbox"><div class="logo" style="color:var(--pri)">TWINS<span style="color:var(--tx)">POS</span></div><p class="mut">Masuk dengan nomor HP dan PIN.</p>
+  ${API_URL?'':`<label>URL dari TWINS POS (cukup diisi sekali)</label><input id="u" value="${esc(cfg.url||'')}" placeholder="Tempel URL dari TWINS POS di sini">`}
   <label>Nomor HP</label><input id="h" type="tel" inputmode="numeric" autocomplete="username" value="${esc(cfg.hp||'')}" placeholder="08xxxxxxxxxx">
   <label>PIN</label><input id="t" type="password" autocomplete="current-password" value="" onkeydown="if(event.key==='Enter')doLogin()">
   <div class="err" id="e"></div><button class="btn pri" style="width:100%;margin-top:10px" onclick="doLogin()">Masuk</button>
-  <p class="mut" style="font-size:12.5px;margin-bottom:0">Nomor HP dan PIN diperiksa di server Google Sheet. Tekan Keluar untuk menghapus PIN dari perangkat ini.</p></div></div>`;
+  <p class="mut" style="font-size:12.5px;margin-bottom:0">Nomor HP dan PIN diperiksa di server TWINS POS. Tekan Keluar untuk menghapus PIN dari perangkat ini.</p></div></div></div>`;
+  lgStart();
   return;
  }
  CUR=calc();
@@ -476,7 +535,7 @@ function render(){
  ${NAV.map(([g,l],gi)=>{const open=l.some(x=>x[0]===tab)||(NAVOPEN[g]!==undefined?NAVOPEN[g]:g==='Utama');return`<div class="gp ${open?'':'shut'}" id="gp${gi}"><div class="ng" onclick="navTog(${gi})">${g}<i class="chv"></i></div>${l.map(([k,n,i])=>`<button class="ni ${tab===k?'on':''}" onclick="go('${k}');toggleSide(false)" style="${isLocked(k)?'opacity:.6':''}">${ic(i,19)}<span>${n}</span>${isLocked(k)?`<span style="margin-left:auto">${ic('lock',15)}</span>`:''}</button>`).join('')}</div>`}).join('')}
  <div class="sf"><div class="who">${cfg.nm?esc(cfg.nm)+'<br>':''}Diperbarui ${fmtH(loadedAt)}</div><div class="acts"><button class="btn" onclick="refresh()" title="Muat ulang">${ic('refresh',16)}</button><button class="btn" onclick="toggleTheme()" title="Tema">${ic('moon',16)}</button><button class="btn" onclick="logout()" title="Keluar">${ic('out',16)}</button></div></div></aside>
  <div class="scrim" onclick="toggleSide(false)"></div>
- <main class="main"><div class="tb"><button class="hb" onclick="toggleSide()">${ic('menu',22)}</button><div><h2>${ti[0]}</h2><div class="sub">${ti[1]}</div></div><div class="r">${isM?'':esc(perLabel())+'<br>'}Diperbarui ${fmtH(loadedAt)}</div></div>
+ <main class="main"><div class="tb"><button class="hb" onclick="toggleSide()">${ic('menu',22)}</button><div><h2>${ti[0]}</h2><div class="sub">${ti[1]}</div></div><div class="r">${isM?'':esc(perLabel())+'<br>'}Diperbarui ${fmtH(loadedAt)}</div><div class="who2"><span class="av">${esc(ini((D.outlet&&D.outlet.name)||cfg.nm||'TP'))}</span><span class="wn">${esc((D.outlet&&D.outlet.name)||cfg.nm||'Toko saya')}</span></div></div>
  <div class="content">${isM?'':periodBar()}${V[tab](CUR)}</div></main></div>`;
  if(tab==='detail')dtRender();
  if(tab==='produk')ppRender();
