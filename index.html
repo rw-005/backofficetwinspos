@@ -164,10 +164,10 @@ const NAV=[
  ['Laporan Penjualan',[['rsum','Ringkasan Penjualan','file'],['detail','Detail Penjualan','file'],['produk','Penjualan per Produk','box'],['kasir','Penjualan per Kasir','user'],['pkasir','Produk per Kasir','layers']]],
  ['Operasional',[['shift','Laporan Shift','clock'],['cash','Kas Masuk & Keluar','wallet']]],
  ['Pelanggan',[['pelanggan','Pelanggan','users']]],
- ['Pengaturan',[['mproduk','Produk & Stok','plus'],['mstok','Riwayat Stok','hist'],['mpromo','Promo','tag'],['moutlet','Outlet & Struk','store']]]
+ ['Pengaturan',[['mproduk','Produk & Stok','plus'],['mstok','Riwayat Stok','hist'],['mpromo','Diskon & Promo','tag'],['moutlet','Outlet & Struk','store']]]
 ];
 const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],
- pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mpromo:['Promo','Atur diskon otomatis di kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk']};
+ pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk']};
 const MG=['mproduk','mstok','mpromo','moutlet'];
 
 /* Isi dengan URL Web App (Apps Script) agar login hanya perlu PIN. Kosongkan = URL diminta sekali di layar login. */
@@ -244,8 +244,8 @@ function agg(a,b){
  tx.forEach(t=>{const dt=new Date(t.ts);day[dk(t.ts)]=(day[dk(t.ts)]||0)+t.total;hour[dt.getHours()]+=t.total;wd[dt.getDay()]+=t.total});
  rf.forEach(r=>{day[dk(r.ts)]=(day[dk(r.ts)]||0)-r.amount});
  const cbycat={};cs.filter(x=>x.type==='out').forEach(x=>cbycat[x.cat]=(cbycat[x.cat]||0)+x.amount);
- const disc=sum(tx,t=>(t.autoDisc||0)+(t.manualDisc||0));
- return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-cout,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0),subtotal:sum(tx,t=>t.subtotal||0),autoD:sum(tx,t=>t.autoDisc||0),manD:sum(tx,t=>t.manualDisc||0),rnd:sum(tx,t=>t.rounding||0),taxEx:sum(tx.filter(t=>!t.taxIncl),t=>t.tax||0)};
+ const disc=sum(tx,t=>(t.custDisc||0)+(t.autoDisc||0)+(t.voucherDisc||0)+(t.ptDisc||0)+(t.manualDisc||0));
+ return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-cout,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0),subtotal:sum(tx,t=>(t.subtotal||0)+(t.custDisc||0)),cD:sum(tx,t=>t.custDisc||0),autoD:sum(tx,t=>t.autoDisc||0),vD:sum(tx,t=>t.voucherDisc||0),pD:sum(tx,t=>t.ptDisc||0),manD:sum(tx,t=>t.manualDisc||0),rnd:sum(tx,t=>t.rounding||0),taxEx:sum(tx.filter(t=>!t.taxIncl),t=>t.tax||0)};
 }
 function calc(){const[a,b]=range();return agg(a,b)}
 function prevAgg(){
@@ -325,7 +325,7 @@ function vRing(d){
 
 /* ---------- Ringkasan Penjualan ---------- */
 function vRsum(d){
- const pend=d.subtotal+d.svc+d.taxEx+d.rnd,promo=d.autoD+d.manD,lain=d.omzet-d.net,lk=d.net-d.cogs,lb=lk-d.cout,oc=Object.entries(d.cbycat).sort((a,b)=>b[1]-a[1]);
+ const pend=d.subtotal+d.svc+d.taxEx+d.rnd,promo=d.cD+d.autoD+d.vD+d.pD+d.manD,lain=d.omzet-d.net,lk=d.net-d.cogs,lb=lk-d.cout,oc=Object.entries(d.cbycat).sort((a,b)=>b[1]-a[1]);
  const neg=v=>'( '+rp(v)+' )';
  const R=(l,v,n)=>`<div class="rs-r"><span>${l}</span><span>${n?neg(v):rp(v)}</span></div>`;
  const N=(l,v)=>R(l,Math.abs(v),v>0);
@@ -333,14 +333,14 @@ function vRsum(d){
  const H=(t,c)=>`<div class="rs-h ${c}">${t}</div>`;
  const Kc=(l,v,c)=>`<div class="kc ${c}"><small>${l}</small><b>${rp(v)}</b></div>`;
  window._rsum=[['PENDAPATAN',''],['Penjualan Kotor',d.subtotal],['Biaya Pelayanan (service)',d.svc],['Pajak',d.taxEx],['Pembulatan',d.rnd],['TOTAL PENDAPATAN',pend],
-  ['BIAYA PROMOSI',''],['Promo Otomatis (jadwal)',d.autoD],['Diskon Manual Kasir',d.manD],['TOTAL BIAYA PROMOSI',promo],
+  ['BIAYA PROMOSI',''],['Harga Pelanggan & Grup',d.cD],['Promo Otomatis',d.autoD],['Voucher',d.vD],['Tukar Poin',d.pD],['Diskon Manual Kasir',d.manD],['TOTAL BIAYA PROMOSI',promo],
   ['PENJUALAN BERSIH',''],['Total Penjualan',d.gross],['Pengembalian',d.refAmt],['TOTAL PENJUALAN BERSIH',d.omzet],
   ['LABA KOTOR',''],['Total Penjualan Bersih',d.omzet],['Pajak, service dan pembulatan (bukan laba)',lain],['Penjualan setelah diskon',d.net],['HPP',d.cogs],['TOTAL LABA KOTOR',lk],
   ['BIAYA OPERASIONAL',''],...oc.map(([k,v])=>[k,v]),['TOTAL BIAYA OPERASIONAL',d.cout],['LABA BERSIH',''],['Total Laba Kotor',lk],['Total Biaya Operasional',d.cout],['TOTAL LABA BERSIH',lb]];
  return`<div class="kg rs-k">${Kc('Total Pendapatan',pend,'k1')}${Kc('Biaya Promosi',promo,'k2')}${Kc('Total Penjualan',d.gross,'k3')}${Kc('Penjualan Bersih',d.omzet,'k4')}${Kc('Total Laba Kotor',lk,'k5')}${Kc('Total Laba Bersih',lb,'k6')}</div>
  <div class="ch" style="margin-bottom:12px;align-items:center"><div class="mut">${esc(perLabel())} · ${d.tx.length} nota</div><button class="btn" onclick="exportRsum()">${ic('dl',16)} Ekspor Laporan</button></div>
  <div class="rs-s">${H('Pendapatan','g')}${R('Penjualan Kotor',d.subtotal)}${R('Biaya Pelayanan (service)',d.svc)}${R('Pajak',d.taxEx)}${R('Pembulatan',d.rnd)}${T('TOTAL PENDAPATAN',pend)}</div>
- <div class="rs-s">${H('Biaya Promosi','y')}${R('Promo Otomatis (jadwal)',d.autoD,1)}${R('Diskon Manual Kasir',d.manD,1)}${T('TOTAL BIAYA PROMOSI',promo,1)}</div>
+ <div class="rs-s">${H('Biaya Promosi','y')}${R('Harga Pelanggan & Grup',d.cD,1)}${R('Promo Otomatis',d.autoD,1)}${R('Voucher',d.vD,1)}${R('Tukar Poin',d.pD,1)}${R('Diskon Manual Kasir',d.manD,1)}${T('TOTAL BIAYA PROMOSI',promo,1)}</div>
  <div class="rs-s">${H('Penjualan Bersih','b')}${R('Total Penjualan',d.gross)}${R('Pengembalian',d.refAmt,1)}${T('TOTAL PENJUALAN BERSIH',d.omzet)}</div>
  <div class="rs-s">${H('Laba Kotor','p')}${R('Total Penjualan Bersih',d.omzet)}${N('Pajak, service dan pembulatan (bukan laba)',lain)}${R('Penjualan setelah diskon',d.net)}${R('HPP (harga pokok penjualan)',d.cogs,1)}${T('TOTAL LABA KOTOR',lk)}${R('Margin laba kotor',0).replace(rp(0),pct(d.net?lk/d.net*100:0))}</div>
  <div class="rs-s">${H('Biaya Operasional','o')}${oc.length?oc.map(([k,v])=>R(esc(k),v,1)).join(''):'<div class="rs-r"><span class="mut">Belum ada pengeluaran pada periode ini</span><span></span></div>'}${T('TOTAL BIAYA OPERASIONAL',d.cout,1)}</div>
@@ -412,7 +412,7 @@ function dtRender(){
  if(f.nota){
   const l=f.nota;
   c.textContent=l.length+' nota · total '+rp(sum(l,x=>x.total))+(l.length>300?' · menampilkan 300 terbaru':'');
-  t.innerHTML=l.length?`<table><tr><th>Nota</th><th>Waktu</th><th>Kasir</th><th>Tipe</th><th class="r">Item</th><th class="r">Subtotal</th><th class="r">Diskon</th><th class="r">Service+Pajak</th><th class="r">Total</th><th>Pembayaran</th><th>Status</th></tr>${l.slice(0,300).map(x=>`<tr class="cl" onclick="txDetail('${x.id}')"><td><b>${esc(x.no)}</b></td><td>${fmtT(x.ts)}</td><td>${esc(x.cashier)}</td><td>${esc(typeLabel(x.type,x.channel))}${x.table?' · '+esc(x.table):''}</td><td class="r">${fq(sum(x.items,i=>i.qty))}</td><td class="r">${rp(x.subtotal)}</td><td class="r">${rp((x.autoDisc||0)+(x.manualDisc||0))}</td><td class="r">${rp((x.service||0)+(x.tax||0))}</td><td class="r"><b>${rp(x.total)}</b></td><td>${x.payments.map(p=>METHODS[p.m]||p.m).join(' + ')}</td><td>${stBadge(x)}</td></tr>`).join('')}<tr class="ft"><td colspan="4">Total</td><td class="r">${fq(sum(l,x=>sum(x.items,i=>i.qty)))}</td><td class="r">${rp(sum(l,x=>x.subtotal))}</td><td class="r">${rp(sum(l,x=>(x.autoDisc||0)+(x.manualDisc||0)))}</td><td class="r">${rp(sum(l,x=>(x.service||0)+(x.tax||0)))}</td><td class="r">${rp(sum(l,x=>x.total))}</td><td colspan="2"></td></tr></table>`:'<div class="empty">Tidak ada transaksi</div>';
+  t.innerHTML=l.length?`<table><tr><th>Nota</th><th>Waktu</th><th>Kasir</th><th>Tipe</th><th class="r">Item</th><th class="r">Subtotal</th><th class="r">Diskon</th><th class="r">Service+Pajak</th><th class="r">Total</th><th>Pembayaran</th><th>Status</th></tr>${l.slice(0,300).map(x=>`<tr class="cl" onclick="txDetail('${x.id}')"><td><b>${esc(x.no)}</b></td><td>${fmtT(x.ts)}</td><td>${esc(x.cashier)}</td><td>${esc(typeLabel(x.type,x.channel))}${x.table?' · '+esc(x.table):''}</td><td class="r">${fq(sum(x.items,i=>i.qty))}</td><td class="r">${rp((x.subtotal||0)+(x.custDisc||0))}</td><td class="r">${rp((x.custDisc||0)+(x.autoDisc||0)+(x.voucherDisc||0)+(x.ptDisc||0)+(x.manualDisc||0))}</td><td class="r">${rp((x.service||0)+(x.tax||0))}</td><td class="r"><b>${rp(x.total)}</b></td><td>${x.payments.map(p=>METHODS[p.m]||p.m).join(' + ')}</td><td>${stBadge(x)}</td></tr>`).join('')}<tr class="ft"><td colspan="4">Total</td><td class="r">${fq(sum(l,x=>sum(x.items,i=>i.qty)))}</td><td class="r">${rp(sum(l,x=>(x.subtotal||0)+(x.custDisc||0)))}</td><td class="r">${rp(sum(l,x=>(x.custDisc||0)+(x.autoDisc||0)+(x.voucherDisc||0)+(x.ptDisc||0)+(x.manualDisc||0)))}</td><td class="r">${rp(sum(l,x=>(x.service||0)+(x.tax||0)))}</td><td class="r">${rp(sum(l,x=>x.total))}</td><td colspan="2"></td></tr></table>`:'<div class="empty">Tidak ada transaksi</div>';
  }else{
   const l=f.rows;
   c.textContent=l.length+' baris item · penjualan '+rp(sum(l,r=>r.i.qty*r.i.price))+(l.length>300?' · menampilkan 300 terbaru':'');
@@ -421,7 +421,7 @@ function dtRender(){
 }
 function exportDetail(){
  const f=dtFilter();
- if(f.nota)csv('Detail-Penjualan-Nota',[['No Nota','Tanggal','Kasir','Tipe','Meja','Pelanggan','Subtotal','Diskon Promo','Diskon Manual','Service','Pajak','Pembulatan','Total','Pembayaran','Status','Total Refund'],...f.nota.map(t=>[t.no,fmtDT(t.ts),t.cashier,typeLabel(t.type,t.channel),t.table||'',t.custName||'',t.subtotal,t.autoDisc,t.manualDisc,t.service,t.tax,t.rounding,t.total,t.payments.map(p=>(METHODS[p.m]||p.m)+' '+p.ap).join(' + '),stTxt(t),t.refunded||0])]);
+ if(f.nota)csv('Detail-Penjualan-Nota',[['No Nota','Tanggal','Kasir','Tipe','Meja','Pelanggan','Subtotal','Diskon Promo','Diskon Manual','Service','Pajak','Pembulatan','Total','Pembayaran','Status','Total Refund'],...f.nota.map(t=>[t.no,fmtDT(t.ts),t.cashier,typeLabel(t.type,t.channel),t.table||'',t.custName||'',(t.subtotal||0)+(t.custDisc||0),(t.custDisc||0)+(t.autoDisc||0)+(t.voucherDisc||0)+(t.ptDisc||0),t.manualDisc,t.service,t.tax,t.rounding,t.total,t.payments.map(p=>(METHODS[p.m]||p.m)+' '+p.ap).join(' + '),stTxt(t),t.refunded||0])]);
  else csv('Detail-Penjualan-Item',[['No Nota','Tanggal','Kasir','Produk','Kategori','Satuan','Qty','Qty Refund','Harga','Subtotal','HPP/unit','Laba'],...f.rows.map(r=>[r.t.no,fmtDT(r.t.ts),r.t.cashier,r.i.name,r.i.cat||'',r.i.unit,r.i.qty,r.i.refQty||0,r.i.price,r.i.qty*r.i.price,r.i.cogs||0,r.i.qty*(r.i.price-(r.i.cogs||0))])]);
 }
 function txDetail(id){
@@ -429,7 +429,7 @@ function txDetail(id){
  const rf=D.refunds.filter(r=>r.txId===id);
  dlg(`<h3>${esc(t.no)} ${stBadge(t)}</h3><div class="mut" style="margin-bottom:10px">${fmtT(t.ts)} · ${esc(t.cashier)} · ${esc(typeLabel(t.type,t.channel))}${t.table?' · '+esc(t.table):''}${t.custName?' · '+esc(t.custName):''}</div>
  <div class="tw"><table><tr><th>Item</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>${t.items.map(i=>`<tr><td>${esc(i.name)}${i.note?'<br><small class="mut">'+esc(i.note)+'</small>':''}</td><td class="r">${fq(i.qty)} ${esc(i.unit)}</td><td class="r">${rp(i.price)}</td><td class="r">${rp(i.qty*i.price)}</td></tr>`).join('')}</table></div>
- <div class="sumbox" style="margin-top:10px"><div><span>Subtotal</span><span>${rp(t.subtotal)}</span></div>${t.autoDisc?`<div><span>Promo</span><span>-${rp(t.autoDisc)}</span></div>`:''}${t.manualDisc?`<div><span>Diskon</span><span>-${rp(t.manualDisc)}</span></div>`:''}${t.service?`<div><span>Service</span><span>${rp(t.service)}</span></div>`:''}${t.tax?`<div><span>Pajak</span><span>${rp(t.tax)}</span></div>`:''}${t.rounding?`<div><span>Pembulatan</span><span>${rp(t.rounding)}</span></div>`:''}<div style="font-weight:800;font-size:17px"><span>Total</span><span>${rp(t.total)}</span></div>
+ <div class="sumbox" style="margin-top:10px"><div><span>Subtotal</span><span>${rp((t.subtotal||0)+(t.custDisc||0))}</span></div>${t.custDisc?`<div><span>Harga pelanggan/grup</span><span>-${rp(t.custDisc)}</span></div>`:''}${t.autoDisc?`<div><span>Promo</span><span>-${rp(t.autoDisc)}</span></div>`:''}${t.voucherDisc?`<div><span>Voucher ${esc(t.voucher||'')}</span><span>-${rp(t.voucherDisc)}</span></div>`:''}${t.ptDisc?`<div><span>Tukar poin (${t.ptUsed||0})</span><span>-${rp(t.ptDisc)}</span></div>`:''}${t.manualDisc?`<div><span>Diskon</span><span>-${rp(t.manualDisc)}</span></div>`:''}${t.service?`<div><span>Service</span><span>${rp(t.service)}</span></div>`:''}${t.tax?`<div><span>Pajak</span><span>${rp(t.tax)}</span></div>`:''}${t.rounding?`<div><span>Pembulatan</span><span>${rp(t.rounding)}</span></div>`:''}<div style="font-weight:800;font-size:17px"><span>Total</span><span>${rp(t.total)}</span></div>
  ${t.payments.map(p=>`<div class="mut"><span>${METHODS[p.m]||p.m}</span><span>${rp(p.ap)}</span></div>`).join('')}${t.refunded?`<div style="color:var(--bad)"><span>Total refund</span><span>-${rp(t.refunded)}</span></div>`:''}${t.customer?`<div class="mut"><span>Kasbon a/n</span><span>${esc(t.customer.name)}</span></div>`:''}</div>
  ${rf.map(r=>`<div class="mut" style="font-size:13px">${esc(r.no)} · ${rp(r.amount)} via ${METHODS[r.method]||r.method} · ${esc(r.reason||'-')} (disetujui ${esc(r.by)})</div>`).join('')}
  <button class="btn pri" style="width:100%;margin-top:14px" onclick="closeDlg()">Tutup</button>`);
@@ -773,24 +773,44 @@ function exportStok(){csv('Riwayat-Stok',[['Waktu','Produk','Jenis','Jumlah','Se
 
 /* ---------- Promo ---------- */
 const promoTxt=p=>(p.type==='percent'?fq(p.value)+'%':rp(p.value))+(p.maxDisc?' (maks '+rp(p.maxDisc)+')':'');
+const DN=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+const isAuto=p=>(p.kind||'auto')==='auto';
 function promoState(p){
  if(!p.active)return['Mati','v'];const t=dk(Date.now());
  if(p.start&&t<p.start)return['Belum mulai','k'];if(p.end&&t>p.end)return['Berakhir','v'];return['Aktif','g'];
 }
+function promoSched(p){
+ const d=(p.days&&p.days.length&&p.days.length<7)?p.days.map(i=>DN[i]).join(', '):'';
+ return[(p.start||p.end)?esc(p.start||'…')+' s/d '+esc(p.end||'…'):'Tanpa batas tanggal',d,(p.tStart&&p.tEnd)?esc(p.tStart)+'–'+esc(p.tEnd):''].filter(Boolean).join(' · ');
+}
+const scopeTxt=p=>p.scope==='product'?'Per produk: '+esc(nameOf(p.productId)):p.scope==='cat'?'Per kategori: '+esc(p.cat||'-'):'Per total belanja';
+const vUsed=code=>{const c=String(code||'').toUpperCase();return(D.tx||[]).filter(t=>t.status!=='void'&&String(t.voucher||'').toUpperCase()===c).length};
+function ptBal(){const m={};(D.tx||[]).forEach(t=>{if(!t.customerId||t.status==='void')return;m[t.customerId]=(m[t.customerId]||0)+(+t.ptEarn||0)-(+t.ptUsed||0)});return m}
 function vMPromo(){
- const l=D.promos,on=l.filter(p=>promoState(p)[0]==='Aktif').length;
- return`<div class="kg"><div class="kc"><small>Total promo</small><b>${l.length}</b></div><div class="kc"><small>Sedang berlaku</small><b style="color:var(--ok)">${on}</b></div></div>
- <div class="card"><div class="tool"><span class="mut">Promo yang berlaku akan diterapkan otomatis di kasir.</span><button class="btn pri" style="margin-left:auto" onclick="promoForm()">${ic('plus',16)} Tambah Promo</button></div>
- <div class="tw">${l.length?`<table><tr><th>Promo</th><th>Potongan</th><th>Berlaku untuk</th><th class="r">Min. belanja</th><th>Periode</th><th>Status</th><th></th></tr>${l.map(p=>{const s=promoState(p);return`<tr><td><b>${esc(p.name)}</b></td><td>${promoTxt(p)}</td><td>${p.scope==='product'?esc(nameOf(p.productId)):p.scope==='cat'?'Kategori '+esc(p.cat||'-'):'Semua produk'}</td><td class="r">${rp(p.minBuy||0)}</td><td>${esc(p.start||'…')} s/d ${esc(p.end||'…')}</td><td><span class="badge ${s[1]}">${s[0]}</span></td><td style="text-align:right"><button class="btn sm" onclick="promoForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada promo. Tekan “Tambah Promo”.</div>'}</div></div>`;
+ const au=D.promos.filter(isAuto),vc=D.promos.filter(p=>p.kind==='voucher'),lo=D.promos.find(p=>p.kind==='loyalty');
+ const on=au.filter(p=>promoState(p)[0]==='Aktif').length,von=vc.filter(p=>promoState(p)[0]==='Aktif').length;
+ const bal=ptBal(),top=Object.entries(bal).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]),tot=top.reduce((s,e)=>s+e[1],0);
+ const cn=id=>{const c=(D.customers||[]).find(x=>x.id===id);return c?c.name:'(pelanggan dihapus)'};
+ return`<div class="note">Semua pengaturan di halaman ini disimpan ke server dan otomatis ikut ke kasir saat kasir menyinkronkan data (otomatis tiap 30 detik bila ada internet).</div>
+ <div class="kg"><div class="kc"><small>Promo berlaku</small><b style="color:var(--ok)">${on}</b><small>dari ${au.length} promo</small></div><div class="kc"><small>Voucher berlaku</small><b style="color:var(--ok)">${von}</b><small>dari ${vc.length} voucher</small></div><div class="kc"><small>Poin beredar</small><b>${fq(tot)}</b><small>${lo?'≈ '+rp(tot*(+lo.pointValue||0)):'Poin belum diaktifkan'}</small></div></div>
+ <div class="card"><h4>Promo Otomatis</h4><div class="tool"><span class="mut">Per produk, per kategori, atau per total belanja. Dipakai otomatis di kasir sesuai jadwal.</span><button class="btn pri" style="margin-left:auto" onclick="promoForm()">${ic('plus',16)} Tambah Promo</button></div>
+ <div class="tw">${au.length?`<table><tr><th>Promo</th><th>Berlaku untuk</th><th>Potongan</th><th class="r">Min. belanja</th><th>Jadwal</th><th>Status</th><th></th></tr>${au.map(p=>{const s=promoState(p);return`<tr><td><b>${esc(p.name)}</b></td><td>${scopeTxt(p)}</td><td>${promoTxt(p)}</td><td class="r">${rp(p.minBuy||0)}</td><td>${promoSched(p)}</td><td><span class="badge ${s[1]}">${s[0]}</span></td><td style="text-align:right"><button class="btn sm" onclick="promoForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada promo. Tekan “Tambah Promo”.</div>'}</div></div>
+ <div class="card"><h4>Voucher</h4><div class="tool"><span class="mut">Kasir memasukkan kode voucher saat transaksi. Pemakaian dihitung dari nota.</span><button class="btn pri" style="margin-left:auto" onclick="voucherForm()">${ic('plus',16)} Tambah Voucher</button></div>
+ <div class="tw">${vc.length?`<table><tr><th>Kode</th><th>Keterangan</th><th>Potongan</th><th class="r">Min. belanja</th><th>Periode</th><th class="r">Terpakai</th><th>Status</th><th></th></tr>${vc.map(p=>{const s=promoState(p),u=vUsed(p.code),full=+p.quota>0&&u>=+p.quota;return`<tr><td><b>${esc(p.code)}</b></td><td>${esc(p.name||'')}</td><td>${promoTxt(p)}</td><td class="r">${rp(p.minBuy||0)}</td><td>${promoSched(p)}</td><td class="r">${u}${+p.quota>0?' / '+p.quota:''}</td><td><span class="badge ${full?'v':s[1]}">${full?'Habis':s[0]}</span></td><td style="text-align:right"><button class="btn sm" onclick="voucherForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada voucher. Tekan “Tambah Voucher”.</div>'}</div></div>
+ <div class="card"><h4>Poin Pelanggan</h4><div class="tool"><span class="mut">${lo&&lo.active?'Aktif: setiap belanja '+rp(lo.earnPer)+' dapat 1 poin · 1 poin = '+rp(lo.pointValue)+(+lo.minRedeem?' · minimal tukar '+lo.minRedeem+' poin':'')+(+lo.maxPct&&+lo.maxPct<100?' · maks '+lo.maxPct+'% dari belanja':''):'Belum diaktifkan.'}</span><button class="btn pri" style="margin-left:auto" onclick="loyaltyForm()">Atur Poin</button></div>
+ <div class="tw">${top.length?`<table><tr><th>Pelanggan</th><th class="r">Saldo poin</th><th class="r">Nilai</th></tr>${top.slice(0,15).map(e=>`<tr><td><b>${esc(cn(e[0]))}</b></td><td class="r">${fq(e[1])}</td><td class="r">${lo?rp(e[1]*(+lo.pointValue||0)):'—'}</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada saldo poin. Poin muncul setelah pelanggan dipilih di kasir saat transaksi.</div>'}</div></div>`;
 }
 function promoForm(id){
- const p=D.promos.find(x=>x.id===id)||{type:'percent',scope:'all',active:true},cats=[...new Set(D.products.map(x=>x.cat).filter(Boolean))].sort();
- dlg(`<h3>${id?'Ubah':'Tambah'} Promo</h3>${fld('f_name','Nama promo',p.name,'text','mis. Diskon Akhir Pekan')}
+ const p=D.promos.find(x=>x.id===id)||{type:'percent',scope:'all',active:true},cats=[...new Set(D.products.map(x=>x.cat).filter(Boolean))].sort(),days=(p.days&&p.days.length)?p.days:[0,1,2,3,4,5,6];
+ dlg(`<h3>${id?'Ubah':'Tambah'} Promo Otomatis</h3>${fld('f_name','Nama promo',p.name,'text','mis. Happy Hour Sore')}
+ <label>Berlaku untuk</label><select id="f_scope" onchange="promoScope()"><option value="all" ${p.scope==='all'||!p.scope?'selected':''}>Total belanja (seluruh keranjang)</option><option value="cat" ${p.scope==='cat'?'selected':''}>Per kategori</option><option value="product" ${p.scope==='product'?'selected':''}>Per produk</option></select>
+ <div id="f_sc"></div>
  <div class="g2"><div><label>Jenis potongan</label><select id="f_type"><option value="percent" ${p.type==='percent'?'selected':''}>Persen (%)</option><option value="nominal" ${p.type==='nominal'?'selected':''}>Nominal (Rp)</option></select></div>${fld('f_val','Nilai potongan',p.value,'number')}
  ${fld('f_max','Maks. potongan Rp (0 = tanpa batas)',p.maxDisc||0,'number')}${fld('f_min','Minimal belanja Rp',p.minBuy||0,'number')}
- ${fld('f_s','Mulai',p.start,'date')}${fld('f_e','Berakhir',p.end,'date')}</div>
- <label>Berlaku untuk</label><select id="f_scope" onchange="promoScope()"><option value="all" ${p.scope==='all'?'selected':''}>Semua produk</option><option value="cat" ${p.scope==='cat'?'selected':''}>Satu kategori</option><option value="product" ${p.scope==='product'?'selected':''}>Satu produk</option></select>
- <div id="f_sc"></div>${chk('f_act','Aktifkan promo ini',p.active)}
+ ${fld('f_s','Mulai tanggal',p.start,'date')}${fld('f_e','Berakhir tanggal',p.end,'date')}${fld('f_ts','Jam mulai (kosongkan = seharian)',p.tStart,'time')}${fld('f_te','Jam berakhir',p.tEnd,'time')}</div>
+ <label>Hari berlaku</label><div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:6px">${DN.map((n,i)=>chk('f_d'+i,n,days.includes(i))).join('')}</div>
+ <div class="mut" style="font-size:12.5px;margin:6px 0 10px">Nominal per produk/kategori dihitung per item (dikali jumlah). Nominal per total belanja dipotong sekali per transaksi. Kalau ada beberapa promo total belanja (misalnya bertingkat 100rb dan 200rb), kasir memakai yang paling besar saja.</div>
+ ${chk('f_act','Aktifkan promo ini',p.active)}
  <div class="acts2"><button class="btn pri" onclick="savePromo('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delPromo('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
  window._pp=p;window._cats=cats;promoScope();
 }
@@ -799,15 +819,54 @@ function promoScope(){
  h.innerHTML=s==='cat'?`<label>Kategori</label><select id="f_cat">${window._cats.map(c=>`<option ${p.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`:s==='product'?`<label>Produk</label><select id="f_prod">${D.products.map(x=>`<option value="${x.id}" ${p.productId===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`:'';
 }
 function savePromo(id,btn){
- const val=+v('f_val'),type=v('f_type'),s=v('f_s'),e=v('f_e'),scope=v('f_scope');
+ const val=+v('f_val'),type=v('f_type'),s=v('f_s'),e=v('f_e'),scope=v('f_scope'),ts=v('f_ts'),te=v('f_te');
  if(!v('f_name').trim()){alert('Isi nama promo');return}
  if(!(val>0)||(type==='percent'&&val>100)){alert('Nilai potongan tidak valid');return}
  if(s&&e&&e<s){alert('Tanggal berakhir harus setelah tanggal mulai');return}
+ if(!!ts!==!!te){alert('Isi jam mulai dan jam berakhir sekaligus, atau kosongkan keduanya');return}
  if(scope==='product'&&!v('f_prod')){alert('Pilih produk');return}
  if(scope==='cat'&&!v('f_cat')){alert('Pilih kategori');return}
- safe(()=>push('promo',{id:id||'pr'+Date.now().toString(36),name:v('f_name').trim(),type,value:val,maxDisc:+v('f_max')||0,minBuy:+v('f_min')||0,start:s,end:e,scope,cat:scope==='cat'?v('f_cat'):'',productId:scope==='product'?v('f_prod'):'',active:ck('f_act')}),btn);
+ let days=[0,1,2,3,4,5,6].filter(i=>ck('f_d'+i));
+ if(!days.length){alert('Pilih minimal satu hari');return}
+ if(days.length===7)days=[];
+ safe(()=>push('promo',{id:id||'pr'+Date.now().toString(36),kind:'auto',name:v('f_name').trim(),type,value:val,maxDisc:+v('f_max')||0,minBuy:+v('f_min')||0,start:s,end:e,days,tStart:ts,tEnd:te,scope,cat:scope==='cat'?v('f_cat'):'',productId:scope==='product'?v('f_prod'):'',active:ck('f_act')}),btn);
 }
-function delPromo(id){if(confirm('Hapus promo ini?'))safe(()=>push('promo_del',{id}))}
+function delPromo(id){if(confirm('Hapus data ini?'))safe(()=>push('promo_del',{id}))}
+function voucherForm(id){
+ const p=D.promos.find(x=>x.id===id)||{type:'nominal',active:true};
+ dlg(`<h3>${id?'Ubah':'Tambah'} Voucher</h3>
+ <div class="g2">${fld('f_code','Kode voucher',p.code,'text','mis. HEMAT10','style="text-transform:uppercase"')}${fld('f_name','Keterangan',p.name,'text','mis. Voucher Grand Opening')}
+ <div><label>Jenis potongan</label><select id="f_type"><option value="nominal" ${p.type==='nominal'?'selected':''}>Nominal (Rp)</option><option value="percent" ${p.type==='percent'?'selected':''}>Persen (%)</option></select></div>${fld('f_val','Nilai potongan',p.value,'number')}
+ ${fld('f_max','Maks. potongan Rp (0 = tanpa batas)',p.maxDisc||0,'number')}${fld('f_min','Minimal belanja Rp',p.minBuy||0,'number')}
+ ${fld('f_s','Mulai tanggal',p.start,'date')}${fld('f_e','Berakhir tanggal',p.end,'date')}${fld('f_q','Kuota pemakaian (0 = tanpa batas)',p.quota||0,'number')}</div>
+ ${id?`<div class="mut" style="margin:8px 0">Sudah dipakai: <b>${vUsed(p.code)}</b> kali</div>`:''}
+ <div class="mut" style="font-size:12.5px;margin:6px 0 10px">Satu voucher untuk satu transaksi, dan dipotong dari belanja setelah promo otomatis. Kuota dihitung dari nota semua kasir yang sudah tersinkron.</div>
+ ${chk('f_act','Aktifkan voucher ini',p.active)}
+ <div class="acts2"><button class="btn pri" onclick="saveVoucher('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delPromo('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+function saveVoucher(id,btn){
+ const code=v('f_code').trim().toUpperCase().replace(/\s+/g,''),val=+v('f_val'),type=v('f_type'),s=v('f_s'),e=v('f_e');
+ if(!code){alert('Isi kode voucher');return}
+ if(D.promos.some(x=>x.kind==='voucher'&&x.id!==id&&String(x.code).toUpperCase()===code)){alert('Kode voucher sudah dipakai voucher lain');return}
+ if(!(val>0)||(type==='percent'&&val>100)){alert('Nilai potongan tidak valid');return}
+ if(s&&e&&e<s){alert('Tanggal berakhir harus setelah tanggal mulai');return}
+ safe(()=>push('promo',{id:id||'vc'+Date.now().toString(36),kind:'voucher',code,name:v('f_name').trim()||code,type,value:val,maxDisc:+v('f_max')||0,minBuy:+v('f_min')||0,start:s,end:e,quota:Math.max(0,Math.floor(+v('f_q')||0)),scope:'all',active:ck('f_act')}),btn);
+}
+function loyaltyForm(){
+ const p=D.promos.find(x=>x.kind==='loyalty')||{active:true,earnPer:10000,pointValue:100,minRedeem:10,maxPct:50};
+ dlg(`<h3>Pengaturan Poin Pelanggan</h3>
+ <div class="g2">${fld('f_ep','Setiap belanja Rp … dapat 1 poin',p.earnPer,'number')}${fld('f_pv','Nilai 1 poin saat ditukar (Rp)',p.pointValue,'number')}
+ ${fld('f_mr','Minimal poin untuk ditukar',p.minRedeem||0,'number')}${fld('f_mp','Maks. potongan dari poin (% dari belanja)',p.maxPct||100,'number')}</div>
+ <div class="mut" style="font-size:12.5px;margin:6px 0 10px">Poin dihitung dari total belanja setelah semua diskon (sebelum service dan pajak). Saldo poin dihitung dari riwayat nota, jadi selalu sama di semua kasir. Nota yang di-refund penuh membatalkan poinnya. Poin hanya jalan untuk pelanggan yang dipilih dari daftar pelanggan.</div>
+ ${chk('f_act','Aktifkan poin pelanggan',p.active)}
+ <div class="acts2"><button class="btn pri" onclick="saveLoyalty(this)">Simpan</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+function saveLoyalty(btn){
+ const ep=+v('f_ep'),pv=+v('f_pv'),mr=+v('f_mr')||0,mp=+v('f_mp')||100;
+ if(!(ep>0)||!(pv>0)){alert('Nilai belanja per poin dan nilai poin harus lebih dari 0');return}
+ if(mp<1||mp>100){alert('Maks. potongan harus 1 sampai 100 persen');return}
+ safe(()=>push('promo',{id:'loyalty',kind:'loyalty',name:'Poin Pelanggan',earnPer:ep,pointValue:pv,minRedeem:Math.max(0,Math.floor(mr)),maxPct:mp,active:ck('f_act')}),btn);
+}
 
 /* ---------- Outlet & Struk ---------- */
 function vMOutlet(){
