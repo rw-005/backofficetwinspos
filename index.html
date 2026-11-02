@@ -304,6 +304,7 @@ function agg(a,b){
  const net=sum(tx,t=>(t.net||0)*(1-cRatio(t)))-sum(rf,r=>r.net||0);
  const cogs=sum(tx,t=>sum(t.items,i=>i.qty*(i.cogs||0)))-sum(rf,r=>sum(r.items,i=>i.qty*(i.cogs||0)));
  const cout=sum(cs.filter(x=>x.type==='out'),x=>x.amount),cin=sum(cs.filter(x=>x.type==='in'),x=>x.amount);
+ const pyp=(D.payroll||[]).filter(p=>p.status==='paid'&&p.paidTs&&inR(+p.paidTs)),gaji=sum(pyp,p=>Math.max(0,(+p.total||0)-(+p.comm||0))),komisi=sum(pyp,p=>+p.comm||0),opex=cout+gaji+komisi;
  const by={},rby={};Object.keys(METHODS).forEach(m=>{by[m]=0;rby[m]=0});
  tx.forEach(t=>t.payments.forEach(p=>by[p.m]=(by[p.m]||0)+p.ap));rf.forEach(r=>rby[r.method]=(rby[r.method]||0)+r.amount);
  const prod={},kprod={},cat={};let items=0;
@@ -323,7 +324,7 @@ function agg(a,b){
  rf.forEach(r=>{day[dk(r.ts)]=(day[dk(r.ts)]||0)-r.amount});
  const cbycat={};cs.filter(x=>x.type==='out').forEach(x=>cbycat[x.cat]=(cbycat[x.cat]||0)+x.amount);
  const disc=sum(tx,t=>(t.custDisc||0)+(t.autoDisc||0)+(t.voucherDisc||0)+(t.ptDisc||0)+(t.manualDisc||0));
- return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-cout-fees,cmp,fMdr,fSvc,fAdm,fShip,fees,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0),subtotal:sum(tx,t=>(t.subtotal||0)+(t.custDisc||0)),cD:sum(tx,t=>t.custDisc||0),autoD:sum(tx,t=>t.autoDisc||0),vD:sum(tx,t=>t.voucherDisc||0),pD:sum(tx,t=>t.ptDisc||0),manD:sum(tx,t=>t.manualDisc||0),rnd:sum(tx,t=>t.rounding||0),taxEx:sum(tx.filter(t=>!t.taxIncl),t=>t.tax||0)};
+ return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-opex-fees,gaji,komisi,opex,cmp,fMdr,fSvc,fAdm,fShip,fees,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0),subtotal:sum(tx,t=>(t.subtotal||0)+(t.custDisc||0)),cD:sum(tx,t=>t.custDisc||0),autoD:sum(tx,t=>t.autoDisc||0),vD:sum(tx,t=>t.voucherDisc||0),pD:sum(tx,t=>t.ptDisc||0),manD:sum(tx,t=>t.manualDisc||0),rnd:sum(tx,t=>t.rounding||0),taxEx:sum(tx.filter(t=>!t.taxIncl),t=>t.tax||0)};
 }
 function calc(){const[a,b]=range();return agg(a,b)}
 function prevAgg(){
@@ -426,7 +427,7 @@ function vRing(d){
  const pm=Object.keys(METHODS).filter(m=>d.by[m]||d.rby[m]);
  const top=Object.entries(d.prod).sort((x,y)=>y[1].q-x[1].q).slice(0,5),mx=top.length&&top[0][1].q>0?top[0][1].q:1;
  return`<div class="kg"><div class="kc hero"><small>Total omzet (setelah refund) · ${esc(perLabel())}</small><b>${rp(d.omzet)}</b><div style="margin-top:6px;opacity:.9">${d.tx.length} nota${d.refAmt?' · refund '+rp(d.refAmt):''}</div></div>
- <div class="kc"><small>Estimasi laba kotor</small><b>${rp(d.profit)}</b></div><div class="kc"><small>Pengeluaran operasional</small><b>${rp(d.cout)}</b></div><div class="kc"><small>Estimasi laba bersih</small><b>${rp(d.netProfit)}</b></div><div class="kc"><small>Rata-rata per nota</small><b>${rp(d.tx.length?d.gross/d.tx.length:0)}</b></div><div class="kc"><small>Service charge</small><b>${rp(d.svc)}</b></div><div class="kc"><small>Pajak</small><b>${rp(d.tax)}</b></div></div>
+ <div class="kc"><small>Estimasi laba kotor</small><b>${rp(d.profit)}</b></div><div class="kc"><small>Pengeluaran operasional (termasuk gaji & komisi)</small><b>${rp(d.opex)}</b></div><div class="kc"><small>Estimasi laba bersih</small><b>${rp(d.netProfit)}</b></div><div class="kc"><small>Rata-rata per nota</small><b>${rp(d.tx.length?d.gross/d.tx.length:0)}</b></div><div class="kc"><small>Service charge</small><b>${rp(d.svc)}</b></div><div class="kc"><small>Pajak</small><b>${rp(d.tax)}</b></div></div>
  <div class="card"><h4>Penjualan per Hari</h4><p>Setelah dikurangi refund</p>${dv.length?bars(dv,keys.map(k=>k.slice(8)+'/'+k.slice(5,7)),'area'):noData}</div>
  <div class="two"><div class="card"><h4>Jam Ramai</h4><p>Total penjualan per jam (06–23)</p>${d.tx.length?bars(hv,hl):noData}</div>
  <div class="card"><h4>5 Produk Terlaris</h4><p>Berdasarkan jumlah terjual</p>${top.length?top.map((x,i)=>`<div class="row"><div class="rk">${i+1}</div><div class="grow"><b>${esc(x[0])}</b><div class="bar"><i style="width:${Math.max(4,Math.round(x[1].q/mx*100))}%"></i></div></div><div class="val">${fq(x[1].q)} ${esc(x[1].unit)}<small>${rp(x[1].rev)}</small></div></div>`).join(''):noData}</div></div>
@@ -436,7 +437,7 @@ function vRing(d){
 
 /* ---------- Ringkasan Penjualan ---------- */
 function vRsum(d){
- const pend=d.subtotal+d.svc+d.taxEx+d.rnd,promo=d.cD+d.autoD+d.vD+d.pD+d.manD+d.cmp,lain=d.omzet-d.net,lk=d.net-d.cogs,lb=lk-d.cout-d.fees,oc=Object.entries(d.cbycat).sort((a,b)=>b[1]-a[1]);
+ const pend=d.subtotal+d.svc+d.taxEx+d.rnd,promo=d.cD+d.autoD+d.vD+d.pD+d.manD+d.cmp,lain=d.omzet-d.net,lk=d.net-d.cogs,lb=lk-d.opex-d.fees,oc=Object.entries(d.cbycat).sort((a,b)=>b[1]-a[1]);
  const neg=v=>'( '+rp(v)+' )';
  const R=(l,v,n)=>`<div class="rs-r"><span>${l}</span><span>${n?neg(v):rp(v)}</span></div>`;
  const N=(l,v)=>R(l,Math.abs(v),v>0);
@@ -447,7 +448,7 @@ function vRsum(d){
   ['BIAYA PROMOSI',''],['Harga Pelanggan & Grup',d.cD],['Promo Otomatis',d.autoD],['Voucher',d.vD],['Tukar Poin',d.pD],['Diskon Manual Kasir',d.manD],['Komplimen',d.cmp],['TOTAL BIAYA PROMOSI',promo],
   ['PENJUALAN BERSIH',''],['Total Penjualan',d.gross],['Pengembalian',d.refAmt],['TOTAL PENJUALAN BERSIH',d.omzet],
   ['LABA KOTOR',''],['Total Penjualan Bersih',d.omzet],['Pajak, service dan pembulatan (bukan laba)',lain],['Penjualan setelah diskon',d.net],['HPP',d.cogs],['TOTAL LABA KOTOR',lk],
-  ['BIAYA LAYANAN & PLATFORM',''],['MDR Metode Bayar',d.fMdr],['Biaya Layanan / Komisi Platform',d.fSvc],['Biaya Administrasi Platform',d.fAdm],['Ongkir Ditanggung Toko',d.fShip],['TOTAL BIAYA LAYANAN & PLATFORM',d.fees],['BIAYA OPERASIONAL',''],...oc.map(([k,v])=>[k,v]),['TOTAL BIAYA OPERASIONAL',d.cout],['LABA BERSIH',''],['Total Laba Kotor',lk],['Total Biaya Layanan & Platform',d.fees],['Total Biaya Operasional',d.cout],['TOTAL LABA BERSIH',lb]];
+  ['BIAYA LAYANAN & PLATFORM',''],['MDR Metode Bayar',d.fMdr],['Biaya Layanan / Komisi Platform',d.fSvc],['Biaya Administrasi Platform',d.fAdm],['Ongkir Ditanggung Toko',d.fShip],['TOTAL BIAYA LAYANAN & PLATFORM',d.fees],['BIAYA OPERASIONAL',''],...oc.map(([k,v])=>[k,v]),['Gaji Karyawan',d.gaji],['Komisi Karyawan',d.komisi],['TOTAL BIAYA OPERASIONAL',d.opex],['LABA BERSIH',''],['Total Laba Kotor',lk],['Total Biaya Layanan & Platform',d.fees],['Total Biaya Operasional',d.opex],['TOTAL LABA BERSIH',lb]];
  return`<div class="kg rs-k">${Kc('Total Pendapatan',pend,'k1')}${Kc('Biaya Promosi',promo,'k2')}${Kc('Total Penjualan',d.gross,'k3')}${Kc('Penjualan Bersih',d.omzet,'k4')}${Kc('Total Laba Kotor',lk,'k5')}${Kc('Total Laba Bersih',lb,'k6')}</div>
  <div class="ch" style="margin-bottom:12px;align-items:center"><div class="mut">${esc(perLabel())} · ${d.tx.length} nota</div><button class="btn" onclick="exportRsum()">${ic('dl',16)} Ekspor Laporan</button></div>
  <div class="rs-s">${H('Pendapatan','g')}${R('Penjualan Kotor',d.subtotal)}${R('Biaya Pelayanan (service)',d.svc)}${R('Pajak',d.taxEx)}${R('Pembulatan',d.rnd)}${T('TOTAL PENDAPATAN',pend)}</div>
@@ -455,8 +456,8 @@ function vRsum(d){
  <div class="rs-s">${H('Penjualan Bersih','b')}${R('Total Penjualan',d.gross)}${R('Pengembalian',d.refAmt,1)}${T('TOTAL PENJUALAN BERSIH',d.omzet)}</div>
  <div class="rs-s">${H('Laba Kotor','p')}${R('Total Penjualan Bersih',d.omzet)}${N('Pajak, service dan pembulatan (bukan laba)',lain)}${R('Penjualan setelah diskon',d.net)}${R('HPP (harga pokok penjualan)',d.cogs,1)}${T('TOTAL LABA KOTOR',lk)}${R('Margin laba kotor',0).replace(rp(0),pct(d.net?lk/d.net*100:0))}</div>
  <div class="rs-s">${H('Biaya Layanan &amp; Platform','y')}${R('MDR Metode Bayar',d.fMdr,1)}${R('Biaya Layanan / Komisi Platform',d.fSvc,1)}${R('Biaya Administrasi Platform',d.fAdm,1)}${R('Ongkir Ditanggung Toko',d.fShip,1)}${T('TOTAL BIAYA LAYANAN &amp; PLATFORM',d.fees,1)}</div>
- <div class="rs-s">${H('Biaya Operasional','o')}${oc.length?oc.map(([k,v])=>R(esc(k),v,1)).join(''):'<div class="rs-r"><span class="mut">Belum ada pengeluaran pada periode ini</span><span></span></div>'}${T('TOTAL BIAYA OPERASIONAL',d.cout,1)}</div>
- <div class="rs-s">${H('Laba Bersih','g')}${R('Total Laba Kotor',lk)}${R('Total Biaya Layanan &amp; Platform',d.fees,1)}${R('Total Biaya Operasional',d.cout,1)}${T('TOTAL LABA BERSIH',lb)}${R('Margin laba bersih',0).replace(rp(0),pct(d.net?lb/d.net*100:0))}</div>
+ <div class="rs-s">${H('Biaya Operasional','o')}${oc.map(([k,v])=>R(esc(k),v,1)).join('')}${d.gaji?R('Gaji Karyawan',d.gaji,1):''}${d.komisi?R('Komisi Karyawan',d.komisi,1):''}${d.opex?'':'<div class="rs-r"><span class="mut">Belum ada pengeluaran pada periode ini</span><span></span></div>'}${T('TOTAL BIAYA OPERASIONAL',d.opex,1)}</div>
+ <div class="rs-s">${H('Laba Bersih','g')}${R('Total Laba Kotor',lk)}${R('Total Biaya Layanan &amp; Platform',d.fees,1)}${R('Total Biaya Operasional',d.opex,1)}${T('TOTAL LABA BERSIH',lb)}${R('Margin laba bersih',0).replace(rp(0),pct(d.net?lb/d.net*100:0))}</div>
  <div class="note">Ongkos kirim, biaya layanan transaksi, asuransi, komplimen, dan biaya administrasi belum dicatat oleh aplikasi kasir, jadi tidak ditampilkan.</div>`;
 }
 function exportRsum(){csv('Ringkasan-Penjualan',[['Keterangan','Nilai (Rp)'],['Periode',perLabel()],...(window._rsum||[])])}
@@ -545,8 +546,8 @@ function vAnalisa(d){
  const share=(o,tot)=>tot?pct(o/tot*100):'0.0%';
  const totCh=sum(Object.values(d.chan),o=>o.total),pm=Object.keys(METHODS).filter(m=>d.by[m]),totPm=sum(pm,m=>d.by[m]);
  return`${pv?'<div class="mut" style="margin:-4px 0 12px;font-size:13px">Perubahan dibandingkan periode sebelumnya dengan panjang yang sama.</div>':''}
- <div class="kg">${K('Omzet (setelah refund)',rp(d.omzet),d.omzet,pv&&pv.omzet)}${K('Jumlah nota',d.tx.length,d.tx.length,pv&&pv.tx.length)}${K('Rata-rata per nota',rp(aov(d)),aov(d),pv&&aov(pv))}${K('Item per nota',d.tx.length?fq(d.items/d.tx.length):'0',d.tx.length?d.items/d.tx.length:0,pv&&(pv.tx.length?pv.items/pv.tx.length:0))}${K('Laba kotor',rp(d.profit),d.profit,pv&&pv.profit)}${K('Margin kotor',pct(mg(d)),mg(d),pv&&mg(pv))}${K('Pengeluaran operasional',rp(d.cout),d.cout,pv&&pv.cout,1)}${K('Laba bersih',rp(d.netProfit),d.netProfit,pv&&pv.netProfit)}</div>
- <div class="kg"><div class="kc"><small>Total diskon</small><b>${rp(d.disc)}</b><small>${pct(d.gross+d.disc?d.disc/(d.gross+d.disc)*100:0)} dari penjualan kotor</small></div><div class="kc"><small>Tingkat refund</small><b>${pct(d.gross?d.refAmt/d.gross*100:0)}</b><small>${rp(d.refAmt)}</small></div><div class="kc"><small>Pengeluaran / omzet</small><b>${pct(d.omzet?d.cout/d.omzet*100:0)}</b></div></div>
+ <div class="kg">${K('Omzet (setelah refund)',rp(d.omzet),d.omzet,pv&&pv.omzet)}${K('Jumlah nota',d.tx.length,d.tx.length,pv&&pv.tx.length)}${K('Rata-rata per nota',rp(aov(d)),aov(d),pv&&aov(pv))}${K('Item per nota',d.tx.length?fq(d.items/d.tx.length):'0',d.tx.length?d.items/d.tx.length:0,pv&&(pv.tx.length?pv.items/pv.tx.length:0))}${K('Laba kotor',rp(d.profit),d.profit,pv&&pv.profit)}${K('Margin kotor',pct(mg(d)),mg(d),pv&&mg(pv))}${K('Pengeluaran operasional',rp(d.opex),d.opex,pv&&pv.opex,1)}${K('Laba bersih',rp(d.netProfit),d.netProfit,pv&&pv.netProfit)}</div>
+ <div class="kg"><div class="kc"><small>Total diskon</small><b>${rp(d.disc)}</b><small>${pct(d.gross+d.disc?d.disc/(d.gross+d.disc)*100:0)} dari penjualan kotor</small></div><div class="kc"><small>Tingkat refund</small><b>${pct(d.gross?d.refAmt/d.gross*100:0)}</b><small>${rp(d.refAmt)}</small></div><div class="kc"><small>Pengeluaran / omzet</small><b>${pct(d.omzet?d.opex/d.omzet*100:0)}</b></div></div>
  ${bepCard(d)}
  <div class="card"><h4>Sorotan</h4><p>Ringkasan otomatis dari data periode ini</p>${ins.length?`<ul class="ins">${ins.map(x=>'<li>'+x+'</li>').join('')}</ul>`:noData}</div>
  <div class="card"><h4>Tren Penjualan Harian</h4><p>Setelah dikurangi refund</p>${dv.length?bars(dv,keys.map(k=>k.slice(8)+'/'+k.slice(5,7)),'area'):noData}</div>
@@ -677,14 +678,14 @@ function shiftDetail(id){
 }
 
 /* ---------- Arus Kas & Rekening ---------- */
-const AK={acc:''},BT={tunai:'Kas Tunai',bank:'Bank',ewallet:'E-Wallet'},MKEYS=['tunai','qris','debit','kredit','transfer','ewallet','luar'];
+const AK={acc:''},BT={tunai:'Kas Tunai',bank:'Bank',ewallet:'E-Wallet'},MKEYS=['tunai','qris','debit','kredit','transfer','ewallet','luar','gaji'];
 const CFC={out:['Belanja Bahan','Gaji','Sewa','Listrik & Air','Transportasi','Marketing','Peralatan','Pajak','Lainnya'],in:['Setoran Modal','Pinjaman','Pendapatan Lain','Lainnya']};
 const BANKS=()=>(D&&D.banks)||[],CFS=()=>(D&&D.cf)||[],CMAP=()=>(D&&D.cfmap)||{};
 const accName=id=>{const b=BANKS().find(x=>x.id===id);return b?b.name:'Belum diatur'};
 function accOf(m){
  const all=BANKS(),b=all.filter(x=>x.active!==false),mp=CMAP()[m];
  if(mp&&all.some(x=>x.id===mp))return mp;
- const f=(m==='tunai'||m==='luar')?b.find(x=>x.type==='tunai'):b.find(x=>x.type!=='tunai');
+ const f=(m==='tunai'||m==='luar'||m==='gaji')?b.find(x=>x.type==='tunai'):b.find(x=>x.type!=='tunai');
  return f?f.id:'-';
 }
 function cfFlows(){
@@ -699,6 +700,12 @@ function cfFlows(){
  const fg={};
  D.tx.forEach(t=>{const f=feeNet(t);if(!(f>0))return;const p=t.payments.find(x=>x.m!=='tunai'&&x.m!=='kasbon'&&x.m!=='komplimen')||t.payments[0];if(!p)return;const a=accOf(p.m),k=dk(t.ts)+'|'+a,o=fg[k]||(fg[k]={ts:new Date(dk(t.ts)+'T00:00').getTime()+864e5-1,a,v:0});o.v+=f});
  Object.values(fg).forEach(o=>add(o.ts,o.a,'fee','Biaya MDR/platform',0,o.v,'Otomatis'));
+ (D.payroll||[]).forEach(p=>{
+  if(p.status!=='paid'||!p.paidTs)return;
+  const a=accOf('gaji'),c=+p.comm||0,g=(+p.total||0)-c,nm=(p.empName||'')+' '+(p.period||'');
+  if(g>0)add(+p.paidTs,a,'pay','Gaji '+nm,0,g,'Otomatis',undefined,{cat:'Gaji'});
+  if(c>0)add(+p.paidTs,a,'pay','Komisi '+nm,0,c,'Otomatis',undefined,{cat:'Komisi'});
+ });
  D.refunds.forEach(r=>add(r.ts,accOf(r.method),'ref','Refund '+(r.txNo||''),0,r.amount||0,'Otomatis'));
  D.cash.forEach(x=>add(x.ts,accOf(x.src==='luar'?'luar':'tunai'),'pos',(x.cat||'')+(x.note?' · '+x.note:''),x.type==='in'?x.amount:0,x.type==='out'?x.amount:0,'Kasir',undefined,{cat:x.cat||'Lainnya'}));
  CFS().forEach(x=>{
@@ -747,7 +754,7 @@ function saldoChart(pts){
 }
 function cfStmt(rows,start){
  const g=(f,k,s)=>{const o={};rows.filter(f).forEach(r=>{const n=k(r);o[n]=(o[n]||0)+s(r)});return Object.entries(o).filter(x=>x[1]).sort((a,b)=>b[1]-a[1])};
- const sales=g(r=>r.kind==='sale',r=>METHODS[r.m]||r.m,r=>r.inn),exp=g(r=>(r.kind==='pos'||r.kind==='out')&&r.out>0,r=>r.cat||'Lainnya',r=>r.out),oth=g(r=>(r.kind==='pos'||r.kind==='in')&&r.inn>0,r=>r.cat||'Lainnya',r=>r.inn);
+ const sales=g(r=>r.kind==='sale',r=>METHODS[r.m]||r.m,r=>r.inn),exp=g(r=>(r.kind==='pos'||r.kind==='out'||r.kind==='pay')&&r.out>0,r=>r.cat||'Lainnya',r=>r.out),oth=g(r=>(r.kind==='pos'||r.kind==='in')&&r.inn>0,r=>r.cat||'Lainnya',r=>r.inn);
  const ref=sum(rows.filter(r=>r.kind==='ref'),r=>r.out),fee=sum(rows.filter(r=>r.kind==='fee'),r=>r.out),tf=sum(rows.filter(r=>r.kind==='tf'),r=>r.inn-r.out);
  const ts=sum(sales,x=>x[1]),te=sum(exp,x=>x[1]),to=sum(oth,x=>x[1]),op=ts-ref-fee-te,neg=x=>'('+rp(x)+')';
  const R=(l,x,b,i)=>`<tr><td style="padding-left:${i?24:8}px">${b?'<b>'+l+'</b>':l}</td><td class="r">${b?'<b>'+x+'</b>':x}</td></tr>`;
@@ -800,7 +807,7 @@ function mapDlg(){
  const bk=BANKS().filter(x=>x.active!==false);
  if(!bk.length){alert('Buat rekening dulu (tombol Rekening & Saldo Awal).');rkDlg();return}
  dlg(`<h3>Penjualan Masuk ke Rekening Mana?</h3><div class="mut" style="margin-bottom:10px">Atur sekali. Penjualan dan refund dari kasir otomatis masuk ke rekening sesuai metode bayarnya.</div>
- <div class="g2">${MKEYS.map(k=>`<div><label>${k==='luar'?'Catatan kas kasir “di luar laci”':METHODS[k]}</label><select id="m_${k}">${bk.map(x=>`<option value="${x.id}" ${accOf(k)===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>`).join('')}</div>
+ <div class="g2">${MKEYS.map(k=>`<div><label>${k==='luar'?'Catatan kas kasir “di luar laci”':k==='gaji'?'Pembayaran gaji & komisi':METHODS[k]}</label><select id="m_${k}">${bk.map(x=>`<option value="${x.id}" ${accOf(k)===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>`).join('')}</div>
  <div class="acts2"><button class="btn pri" onclick="saveMap(this)">Simpan</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
 function saveMap(btn){const o={};MKEYS.forEach(k=>o[k]=v('m_'+k));safe(()=>push('cfmap',o),btn)}
@@ -1361,7 +1368,7 @@ function vGaji(){
  return`${monthBar(GJ,'setGJ')}
  <div class="kg"><div class="kc"><small>Total gaji · ${esc(ymLabel(GJ.m))}</small><b>${rp(tot)}</b></div><div class="kc"><small>Total komisi</small><b>${rp(sum(L,x=>x.c.comm))}</b></div><div class="kc"><small>Sudah dibayar</small><b style="color:var(--ok)">${rp(paid)}</b></div><div class="kc"><small>Belum dibayar</small><b style="color:var(--${tot-paid>0?'bad':'ok'})">${rp(tot-paid)}</b></div></div>
  <div class="card"><div class="ch"><div><h4>Gaji Karyawan</h4><p>Gaji pokok + tunjangan + komisi + bonus − potongan. Tekan “Bayar” untuk mengunci angka bulan ini.</p></div><button class="btn" onclick="gjExport()">${ic('dl',16)} CSV</button></div><div class="tw">${L.length?`<table><tr><th>Karyawan</th><th class="r">Hari</th><th class="r">Gaji pokok</th><th class="r">Tunjangan</th><th class="r">Komisi</th><th class="r">Bonus</th><th class="r">Potongan</th><th class="r">Total</th><th>Status</th><th></th></tr>${L.map(({e,c})=>`<tr><td><b>${esc(e.name)}</b>${e.role?'<br><small class="mut">'+esc(e.role)+'</small>':''}</td><td class="r">${c.days===''?'-':c.days}</td><td class="r">${rp(c.base)}</td><td class="r">${rp(c.allow)}</td><td class="r">${rp(c.comm)}</td><td class="r">${rp(c.bonus)}</td><td class="r">${c.ded?'−'+rp(c.ded):'-'}</td><td class="r"><b>${rp(c.total)}</b></td><td>${c.paid?'<span class="badge g">Dibayar</span>':'<span class="badge k">Belum</span>'}</td><td style="text-align:right;white-space:nowrap">${c.paid?`<button class="btn sm" onclick="payUnpaid('${e.id}')">Batalkan</button> `:`<button class="btn sm" onclick="payEdit('${e.id}')">Ubah</button> <button class="btn sm pri" onclick="payPaid('${e.id}')">Bayar</button> `}<button class="btn sm" onclick="paySlip('${e.id}')">Slip</button></td></tr>`).join('')}<tr class="ft"><td>Total</td><td></td><td class="r">${rp(sum(L,x=>x.c.base))}</td><td class="r">${rp(sum(L,x=>x.c.allow))}</td><td class="r">${rp(sum(L,x=>x.c.comm))}</td><td class="r">${rp(sum(L,x=>x.c.bonus))}</td><td class="r">${rp(sum(L,x=>x.c.ded))}</td><td class="r">${rp(tot)}</td><td colspan="2"></td></tr></table>`:'<div class="empty">Belum ada karyawan. Tambahkan di menu Data Karyawan.</div>'}</div></div>
- <div class="note">Gaji harian dihitung dari jumlah hari karyawan membuka shift di kasir (nama staf kasir harus sama dengan nama karyawan); jumlah hari bisa diubah manual lewat “Ubah”. Pembayaran gaji ini belum tercatat otomatis di Kas Keluar kasir.</div>`;
+ <div class="note">Gaji harian dihitung dari jumlah hari karyawan membuka shift di kasir (nama staf kasir harus sama dengan nama karyawan); jumlah hari bisa diubah manual lewat “Ubah”. Gaji yang sudah ditandai “Dibayar” otomatis masuk ke Arus Kas (sebagai Gaji dan Komisi) dan ke Ringkasan Penjualan sebagai biaya operasional, pada tanggal pembayarannya. Jangan catat lagi manual agar tidak dobel.</div>`;
 }
 function gjExport(){csv('Gaji-'+GJ.m,[['Karyawan','Jabatan','Hari','Gaji Pokok','Tunjangan','Komisi','Bonus','Potongan','Total','Status'],...(window._gj||[]).map(({e,c})=>[e.name,e.role||'',c.days,c.base,c.allow,c.comm,c.bonus,c.ded,c.total,c.paid?'Dibayar':'Belum'])])}
 function payPayload(e,c,extra){const r=c.rec||{};return Object.assign({id:'pay-'+GJ.m+'-'+e.id,empId:e.id,empName:e.name,period:GJ.m,days:c.days,bonus:c.bonus,deduct:c.ded,note:r.note||'',status:'draft',base:c.base,allow:c.allow,comm:c.comm,total:c.total},extra||{})}
