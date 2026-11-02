@@ -352,6 +352,61 @@ function vRsum(d){
 function exportRsum(){csv('Ringkasan-Penjualan',[['Keterangan','Nilai (Rp)'],['Periode',perLabel()],...(window._rsum||[])])}
 
 /* ---------- Analisa Bisnis ---------- */
+/* ---------- BEP (Titik Impas) & Target Penjualan ---------- */
+function bepRowHTML(x){return`<div class="g2 bprow" style="grid-template-columns:1fr 150px 44px;gap:8px;margin-bottom:6px"><input class="bn" maxlength="40" placeholder="Nama biaya (mis. Sewa)" value="${esc(x&&x.n||'')}"><input class="ba" type="number" inputmode="numeric" min="0" placeholder="Rp / bulan" value="${x&&x.a?x.a:''}"><button class="btn sm del" onclick="this.parentNode.remove()">✕</button></div>`}
+function bepAdd(){const r=$('#bprows');if(r.children.length>=15){alert('Maksimal 15 baris');return}r.insertAdjacentHTML('beforeend',bepRowHTML());}
+function bepForm(){
+ const b=(D.outlet&&D.outlet.bep)||{fixed:[],target:0},l=(b.fixed&&b.fixed.length)?b.fixed:[{n:'Sewa',a:''},{n:'Gaji karyawan',a:''},{n:'Listrik, air & internet',a:''}];
+ const co=Object.entries(CUR.cbycat).sort((a,c)=>c[1]-a[1]).map(([k,x])=>esc(k)+' '+rp(x)).join(' · ');
+ dlg(`<h3>Biaya Tetap &amp; Target Laba</h3>
+ <div class="mut" style="font-size:13px;margin-bottom:8px">Isi biaya yang harus dibayar tiap bulan walau penjualan sepi (sewa, gaji, listrik, cicilan). Bahan baku/HPP, komisi platform, dan MDR otomatis dihitung dari data penjualan sebagai biaya variabel.</div>
+ ${co?`<div class="note">Pengeluaran kas tercatat pada periode terpilih (sebagai acuan): ${co}</div>`:''}
+ <div id="bprows">${l.map(bepRowHTML).join('')}</div>
+ <button class="btn sm" onclick="bepAdd()">${ic('plus',14)} Tambah biaya</button>
+ ${fld('b_t','Target laba bersih per bulan (Rp, opsional)',b.target||'','number','mis. 5000000')}
+ <div class="acts2"><button class="btn pri" onclick="saveBep(this)">Simpan</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+function saveBep(btn){
+ const fixed=[...document.querySelectorAll('#bprows .bprow')].map(r=>({n:r.querySelector('.bn').value.trim(),a:Math.max(0,+r.querySelector('.ba').value||0)})).filter(x=>x.a>0||x.n);
+ if(fixed.some(x=>!x.n)){alert('Ada biaya yang belum diberi nama');return}
+ safe(()=>push('outlet',Object.assign({},D.outlet||{},{bep:{fixed,target:Math.max(0,+v('b_t')||0)}})),btn);
+}
+function bepCard(d){
+ const b=(D.outlet&&D.outlet.bep)||{fixed:[],target:0},F=sum(b.fixed||[],x=>+x.a||0),T=+b.target||0;
+ const act=`<button class="btn sm" onclick="bepForm()">${ic('plus',14)} Atur biaya tetap &amp; target</button>`;
+ const hd=`<div class="ch"><div><h4>Titik Impas (BEP) &amp; Target Penjualan</h4><p>Berapa penjualan yang harus dicapai tiap bulan supaya tidak rugi dan mencapai target laba</p></div>${act}</div>`;
+ if(!(F>0))return`<div class="card">${hd}<div class="empty">Biaya tetap bulanan belum diisi. Tekan “Atur biaya tetap &amp; target” untuk mulai menghitung BEP.</div></div>`;
+ const n=new Date(),dim=new Date(n.getFullYear(),n.getMonth()+1,0).getDate(),dn=n.getDate(),ms=new Date(n.getFullYear(),n.getMonth(),1).getTime();
+ const mo=agg(ms,new Date(n.getFullYear(),n.getMonth()+1,1).getTime());
+ let base=d,lbl=perLabel();if(!(base.net>0)){base=mo;lbl='bulan ini'}if(!(base.net>0)){base=agg(0,Infinity);lbl='semua data'}
+ if(!(base.net>0))return`<div class="card">${hd}<div class="empty">Belum ada data penjualan untuk menghitung margin. BEP muncul setelah ada transaksi.</div></div>`;
+ const vr=base.cogs+base.fees,cm=(base.net-vr)/base.net;
+ if(!(cm>0))return`<div class="card">${hd}<div class="note" style="color:var(--bad)">Margin kontribusi ${pct(cm*100)} (HPP + biaya platform ≥ penjualan). BEP tidak bisa dihitung — cek HPP produk dan harga jual.</div></div>`;
+ const bep=F/cm,tg=(F+T)/cm,act2=mo.net,proj=act2/dn*dim,left=Math.max(0,dim-dn+1);
+ const avg=base.tx.length?base.net/base.tx.length:0,bpd=bep/dim,tpd=tg/dim;
+ const needBep=Math.max(0,bep-act2)/left,needTg=Math.max(0,tg-act2)/left;
+ const mx=Math.max(tg,bep,act2,proj)*1.08||1,w=x=>Math.min(100,Math.max(0,x/mx*100));
+ const mos=proj>0?(proj-bep)/proj*100:0;
+ const st=act2>=tg&&T>0?['Target tercapai','g']:act2>=bep?['Sudah lewat BEP','g']:proj>=bep?['Diproyeksi lewat BEP','k']:['Di bawah BEP','v'];
+ const K=(l,x,s)=>`<div class="kc"><small>${l}</small><b>${x}</b>${s?`<small>${s}</small>`:''}</div>`;
+ return`<div class="card">${hd}
+ <div class="kg">${K('BEP per bulan',rp(bep),'penjualan minimum agar impas')}${T>0?K('Target penjualan / bulan',rp(tg),'untuk laba bersih '+rp(T)):''}${K('Margin kontribusi',pct(cm*100),'dari '+lbl)}${K('Biaya tetap / bulan',rp(F),(b.fixed||[]).length+' pos biaya')}</div>
+ <div style="margin:4px 0 6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>Realisasi bulan ini: ${rp(act2)}</b><span class="badge ${st[1]}">${st[0]}</span></div>
+ <div style="position:relative;height:16px;background:var(--soft);border-radius:99px;margin:22px 0 30px">
+  <div style="position:absolute;left:0;top:0;height:100%;width:${w(act2)}%;background:linear-gradient(90deg,var(--hd1),var(--hd2));border-radius:99px"></div>
+  <div style="position:absolute;left:${w(bep)}%;top:-6px;height:28px;border-left:2px dashed var(--warn)"></div><div style="position:absolute;left:${w(bep)}%;top:-22px;transform:translateX(-50%);font-size:11px;color:var(--warn);font-weight:700;white-space:nowrap">BEP</div>
+  ${T>0?`<div style="position:absolute;left:${w(tg)}%;top:-6px;height:28px;border-left:2px dashed var(--ok)"></div><div style="position:absolute;left:${w(tg)}%;top:22px;transform:translateX(-50%);font-size:11px;color:var(--ok);font-weight:700;white-space:nowrap">Target</div>`:''}
+ </div>
+ <div class="tw"><table><tr><th></th><th class="r">BEP (impas)</th>${T>0?'<th class="r">Target laba</th>':''}</tr>
+ <tr><td>Penjualan per bulan</td><td class="r"><b>${rp(bep)}</b></td>${T>0?`<td class="r"><b>${rp(tg)}</b></td>`:''}</tr>
+ <tr><td>Rata-rata per hari (${dim} hari)</td><td class="r">${rp(bpd)}</td>${T>0?`<td class="r">${rp(tpd)}</td>`:''}</tr>
+ <tr><td>Nota per hari${avg?' (rata-rata '+rp(avg)+'/nota)':''}</td><td class="r">${avg?Math.ceil(bpd/avg):'-'}</td>${T>0?`<td class="r">${avg?Math.ceil(tpd/avg):'-'}</td>`:''}</tr>
+ <tr><td>Kekurangan bulan ini</td><td class="r" style="color:var(--${act2>=bep?'ok':'bad'})">${act2>=bep?'Terlampaui '+rp(act2-bep):rp(bep-act2)}</td>${T>0?`<td class="r" style="color:var(--${act2>=tg?'ok':'bad'})">${act2>=tg?'Terlampaui '+rp(act2-tg):rp(tg-act2)}</td>`:''}</tr>
+ <tr><td>Perlu per hari sisa ${left} hari</td><td class="r">${rp(needBep)}</td>${T>0?`<td class="r">${rp(needTg)}</td>`:''}</tr></table></div>
+ <ul class="ins" style="margin-top:10px"><li>Proyeksi akhir bulan dengan laju sekarang: <b>${rp(proj)}</b>${proj>=bep?', di atas BEP':', masih di bawah BEP'}${proj>0?' · margin of safety <b>'+pct(mos)+'</b>':''}.</li>${T>0?`<li>Laba bersih yang diproyeksikan: <b>${rp(proj*cm-F)}</b> (target ${rp(T)}).</li>`:''}<li>Setiap Rp1.000 penjualan menyumbang sekitar <b>${rp(cm*1000)}</b> untuk menutup biaya tetap dan laba.</li></ul>
+ <div class="hint">Perhitungan memakai penjualan setelah diskon (di luar pajak &amp; service). Margin diambil dari ${esc(lbl)}; realisasi dari bulan berjalan. BEP = biaya tetap ÷ margin kontribusi.</div></div>`;
+}
+
 function vAnalisa(d){
  const pv=prevAgg();
  const dl=(c,p,inv)=>{if(p==null)return'';if(p===0)return c>0?'<small class="dlt up">baru</small>':'';const v=(c-p)/Math.abs(p)*100,up=v>=0;return`<small class="dlt ${up!==!!inv?'up':'dn'}">${up?'▲':'▼'} ${Math.abs(v).toFixed(1)}%</small>`};
@@ -382,6 +437,7 @@ function vAnalisa(d){
  return`${pv?'<div class="mut" style="margin:-4px 0 12px;font-size:13px">Perubahan dibandingkan periode sebelumnya dengan panjang yang sama.</div>':''}
  <div class="kg">${K('Omzet (setelah refund)',rp(d.omzet),d.omzet,pv&&pv.omzet)}${K('Jumlah nota',d.tx.length,d.tx.length,pv&&pv.tx.length)}${K('Rata-rata per nota',rp(aov(d)),aov(d),pv&&aov(pv))}${K('Item per nota',d.tx.length?fq(d.items/d.tx.length):'0',d.tx.length?d.items/d.tx.length:0,pv&&(pv.tx.length?pv.items/pv.tx.length:0))}${K('Laba kotor',rp(d.profit),d.profit,pv&&pv.profit)}${K('Margin kotor',pct(mg(d)),mg(d),pv&&mg(pv))}${K('Pengeluaran operasional',rp(d.cout),d.cout,pv&&pv.cout,1)}${K('Laba bersih',rp(d.netProfit),d.netProfit,pv&&pv.netProfit)}</div>
  <div class="kg"><div class="kc"><small>Total diskon</small><b>${rp(d.disc)}</b><small>${pct(d.gross+d.disc?d.disc/(d.gross+d.disc)*100:0)} dari penjualan kotor</small></div><div class="kc"><small>Tingkat refund</small><b>${pct(d.gross?d.refAmt/d.gross*100:0)}</b><small>${rp(d.refAmt)}</small></div><div class="kc"><small>Pengeluaran / omzet</small><b>${pct(d.omzet?d.cout/d.omzet*100:0)}</b></div></div>
+ ${bepCard(d)}
  <div class="card"><h4>Sorotan</h4><p>Ringkasan otomatis dari data periode ini</p>${ins.length?`<ul class="ins">${ins.map(x=>'<li>'+x+'</li>').join('')}</ul>`:noData}</div>
  <div class="card"><h4>Tren Penjualan Harian</h4><p>Setelah dikurangi refund</p>${dv.length?bars(dv,keys.map(k=>k.slice(8)+'/'+k.slice(5,7))):noData}</div>
  <div class="two"><div class="card"><h4>Jam Ramai</h4><p>Total penjualan per jam</p>${d.tx.length?bars(hv,hl):noData}</div><div class="card"><h4>Hari Tersibuk</h4><p>Total penjualan per hari dalam seminggu</p>${d.tx.length?bars(wv,wl):noData}</div></div>
@@ -901,7 +957,7 @@ function prevStruk(){
  if(v('r_foot'))L.push('',ctr(v('r_foot')));
  e.textContent=L.join('\n');e.classList.toggle('w80',v('r_w')==='80');
 }
-function saveOutlet(btn){safe(()=>push('outlet',{name:v('o_name').trim(),address:v('o_addr').trim(),phone:v('o_tel').trim(),social:v('o_ig').trim(),taxPct:+v('o_tax')||0,servicePct:+v('o_svc')||0}),btn)}
+function saveOutlet(btn){safe(()=>push('outlet',{...(D.outlet||{}),name:v('o_name').trim(),address:v('o_addr').trim(),phone:v('o_tel').trim(),social:v('o_ig').trim(),taxPct:+v('o_tax')||0,servicePct:+v('o_svc')||0}),btn)}
 function saveReceipt(btn){safe(()=>push('receipt',{header:v('r_head').trim(),footer:v('r_foot').trim(),width:+v('r_w'),showAddress:ck('r_ad'),showCashier:ck('r_cs'),showTable:ck('r_tb'),showPayment:ck('r_pm')}),btn)}
 
 (async function init(){
