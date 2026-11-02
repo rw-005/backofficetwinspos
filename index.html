@@ -688,20 +688,23 @@ function accOf(m){
  return f?f.id:'-';
 }
 function cfFlows(){
- const L=[],add=(ts,acc,kind,label,inn,out,src,id)=>L.push({ts,acc,kind,label,inn,out,src,id});
+ const L=[],add=(ts,acc,kind,label,inn,out,src,id,x)=>L.push({ts,acc,kind,label,inn,out,src,id,...x});
  const sg={};
  D.tx.forEach(t=>t.payments.forEach(p=>{
   if(p.m==='kasbon'||p.m==='komplimen')return;
   const a=accOf(p.m),k=dk(t.ts)+'|'+a+'|'+p.m,o=sg[k]||(sg[k]={ts:new Date(dk(t.ts)+'T00:00').getTime()+864e5-1,a,m:p.m,n:0,v:0});
   o.n++;o.v+=p.ap||0;
  }));
- Object.values(sg).forEach(o=>add(o.ts,o.a,'sale','Penjualan '+(METHODS[o.m]||o.m)+' ('+o.n+' nota)',o.v,0,'Otomatis'));
+ Object.values(sg).forEach(o=>add(o.ts,o.a,'sale','Penjualan '+(METHODS[o.m]||o.m)+' ('+o.n+' nota)',o.v,0,'Otomatis',undefined,{m:o.m}));
+ const fg={};
+ D.tx.forEach(t=>{const f=feeNet(t);if(!(f>0))return;const p=t.payments.find(x=>x.m!=='tunai'&&x.m!=='kasbon'&&x.m!=='komplimen')||t.payments[0];if(!p)return;const a=accOf(p.m),k=dk(t.ts)+'|'+a,o=fg[k]||(fg[k]={ts:new Date(dk(t.ts)+'T00:00').getTime()+864e5-1,a,v:0});o.v+=f});
+ Object.values(fg).forEach(o=>add(o.ts,o.a,'fee','Biaya MDR/platform',0,o.v,'Otomatis'));
  D.refunds.forEach(r=>add(r.ts,accOf(r.method),'ref','Refund '+(r.txNo||''),0,r.amount||0,'Otomatis'));
- D.cash.forEach(x=>add(x.ts,accOf(x.src==='luar'?'luar':'tunai'),'pos',(x.cat||'')+(x.note?' · '+x.note:''),x.type==='in'?x.amount:0,x.type==='out'?x.amount:0,'Kasir'));
+ D.cash.forEach(x=>add(x.ts,accOf(x.src==='luar'?'luar':'tunai'),'pos',(x.cat||'')+(x.note?' · '+x.note:''),x.type==='in'?x.amount:0,x.type==='out'?x.amount:0,'Kasir',undefined,{cat:x.cat||'Lainnya'}));
  CFS().forEach(x=>{
   const n=x.note?' · '+x.note:'';
   if(x.type==='tf'){add(x.ts,x.acc,'tf','Transfer ke '+accName(x.to)+n,0,x.amount,'Manual',x.id);add(x.ts,x.to,'tf','Transfer dari '+accName(x.acc)+n,x.amount,0,'Manual',x.id)}
-  else add(x.ts,x.acc,x.type,(x.cat||'')+n,x.type==='in'?x.amount:0,x.type==='out'?x.amount:0,'Manual',x.id);
+  else add(x.ts,x.acc,x.type,(x.cat||'')+n,x.type==='in'?x.amount:0,x.type==='out'?x.amount:0,'Manual',x.id,{cat:x.cat||'Lainnya'});
  });
  return L;
 }
@@ -716,23 +719,48 @@ function cfCalc(){
  return S;
 }
 function vArus(){
- const bk=BANKS(),C=cfCalc(),sel=AK.acc,accs=Object.values(C).filter(s=>s.id!=='-'||s.rows.length),sc=accs.filter(s=>!sel||s.id===sel);
+ const bk=BANKS(),C=cfCalc(),sel=AK.acc,accs=Object.values(C).filter(s=>s.id!=='-'||s.rows.length),sc=accs.filter(s=>!sel||s.id===sel||(sel==='g:tunai'&&s.type==='tunai')||(sel==='g:non'&&s.type!=='tunai'&&s.id!=='-'));
  const rows=sc.flatMap(s=>s.rows.map(r=>({...r,an:s.name}))).sort((x,y)=>y.ts-x.ts),ex=r=>sel||r.kind!=='tf';
  window._cf=rows;
+ const st0=sum(sc,s=>s.start),day={};rows.forEach(r=>{const k=dk(r.ts);day[k]=(day[k]||0)+r.inn-r.out});let run=st0;const pts=[{d:'Awal',v:st0},...Object.keys(day).sort().map(k=>({d:k,v:(run+=day[k])}))];
  const tin=sum(rows.filter(ex),r=>r.inn),tout=sum(rows.filter(ex),r=>r.out);
- return`${bk.length?'':'<div class="note">Belum ada rekening. Klik <b>Kelola Rekening</b> untuk membuat akun, misalnya <b>Kas Tunai</b>, <b>BCA</b>, atau <b>QRIS/E-Wallet</b>, lalu isi saldo awalnya.</div>'}
- <div class="card"><div class="tool"><select onchange="AK.acc=this.value;render()"><option value="">Semua rekening</option>${accs.map(s=>`<option value="${s.id}" ${sel===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
+ return`${bk.length?'':'<div class="note">Belum ada rekening. Klik <b>Rekening & Saldo Awal</b> untuk membuat akun, misalnya <b>Kas Tunai</b>, <b>BCA</b>, atau <b>QRIS/E-Wallet</b>, lalu isi saldo awalnya.</div>'}
+ <div class="card"><div class="tool"><select onchange="AK.acc=this.value;render()"><option value="">Semua rekening</option><option value="g:tunai" ${sel==='g:tunai'?'selected':''}>Laci Kas (tunai)</option><option value="g:non" ${sel==='g:non'?'selected':''}>Rekening (QRIS, debit, transfer, e-wallet)</option>${accs.map(s=>`<option value="${s.id}" ${sel===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
  <button class="btn pri" onclick="cfForm('in')">${ic('plus',16)} Dana Masuk</button><button class="btn pri" onclick="cfForm('out')">${ic('plus',16)} Pengeluaran</button><button class="btn" onclick="cfForm('tf')">Transfer</button>
- <button class="btn" onclick="rkDlg()">Kelola Rekening</button><button class="btn" onclick="mapDlg()">Atur Penjualan → Rekening</button><button class="btn" onclick="exportArus()">${ic('dl',16)} CSV</button></div></div>
+ <button class="btn" onclick="rkDlg()">Rekening & Saldo Awal</button><button class="btn" onclick="mapDlg()">Atur Penjualan → Rekening</button><button class="btn" onclick="exportArus()">${ic('dl',16)} CSV</button></div></div>
  <div class="kg"><div class="kc"><small>Saldo awal periode</small><b>${rp(sum(sc,s=>s.start))}</b></div><div class="kc"><small>Dana masuk</small><b style="color:var(--ok)">${rp(tin)}</b></div><div class="kc"><small>Dana keluar</small><b style="color:var(--bad)">${rp(tout)}</b></div><div class="kc"><small>Saldo akhir</small><b>${rp(sum(sc,s=>s.bal))}</b></div></div>
+ <div class="card"><h4>Saldo per Hari</h4><p>${esc(perLabel())}</p>${saldoChart(pts)}</div>
  <div class="card"><h4>Saldo per Rekening</h4><p>${esc(perLabel())} · klik baris untuk memfilter · transfer antar rekening ikut dihitung per rekening</p><div class="tw">${accs.length?`<table><tr><th>Rekening</th><th>Jenis</th><th class="r">Saldo awal</th><th class="r">Masuk</th><th class="r">Keluar</th><th class="r">Saldo akhir</th></tr>${accs.map(s=>`<tr class="cl" onclick="AK.acc='${s.id}';render()"><td><b>${esc(s.name)}</b></td><td>${BT[s.type]||'-'}</td><td class="r">${rp(s.start)}</td><td class="r" style="color:var(--ok)">${rp(s.inn)}</td><td class="r" style="color:var(--bad)">${rp(s.out)}</td><td class="r"><b>${rp(s.bal)}</b></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada rekening</div>'}</div></div>
+ ${cfStmt(rows,st0)}
  <div class="card"><h4>Mutasi (Arus Kas)</h4><p>Penjualan dan refund kasir masuk otomatis. Baris <span class="badge g">Manual</span> bisa diklik untuk diubah.</p><div class="tw">${rows.length?`<table><tr><th>Waktu</th><th>Rekening</th><th>Keterangan</th><th>Sumber</th><th class="r">Masuk</th><th class="r">Keluar</th><th class="r">Saldo</th></tr>${rows.slice(0,300).map(r=>`<tr ${r.id?`class="cl" onclick="cfForm('','${r.id}')"`:''}><td>${r.kind==='sale'?dk(r.ts):fmtT(r.ts)}</td><td>${esc(r.an)}</td><td>${esc(r.label)}</td><td><span class="badge ${r.src==='Manual'?'g':'k'}">${r.src}</span></td><td class="r" style="color:var(--ok)">${r.inn?rp(r.inn):''}</td><td class="r" style="color:var(--bad)">${r.out?rp(r.out):''}</td><td class="r">${rp(r.saldo)}</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada mutasi pada periode ini</div>'}</div></div>
- <div class="note">Penjualan dicatat sebesar yang diterima per metode bayar, belum dipotong biaya QRIS/MDR atau biaya layanan. Kasbon dan komplimen tidak dihitung karena tidak ada uang masuk.</div>`;
+ <div class="note">Biaya MDR/platform diambil dari data nota dan dikurangkan dari rekening metode bayarnya. Kasbon dan komplimen tidak dihitung karena tidak ada uang masuk.</div>`;
+}
+function saldoChart(pts){
+ if(pts.length<2)return'<div class="empty">Belum ada mutasi untuk digrafikkan</div>';
+ const W=640,H=190,p=44,mn=Math.min(...pts.map(x=>x.v)),mx=Math.max(...pts.map(x=>x.v)),r=(mx-mn)||1,n=pts.length-1;
+ const X=i=>p+i*(W-p-10)/n,Y=v=>H-26-(v-mn)/r*(H-52);
+ const d=pts.map((x,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(x.v).toFixed(1)).join(' ');
+ const t=(x,y,s,a)=>`<text x="${x}" y="${y}" font-size="11" fill="currentColor" opacity=".6" text-anchor="${a||'start'}">${s}</text>`;
+ return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><line x1="${p}" y1="${Y(mn)}" x2="${W-10}" y2="${Y(mn)}" stroke="currentColor" opacity=".15"/><line x1="${p}" y1="${Y(mx)}" x2="${W-10}" y2="${Y(mx)}" stroke="currentColor" opacity=".15"/>
+ <path d="${d}" fill="none" stroke="var(--pri,#6366f1)" stroke-width="2.5" stroke-linejoin="round"/>${n<=31?pts.map((x,i)=>`<circle cx="${X(i)}" cy="${Y(x.v)}" r="3" fill="var(--pri,#6366f1)"/>`).join(''):''}
+ ${t(4,Y(mx)+4,cfmt(mx))}${t(4,Y(mn)+4,cfmt(mn))}${t(p,H-6,esc(pts[1].d))}${t(W-10,H-6,esc(pts[n].d),'end')}</svg><div class="mut" style="font-size:12px">Saldo akhir tiap hari yang ada mutasi, untuk rekening yang dipilih.</div>`;
+}
+function cfStmt(rows,start){
+ const g=(f,k,s)=>{const o={};rows.filter(f).forEach(r=>{const n=k(r);o[n]=(o[n]||0)+s(r)});return Object.entries(o).filter(x=>x[1]).sort((a,b)=>b[1]-a[1])};
+ const sales=g(r=>r.kind==='sale',r=>METHODS[r.m]||r.m,r=>r.inn),exp=g(r=>(r.kind==='pos'||r.kind==='out')&&r.out>0,r=>r.cat||'Lainnya',r=>r.out),oth=g(r=>(r.kind==='pos'||r.kind==='in')&&r.inn>0,r=>r.cat||'Lainnya',r=>r.inn);
+ const ref=sum(rows.filter(r=>r.kind==='ref'),r=>r.out),fee=sum(rows.filter(r=>r.kind==='fee'),r=>r.out),tf=sum(rows.filter(r=>r.kind==='tf'),r=>r.inn-r.out);
+ const ts=sum(sales,x=>x[1]),te=sum(exp,x=>x[1]),to=sum(oth,x=>x[1]),op=ts-ref-fee-te,neg=x=>'('+rp(x)+')';
+ const R=(l,x,b,i)=>`<tr><td style="padding-left:${i?24:8}px">${b?'<b>'+l+'</b>':l}</td><td class="r">${b?'<b>'+x+'</b>':x}</td></tr>`;
+ return`<div class="card"><h4>Laporan Arus Kas</h4><p>Dari penerimaan penjualan sampai saldo akhir, sesuai filter di atas</p><div class="tw"><table>
+ ${R('Saldo awal periode',rp(start),1)}${R('Penerimaan penjualan',rp(ts),1)}${sales.map(x=>R(esc(x[0]),rp(x[1]),0,1)).join('')}
+ ${R('Dikurangi',' ',1)}${R('Refund',neg(ref),0,1)}${R('Biaya MDR / platform',neg(fee),0,1)}${exp.map(x=>R('Pengeluaran: '+esc(x[0]),neg(x[1]),0,1)).join('')}
+ ${R('Arus kas operasional bersih',rp(op),1)}${R('Uang masuk lain',rp(to),1)}${oth.map(x=>R(esc(x[0]),rp(x[1]),0,1)).join('')}${tf?R('Transfer antar rekening (neto)',tf<0?neg(-tf):rp(tf),0,1):''}
+ ${R('Saldo akhir',rp(start+op+to+tf),1)}</table></div></div>`;
 }
 function exportArus(){csv('Arus-Kas',[['Waktu','Rekening','Keterangan','Sumber','Masuk','Keluar','Saldo'],...(window._cf||[]).map(r=>[fmtDT(r.ts),r.an,r.label,r.src,r.inn||0,r.out||0,r.saldo])])}
 function cfForm(type,id){
  const e=CFS().find(x=>x.id===id)||{type,ts:Date.now()},tp=e.type,bk=BANKS().filter(x=>x.active!==false||x.id===e.acc||x.id===e.to);
- if(!bk.length){alert('Buat rekening dulu (tombol Kelola Rekening).');rkDlg();return}
+ if(!bk.length){alert('Buat rekening dulu (tombol Rekening & Saldo Awal).');rkDlg();return}
  const opt=s=>bk.map(x=>`<option value="${x.id}" ${s===x.id?'selected':''}>${esc(x.name)}</option>`).join(''),
   cats=[...new Set([...(CFC[tp]||[]),...CFS().filter(x=>x.type===tp).map(x=>x.cat)].filter(Boolean))];
  dlg(`<h3>${id?'Ubah':'Catat'} ${tp==='in'?'Dana Masuk':tp==='out'?'Pengeluaran':'Transfer Antar Rekening'}</h3><datalist id="cl">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
@@ -770,7 +798,7 @@ function delRk(id){
 }
 function mapDlg(){
  const bk=BANKS().filter(x=>x.active!==false);
- if(!bk.length){alert('Buat rekening dulu (tombol Kelola Rekening).');rkDlg();return}
+ if(!bk.length){alert('Buat rekening dulu (tombol Rekening & Saldo Awal).');rkDlg();return}
  dlg(`<h3>Penjualan Masuk ke Rekening Mana?</h3><div class="mut" style="margin-bottom:10px">Atur sekali. Penjualan dan refund dari kasir otomatis masuk ke rekening sesuai metode bayarnya.</div>
  <div class="g2">${MKEYS.map(k=>`<div><label>${k==='luar'?'Catatan kas kasir “di luar laci”':METHODS[k]}</label><select id="m_${k}">${bk.map(x=>`<option value="${x.id}" ${accOf(k)===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>`).join('')}</div>
  <div class="acts2"><button class="btn pri" onclick="saveMap(this)">Simpan</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
