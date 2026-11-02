@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TWINS Backoffice</title>
+<title>TWINS POS</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f3f5fb;--card:#fff;--tx:#0b1630;--mut:#6b7893;--pri:#2457f5;--soft:#eaf0ff;--bd:#e3e8f3;--ok:#12a150;--bad:#e5384f;--warn:#d98a06;--hd1:#1a44cc;--hd2:#2f6df5;--sh:0 6px 24px rgba(20,40,100,.08);--side:linear-gradient(180deg,#1a44cc,#0f2a7a)}
@@ -109,6 +109,74 @@ tr.ft td{font-weight:800;border-top:2px solid var(--bd);background:var(--soft)}
 .rs-k .kc{border-bottom-width:4px}
 .kc.k1{border-bottom-color:#00c897}.kc.k2{border-bottom-color:#f5c518}.kc.k3{border-bottom-color:#0b84e5}.kc.k4{border-bottom-color:#6cb8f5}.kc.k5{border-bottom-color:#7c3aed}.kc.k6{border-bottom-color:#12a150}
 .rs-h.o{background:rgba(229,56,79,.12)}
+</style>
+<style id="modern">
+:root{--bg:#f4f6fc;--sh:0 1px 2px rgba(16,28,72,.04),0 10px 32px rgba(16,28,72,.07);--side:linear-gradient(185deg,#2457f5 0%,#1637a8 55%,#0d2160 100%)}
+[data-theme=dark]{--bg:#060914;--sh:0 1px 2px rgba(0,0,0,.4),0 10px 32px rgba(0,0,0,.4);--side:linear-gradient(185deg,#12275e 0%,#0a1535 55%,#050914 100%)}
+html,body{background:var(--bg);letter-spacing:-.005em}
+*{scrollbar-width:thin;scrollbar-color:var(--bd) transparent}
+.content{animation:fin .35s ease both}@keyframes fin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* sidebar */
+.side{box-shadow:6px 0 30px rgba(13,33,96,.18);position:sticky}
+.side .brand{padding:26px 24px 14px}.logo{letter-spacing:.34em;font-size:20px;font-weight:800}.logo span{font-weight:300;letter-spacing:.34em}
+.side .brand small{opacity:.7;letter-spacing:.02em}
+.ng{opacity:.5;letter-spacing:.16em;font-size:10.5px;padding:20px 24px 6px}
+.ni{border-radius:14px;padding:11px 14px;transition:background .18s,transform .18s,box-shadow .18s}
+.ni:hover{background:rgba(255,255,255,.14);transform:translateX(2px)}
+.ni.on{background:#fff;color:#1a44cc;box-shadow:0 8px 20px rgba(5,15,60,.28)}
+[data-theme=dark] .ni.on{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 3px 0 0 #5b8cff}
+.sf{border-top:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.12)}
+/* top bar */
+.tb{background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.tb h2{font-size:22px;letter-spacing:-.02em}
+/* cards */
+.card{border:1px solid color-mix(in srgb,var(--bd) 70%,transparent);border-radius:22px;padding:20px;box-shadow:var(--sh)}
+.card h4{font-size:16.5px;letter-spacing:-.01em}
+.kc{border-radius:20px;padding:16px 18px;border:1px solid color-mix(in srgb,var(--bd) 70%,transparent);box-shadow:var(--sh);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+.kc:hover{transform:translateY(-2px)}
+.kc b{letter-spacing:-.02em}
+.kc.hero{border:0;background:linear-gradient(135deg,#1a44cc 0%,#3b7bff 100%);box-shadow:0 18px 40px rgba(36,87,245,.32)}
+.kc.hero:before,.kc.hero:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.1);pointer-events:none}
+.kc.hero:before{width:240px;height:240px;right:-60px;top:-110px}.kc.hero:after{width:150px;height:150px;right:120px;bottom:-90px;background:rgba(255,255,255,.07)}
+.kc.hero b{font-size:38px;letter-spacing:-.03em}
+.rs-s{border-radius:20px;box-shadow:var(--sh);border-color:color-mix(in srgb,var(--bd) 70%,transparent)}
+.note{border-radius:14px;border:1px solid color-mix(in srgb,var(--pri) 18%,transparent)}
+/* tombol & chip */
+.btn{border-radius:13px;transition:transform .12s,box-shadow .18s,background .18s}
+.btn:hover{box-shadow:0 4px 14px rgba(20,40,100,.12)}.btn:active{transform:scale(.97)}
+.btn.pri,.btn.on{background:linear-gradient(135deg,#2457f5,#3b7bff);border-color:transparent;box-shadow:0 6px 16px rgba(36,87,245,.3)}
+.chip{padding:9px 18px;border-color:transparent;background:var(--card);box-shadow:0 1px 3px rgba(16,28,72,.08);transition:all .18s}
+.chip:hover{transform:translateY(-1px)}
+.chip.on{background:linear-gradient(135deg,#2457f5,#3b7bff);box-shadow:0 6px 16px rgba(36,87,245,.3)}
+input,select{border-radius:13px;border-color:transparent;background:color-mix(in srgb,var(--soft) 70%,var(--card));transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{border-color:var(--pri);box-shadow:0 0 0 4px color-mix(in srgb,var(--pri) 16%,transparent);background:var(--card)}
+/* tabel */
+th{font-size:11.5px;letter-spacing:.08em;border-bottom:1px solid var(--bd)}
+td{border-bottom:1px solid color-mix(in srgb,var(--bd) 60%,transparent)}
+tr.cl:hover td,tbody tr:hover td{background:color-mix(in srgb,var(--soft) 70%,transparent)}
+tr.ft td{background:var(--soft);border-top:0}
+.badge{padding:3px 10px}
+.bar{height:9px}.bar i{border-radius:99px}
+.rk{border-radius:10px}
+.row{border-bottom-color:color-mix(in srgb,var(--bd) 60%,transparent)}
+/* grafik */
+.cv{width:100%;height:auto;display:block;overflow:visible}
+.cv .gl{stroke:var(--bd);stroke-dasharray:3 5;stroke-width:1}.cv .gl.z{stroke:var(--mut);stroke-dasharray:none;opacity:.35}
+.cv .ax{fill:var(--mut);font-size:11px;font-family:inherit}
+.cv .vl{fill:var(--pri);font-size:11.5px;font-weight:800;font-family:inherit}
+.cv .ln{fill:none;stroke:var(--pri);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.cv .b{opacity:.72;transition:opacity .15s,filter .15s}.cv .b.mx{opacity:1}
+.cv .pt:hover .b{opacity:1;filter:brightness(1.12)}
+.cv .pt line{stroke:var(--pri);stroke-width:1;stroke-dasharray:3 3;opacity:0}
+.cv .pt circle{fill:var(--card);stroke:var(--pri);stroke-width:3;opacity:0;transition:opacity .12s}
+.cv .pt:hover line,.cv .pt:hover circle{opacity:1}
+#tip{position:fixed;z-index:200;display:none;pointer-events:none;background:#0b1630;color:#fff;border-radius:12px;padding:8px 13px;box-shadow:0 10px 28px rgba(0,0,0,.35);font-size:12.5px}
+#tip small{display:block;opacity:.7}#tip b{font-size:15px}
+/* login & dialog */
+.lock{background:radial-gradient(900px 500px at 15% 10%,#3b7bff 0%,transparent 60%),linear-gradient(160deg,#1a44cc,#0d2160)}
+.lockbox{border-radius:28px;padding:32px;box-shadow:0 30px 70px rgba(5,15,60,.45)}
+#dlgb{border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+#dlg{backdrop-filter:blur(4px)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.NOXLSX=1"></script>
 </head>
@@ -271,16 +339,49 @@ function csv(name,rows){
  const blob=new Blob(['﻿sep=;\r\n'+rows.map(r=>r.map(q).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name+'-'+dk(Date.now())+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},600);
 }
-function bars(vals,labels){
- const mx=Math.max(1,...vals);
- return`<div class="chart">${vals.map((v,i)=>`<div class="c" title="${esc(labels[i])}: ${rp(v)}"><i style="height:${Math.max(0,v/mx*100)}%"></i></div>`).join('')}</div><div class="axis">${labels.map((l,i)=>`<span>${vals.length>16&&i%2?'':esc(l)}</span>`).join('')}</div>`;
+let _cg=0;
+function cfmt(v){const a=Math.abs(v),s=v<0?'-':'';if(a>=1e9)return s+(a/1e9).toFixed(1).replace(/\.0$/,'')+' M';if(a>=1e6)return s+(a/1e6).toFixed(1).replace(/\.0$/,'')+' jt';if(a>=1e3)return s+Math.round(a/1e3)+' rb';return s+Math.round(a)}
+/* grafik modern (SVG): type 'bar' (batang membulat) atau 'area' (garis mulus + area) */
+function bars(vals,labels,type){
+ const n=vals.length;if(!n)return'';
+ const W=720,H=250,L=50,R=12,T=22,B=28,iw=W-L-R,ih=H-T-B,id='cg'+(++_cg);
+ const hi=Math.max(1,...vals),lo=Math.min(0,...vals),raw=(hi-lo)/4,pw=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/pw,st=(f<=1?1:f<=2?2:f<=5?5:10)*pw;
+ const ymax=Math.ceil(hi/st-1e-9)*st,ymin=Math.floor(lo/st+1e-9)*st,span=(ymax-ymin)||1,cnt=Math.round(span/st);
+ const Y=x=>T+ih-(x-ymin)/span*ih,slot=iw/n,X=i=>L+slot*(i+.5),step=Math.ceil(n/12);
+ let g=`<defs><linearGradient id="${id}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--hd2)"/><stop offset="1" style="stop-color:var(--hd1)"/></linearGradient><linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--pri);stop-opacity:.32"/><stop offset="1" style="stop-color:var(--pri);stop-opacity:0"/></linearGradient></defs>`;
+ for(let k=0;k<=cnt;k++){const v=ymin+k*st,y=Y(v);g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" class="gl${Math.abs(v)<1e-9?' z':''}"/><text x="${L-8}" y="${y+4}" text-anchor="end" class="ax">${cfmt(v)}</text>`}
+ labels.forEach((l,i)=>{if(i%step===0)g+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" class="ax">${esc(l)}</text>`});
+ const mi=vals.indexOf(hi),tip=i=>esc(labels[i])+'||'+rp(vals[i]);
+ if(type==='area'&&n>1){
+  const P=vals.map((v,i)=>[X(i),Y(v)]);let d=`M${P[0][0]},${P[0][1]}`;
+  for(let i=0;i<n-1;i++){const a=P[i-1]||P[i],b=P[i],c=P[i+1],e=P[i+2]||c;d+=` C${b[0]+(c[0]-a[0])/6},${b[1]+(c[1]-a[1])/6} ${c[0]-(e[0]-b[0])/6},${c[1]-(e[1]-b[1])/6} ${c[0]},${c[1]}`}
+  g+=`<path d="${d} L${P[n-1][0]},${Y(0)} L${P[0][0]},${Y(0)} Z" fill="url(#${id}a)"/><path d="${d}" class="ln"/>`;
+  vals.forEach((v,i)=>{g+=`<g class="pt" data-tip="${tip(i)}"><rect x="${X(i)-slot/2}" y="${T}" width="${slot}" height="${ih}" fill="transparent"/><line x1="${X(i)}" x2="${X(i)}" y1="${T}" y2="${T+ih}"/><circle cx="${X(i)}" cy="${Y(v)}" r="5"/></g>`});
+  if(vals[mi]>0)g+=`<text x="${X(mi)}" y="${Y(vals[mi])-10}" text-anchor="middle" class="vl">${cfmt(vals[mi])}</text>`;
+ }else{
+  const bw=Math.min(38,slot*.64);
+  vals.forEach((v,i)=>{const y0=Y(Math.max(v,0)),h=Math.max(3,Math.abs(Y(v)-Y(0)));
+   g+=`<g class="pt" data-tip="${tip(i)}"><rect x="${X(i)-slot/2}" y="${T}" width="${slot}" height="${ih}" fill="transparent"/><rect class="b${i===mi&&v>0?' mx':''}" x="${X(i)-bw/2}" y="${v>=0?y0:Y(0)}" width="${bw}" height="${h}" rx="${Math.min(7,bw/2)}" fill="url(#${id}b)"/></g>`});
+  if(vals[mi]>0)g+=`<text x="${X(mi)}" y="${Y(vals[mi])-8}" text-anchor="middle" class="vl">${cfmt(vals[mi])}</text>`;
+ }
+ return`<svg class="cv" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
 }
+(function(){
+ const t=document.createElement('div');t.id='tip';document.body.appendChild(t);
+ const hide=()=>{t.style.display='none'};
+ document.addEventListener('mousemove',e=>{
+  const g=e.target.closest&&e.target.closest('[data-tip]');if(!g){hide();return}
+  const a=g.dataset.tip.split('||');t.innerHTML='<small>'+esc(a[0])+'</small><b>'+esc(a[1])+'</b>';t.style.display='block';
+  const w=t.offsetWidth;t.style.left=Math.min(innerWidth-w-8,e.clientX+14)+'px';t.style.top=Math.max(8,e.clientY-48)+'px';
+ });
+ document.addEventListener('scroll',hide,true);
+})();
 const noData='<div class="empty">Belum ada data pada periode ini</div>';
 
 /* ---------- kerangka ---------- */
 function render(){
  if(!baseUrl()||!cfg.hp||!cfg.pin||!D){
-  $('#app').innerHTML=`<div class="lock"><div class="lockbox"><div class="logo" style="color:var(--pri)">TWINS<span style="color:var(--tx)">BACKOFFICE</span></div><p class="mut">Masuk dengan nomor HP dan PIN.</p>
+  $('#app').innerHTML=`<div class="lock"><div class="lockbox"><div class="logo" style="color:var(--pri)">TWINS<span style="color:var(--tx)">POS</span></div><p class="mut">Masuk dengan nomor HP dan PIN.</p>
   ${API_URL?'':`<label>URL Web App (Apps Script) — cukup diisi sekali</label><input id="u" value="${esc(cfg.url||'')}" placeholder="https://script.google.com/macros/s/.../exec">`}
   <label>Nomor HP</label><input id="h" type="tel" inputmode="numeric" autocomplete="username" value="${esc(cfg.hp||'')}" placeholder="08xxxxxxxxxx">
   <label>PIN</label><input id="t" type="password" autocomplete="current-password" value="" onkeydown="if(event.key==='Enter')doLogin()">
@@ -291,7 +392,7 @@ function render(){
  CUR=calc();
  const V={ring:vRing,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,pelanggan:vPelanggan,mproduk:vMProduk,mstok:vMStok,mpromo:vMPromo,moutlet:vMOutlet};
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
- $('#app').innerHTML=`<div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">TWINS<span>BACKOFFICE</span></div><small>${esc((D.outlet&&D.outlet.name)||cfg.nm||'Laporan pusat')}</small></div>
+ $('#app').innerHTML=`<div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">TWINS<span>POS</span></div><small>${esc((D.outlet&&D.outlet.name)||cfg.nm||'Laporan pusat')}</small></div>
  ${NAV.map(([g,l])=>`<div class="ng">${g}</div>${l.map(([k,n,i])=>`<button class="ni ${tab===k?'on':''}" onclick="go('${k}');toggleSide(false)">${ic(i,19)}<span>${n}</span></button>`).join('')}`).join('')}
  <div class="sf"><div class="who">${cfg.nm?esc(cfg.nm)+'<br>':''}Diperbarui ${fmtH(loadedAt)}</div><div class="acts"><button class="btn" onclick="refresh()" title="Muat ulang">${ic('refresh',16)}</button><button class="btn" onclick="toggleTheme()" title="Tema">${ic('moon',16)}</button><button class="btn" onclick="logout()" title="Keluar">${ic('out',16)}</button></div></div></aside>
  <div class="scrim" onclick="toggleSide(false)"></div>
@@ -317,7 +418,7 @@ function vRing(d){
  const top=Object.entries(d.prod).sort((x,y)=>y[1].q-x[1].q).slice(0,5),mx=top.length&&top[0][1].q>0?top[0][1].q:1;
  return`<div class="kg"><div class="kc hero"><small>Total omzet (setelah refund) · ${esc(perLabel())}</small><b>${rp(d.omzet)}</b><div style="margin-top:6px;opacity:.9">${d.tx.length} nota${d.refAmt?' · refund '+rp(d.refAmt):''}</div></div>
  <div class="kc"><small>Estimasi laba kotor</small><b>${rp(d.profit)}</b></div><div class="kc"><small>Pengeluaran operasional</small><b>${rp(d.cout)}</b></div><div class="kc"><small>Estimasi laba bersih</small><b>${rp(d.netProfit)}</b></div><div class="kc"><small>Rata-rata per nota</small><b>${rp(d.tx.length?d.gross/d.tx.length:0)}</b></div><div class="kc"><small>Service charge</small><b>${rp(d.svc)}</b></div><div class="kc"><small>Pajak</small><b>${rp(d.tax)}</b></div></div>
- <div class="card"><h4>Penjualan per Hari</h4><p>Setelah dikurangi refund</p>${dv.length?bars(dv,keys.map(k=>k.slice(8)+'/'+k.slice(5,7))):noData}</div>
+ <div class="card"><h4>Penjualan per Hari</h4><p>Setelah dikurangi refund</p>${dv.length?bars(dv,keys.map(k=>k.slice(8)+'/'+k.slice(5,7)),'area'):noData}</div>
  <div class="two"><div class="card"><h4>Jam Ramai</h4><p>Total penjualan per jam (06–23)</p>${d.tx.length?bars(hv,hl):noData}</div>
  <div class="card"><h4>5 Produk Terlaris</h4><p>Berdasarkan jumlah terjual</p>${top.length?top.map((x,i)=>`<div class="row"><div class="rk">${i+1}</div><div class="grow"><b>${esc(x[0])}</b><div class="bar"><i style="width:${Math.max(4,Math.round(x[1].q/mx*100))}%"></i></div></div><div class="val">${fq(x[1].q)} ${esc(x[1].unit)}<small>${rp(x[1].rev)}</small></div></div>`).join(''):noData}</div></div>
  <div class="two"><div class="card"><h4>Metode Pembayaran</h4><p>Penerimaan dan refund</p><div class="tw"><table><tr><th>Metode</th><th class="r">Masuk</th><th class="r">Refund</th><th class="r">Bersih</th></tr>${pm.map(m=>`<tr><td>${METHODS[m]||m}</td><td class="r">${rp(d.by[m])}</td><td class="r">${rp(d.rby[m])}</td><td class="r"><b>${rp(d.by[m]-d.rby[m])}</b></td></tr>`).join('')||'<tr><td colspan="4" class="mut">Belum ada data</td></tr>'}</table></div></div>
@@ -439,7 +540,7 @@ function vAnalisa(d){
  <div class="kg"><div class="kc"><small>Total diskon</small><b>${rp(d.disc)}</b><small>${pct(d.gross+d.disc?d.disc/(d.gross+d.disc)*100:0)} dari penjualan kotor</small></div><div class="kc"><small>Tingkat refund</small><b>${pct(d.gross?d.refAmt/d.gross*100:0)}</b><small>${rp(d.refAmt)}</small></div><div class="kc"><small>Pengeluaran / omzet</small><b>${pct(d.omzet?d.cout/d.omzet*100:0)}</b></div></div>
  ${bepCard(d)}
  <div class="card"><h4>Sorotan</h4><p>Ringkasan otomatis dari data periode ini</p>${ins.length?`<ul class="ins">${ins.map(x=>'<li>'+x+'</li>').join('')}</ul>`:noData}</div>
- <div class="card"><h4>Tren Penjualan Harian</h4><p>Setelah dikurangi refund</p>${dv.length?bars(dv,keys.map(k=>k.slice(8)+'/'+k.slice(5,7))):noData}</div>
+ <div class="card"><h4>Tren Penjualan Harian</h4><p>Setelah dikurangi refund</p>${dv.length?bars(dv,keys.map(k=>k.slice(8)+'/'+k.slice(5,7)),'area'):noData}</div>
  <div class="two"><div class="card"><h4>Jam Ramai</h4><p>Total penjualan per jam</p>${d.tx.length?bars(hv,hl):noData}</div><div class="card"><h4>Hari Tersibuk</h4><p>Total penjualan per hari dalam seminggu</p>${d.tx.length?bars(wv,wl):noData}</div></div>
  <div class="two"><div class="card"><h4>Kontribusi Kategori</h4><p>Penjualan item per kategori</p><div class="tw">${cats.length?`<table><tr><th>Kategori</th><th class="r">Penjualan</th><th class="r">Laba</th><th class="r">Margin</th><th class="r">Porsi</th></tr>${cats.map(([n,o])=>`<tr><td><b>${esc(n)}</b></td><td class="r">${rp(o.rev)}</td><td class="r">${rp(o.profit)}</td><td class="r">${pct(o.rev?o.profit/o.rev*100:0)}</td><td class="r">${pct(o.rev/totRev*100)}</td></tr>`).join('')}</table>`:noData}</div></div>
  <div class="card"><h4>5 Produk Laba Terbesar</h4><p>Laba kotor setelah refund</p>${topP.length?topP.map((x,i)=>`<div class="row"><div class="rk">${i+1}</div><div class="grow"><b>${esc(x[0])}</b><div class="bar"><i style="width:${Math.max(4,Math.round(Math.max(0,x[1].profit)/maxP*100))}%"></i></div></div><div class="val">${rp(x[1].profit)}<small>margin ${pct(x[1].rev?x[1].profit/x[1].rev*100:0)}</small></div></div>`).join(''):noData}</div></div>
