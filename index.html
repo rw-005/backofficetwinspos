@@ -305,7 +305,7 @@ let cfg={};try{cfg=JSON.parse(localStorage.getItem(LK))||{}}catch(e){}
 if(cfg.theme)document.documentElement.dataset.theme=cfg.theme;
 const saveCfg=()=>{try{localStorage.setItem(LK,JSON.stringify(cfg))}catch(e){}};
 let D=null,CUR=null,loadedAt=0,tab='ring',P={k:'today',from:'',to:''},busy=false,timer=null;
-const DT={mode:'nota',kasir:'',status:'',q:''},PP={q:'',cat:'',k:'rev',d:-1},PK={k:''},PM={q:'',cat:'',low:false},SL={q:'',type:''};
+const DT={mode:'nota',kasir:'',status:'',q:''},PP={q:'',cat:'',k:'rev',d:-1},PK={k:''},PM={q:'',cat:'',low:false,k:''},SL={q:'',type:''};
 
 function toggleTheme(){cfg.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=cfg.theme;saveCfg()}
 function logout(){clearCache();cfg.pin='';cfg.nm='';saveCfg();D=null;clearInterval(timer);render()}
@@ -1014,12 +1014,14 @@ const nameOf=id=>{const p=D.products.find(x=>x.id===id);return p?p.name:id};
 function vMProduk(){
  const q=PM.q.toLowerCase(),cats=[...new Set(D.products.map(p=>p.cat||'Umum'))].sort();
  const all=D.products,low=all.filter(p=>p.active!==false&&(+p.stock||0)<=(+p.minStock||0)&&p.trackStock!==false);
- const l=all.filter(p=>(!PM.cat||p.cat===PM.cat)&&(!PM.low||low.includes(p))&&(!q||(p.name+' '+(p.cat||'')+' '+(p.sku||'')).toLowerCase().includes(q)));
+ const l=all.filter(p=>pmKind(p)&&(!PM.cat||p.cat===PM.cat)&&(!PM.low||low.includes(p))&&(!q||(p.name+' '+(p.cat||'')+' '+(p.sku||'')).toLowerCase().includes(q)));
  const val=sum(all,p=>(+p.stock||0)*(+p.cogs||0));
  return`<div class="kg"><div class="kc"><small>Jumlah produk</small><b>${all.length}</b></div><div class="kc"><small>Stok menipis</small><b style="color:var(--${low.length?'bad':'ok'})">${low.length}</b></div><div class="kc"><small>Nilai stok (HPP)</small><b>${rp(val)}</b></div></div>
  <div class="card"><div class="tool"><input placeholder="Cari nama, kategori, kode…" value="${esc(PM.q)}" oninput="PM.q=this.value;mpRows()">
  <select onchange="PM.cat=this.value;mpRows()"><option value="">Semua kategori</option>${cats.map(c=>`<option value="${esc(c)}" ${PM.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
+ <select onchange="PM.k=this.value;render()"><option value="">Produk + bahan baku</option><option value="jual" ${PM.k==='jual'?'selected':''}>Produk jual saja</option><option value="bahan" ${PM.k==='bahan'?'selected':''}>Bahan baku saja</option></select>
  <button class="btn ${PM.low?'on':''}" onclick="PM.low=!PM.low;render()">Stok menipis</button>
+ <button class="btn" onclick="prodnForm()">Produksi</button>
  <button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button>
  <button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button>
  <button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>
@@ -1027,14 +1029,14 @@ function vMProduk(){
 }
 function mpFiltered(){
  const q=PM.q.toLowerCase();
- return D.products.filter(p=>(!PM.cat||p.cat===PM.cat)&&(!PM.low||(p.active!==false&&(+p.stock||0)<=(+p.minStock||0)&&p.trackStock!==false))&&(!q||(p.name+' '+(p.cat||'')+' '+(p.sku||'')).toLowerCase().includes(q)));
+ return D.products.filter(p=>pmKind(p)&&(!PM.cat||p.cat===PM.cat)&&(!PM.low||(p.active!==false&&(+p.stock||0)<=(+p.minStock||0)&&p.trackStock!==false))&&(!q||(p.name+' '+(p.cat||'')+' '+(p.sku||'')).toLowerCase().includes(q)));
 }
 function mpRows(){const t=$('#mpt');if(t)t.innerHTML=mpTable(mpFiltered())}
 function mpTable(l){
  if(!l.length)return'<div class="empty">Belum ada produk. Tekan “Tambah Produk”.</div>';
  return`<table><tr><th>Produk</th><th>Kategori</th><th class="r">Harga</th><th class="r">HPP</th><th class="r">Margin</th><th class="r">Stok</th><th>Status</th><th></th></tr>${l.map(p=>{
   const m=p.price?((p.price-(p.cogs||0))/p.price*100):0,s=+p.stock||0,lowS=p.trackStock!==false&&s<=(+p.minStock||0);
-  return`<tr><td><b>${esc(p.name)}</b>${p.sku?'<br><small class="mut">'+esc(p.sku)+'</small>':''}</td><td>${esc(p.cat||'Umum')}</td><td class="r">${rp(p.price)}</td><td class="r">${rp(p.cogs)}</td><td class="r" style="color:var(--${m<=0?'bad':m<10?'warn':'ok'})">${pct(m)}</td>
+  return`<tr><td><b>${esc(p.name)}</b>${p.bahan?' <span class="badge k">Bahan baku</span>':(p.recipe&&p.recipe.length)?' <span class="badge g">Resep</span>':''}${p.sku?'<br><small class="mut">'+esc(p.sku)+'</small>':''}</td><td>${esc(p.cat||'Umum')}</td><td class="r">${rp(p.price)}</td><td class="r">${rp(p.cogs)}</td><td class="r" style="color:var(--${m<=0?'bad':m<10?'warn':'ok'})">${pct(m)}</td>
   <td class="r">${p.trackStock===false?'<span class="mut">tanpa stok</span>':`<b style="color:var(--${lowS?'bad':'tx'})">${fq(s)}</b> ${esc(p.unit)}${lowS?' <span class="badge v">menipis</span>':''}`}</td>
   <td>${p.active===false?'<span class="badge v">Nonaktif</span>':'<span class="badge g">Aktif</span>'}</td>
   <td style="text-align:right">${p.trackStock===false?'':`<button class="btn sm" onclick="stockForm('${p.id}')">+ Stok</button> `}<button class="btn sm" onclick="prodForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`;
@@ -1049,16 +1051,20 @@ function prodForm(id){
  ${fld('f_price','Harga jual (Rp)',p.price,'number')}${fld('f_cogs','HPP / modal per satuan (Rp)',p.cogs,'number')}
  ${id?'':fld('f_stock','Stok awal',p.stock||0,'number')}${fld('f_min','Batas stok menipis',p.minStock||0,'number')}</div>
  <div class="hint">Margin akan dihitung otomatis dari harga jual dan HPP.</div>
- ${chk('f_trk','Hitung stok produk ini',p.trackStock!==false)}${chk('f_act','Aktif dijual di kasir',p.active!==false)}
+ ${chk('f_bhn','Bahan baku (tidak tampil di kasir, hanya dipakai di resep)',!!p.bahan,'recUi()')}
+ <div id="f_recw" style="${p.bahan?'display:none':''}"><label style="margin-top:8px">Resep: bahan yang terpakai untuk 1 ${esc(p.unit||'satuan')} produk ini (opsional)</label><div id="f_rec">${(p.recipe||[]).map(r=>recRow(r,id)).join('')}</div><button class="btn sm" onclick="recAdd('${id||''}')">${ic('plus',14)} Tambah bahan</button>
+ <div class="hint" id="f_rech"></div>${chk('f_rauto','HPP otomatis dari resep',p.recAuto!==false,'recCost()')}
+ <div class="hint">Kalau “Hitung stok produk ini” <b>mati</b>, bahan terpotong otomatis setiap produk terjual di kasir. Kalau <b>hidup</b>, stok produk dihitung sendiri dan bahan dipotong saat Anda mencatat <b>Produksi</b>.</div></div>
+ ${chk('f_trk','Hitung stok produk ini',p.trackStock!==false||!!p.bahan)}${chk('f_act','Aktif dijual di kasir',p.active!==false)}
  <div class="acts2"><button class="btn pri" onclick="saveProd('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delProd('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
 function saveProd(id,btn){
- const name=v('f_name').trim(),price=v('f_price');
+ const name=v('f_name').trim(),price=v('f_price'),bhn=ck('f_bhn');
  if(!name){alert('Isi nama produk');return}
- if(price===''||!(+price>=0)){alert('Isi harga jual');return}
+ if(!bhn&&(price===''||!(+price>=0))){alert('Isi harga jual');return}
  if(D.products.some(x=>x.id!==id&&x.name.toLowerCase()===name.toLowerCase())){alert('Nama produk sudah ada');return}
  const old=D.products.find(x=>x.id===id)||{};
- safe(()=>push('product',{id:id||'p'+Date.now().toString(36),name,sku:v('f_sku').trim(),cat:v('f_cat').trim()||'Umum',unit:v('f_unit').trim()||'pcs',price:+price,cogs:+v('f_cogs')||0,stock:id?(old.stock||0):(+v('f_stock')||0),minStock:+v('f_min')||0,trackStock:ck('f_trk'),active:ck('f_act'),updated:Date.now(),initStock:id?0:(+v('f_stock')||0)}),btn);
+ safe(()=>push('product',{id:id||'p'+Date.now().toString(36),name,sku:v('f_sku').trim(),cat:v('f_cat').trim()||'Umum',unit:v('f_unit').trim()||'pcs',price:bhn?0:+price,cogs:(!bhn&&ck('f_rauto')&&recRows().length)?recCostVal():(+v('f_cogs')||0),stock:id?(old.stock||0):(+v('f_stock')||0),minStock:+v('f_min')||0,trackStock:bhn?true:ck('f_trk'),active:ck('f_act'),bahan:bhn,recipe:bhn?[]:recRows(),recAuto:ck('f_rauto'),updated:Date.now(),initStock:id?0:(+v('f_stock')||0)}),btn);
 }
 function delProd(id){if(confirm('Hapus produk ini dari daftar? Riwayat penjualan lama tetap tersimpan. (Untuk menyembunyikan saja, matikan “Aktif”.)'))safe(()=>push('product_del',{id}))}
 function stockForm(id){
@@ -2449,6 +2455,43 @@ function dpDel(sid,did){
  const cfs=CFS().filter(x=>x.ref==='dp:'+sid+':'+did);
  if(!confirm('Hapus uang muka '+rp(d.amount)+'?'+(cfs.length?' Catatan di Arus Kas ikut dihapus.':'')))return;
  safe(async()=>{await pushPost('supplier',Object.assign({},sp,{dps:(sp.dps||[]).filter(x=>x.id!==did)}));for(const c of cfs)await pushQuiet('cf_del',{id:c.id})});
+}
+
+/* ---------- Bahan baku, resep, produksi ---------- */
+const pmKind=p=>!PM.k||(PM.k==='bahan'?!!p.bahan:!p.bahan);
+const bahanList=ex=>D.products.filter(b=>b.bahan&&b.id!==ex).sort((x,y)=>String(x.name).localeCompare(String(y.name)));
+function recRow(r,ex){
+ const bl=bahanList(ex);
+ return`<div class="prow rrow" style="display:grid;grid-template-columns:1fr 96px 34px;gap:6px;margin-bottom:6px;align-items:center"><select class="rb" onchange="recCost()"><option value="">— pilih bahan —</option>${bl.map(b=>`<option value="${esc(b.id)}" ${r&&r.id===b.id?'selected':''}>${esc(b.name)} (${esc(b.unit||'')})</option>`).join('')}</select><input class="rq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${r?r.q:''}" oninput="recCost()"><button class="btn sm del" onclick="this.parentNode.remove();recCost()">✕</button></div>`;
+}
+function recAdd(ex){if(!bahanList(ex).length){alert('Belum ada bahan baku. Tambah produk, lalu centang “Bahan baku”, atau pakai filter Bahan baku untuk melihatnya.');return}$('#f_rec').insertAdjacentHTML('beforeend',recRow(null,ex));recCost()}
+function recRows(){return[...document.querySelectorAll('#f_rec .rrow')].map(r=>({id:r.querySelector('.rb').value,q:+r.querySelector('.rq').value||0})).filter(x=>x.id&&x.q>0)}
+function recCostVal(rows){return Math.round(sum(rows||recRows(),r=>{const b=D.products.find(x=>x.id===r.id);return(+r.q||0)*(b?+b.cogs||0:0)}))}
+function recCost(){const h=$('#f_rech');if(!h)return;const rows=recRows();h.textContent=rows.length?'Biaya bahan per satuan: '+rp(recCostVal(rows))+(ck('f_rauto')?'. HPP produk akan diisi dengan angka ini.':'.'):'';}
+function recUi(){const w=$('#f_recw');if(w)w.style.display=ck('f_bhn')?'none':'';if(ck('f_bhn')){const t=$('#f_trk');if(t)t.checked=true}}
+function prodnForm(){
+ const ps=D.products.filter(p=>!p.bahan&&(p.recipe||[]).length&&p.active!==false);
+ if(!ps.length){alert('Belum ada produk yang punya resep. Buat resep dulu lewat Ubah produk.');return}
+ dlg(`<h3>Catat Produksi</h3><div class="mut" style="margin-bottom:8px">Bahan baku dipotong sesuai resep, lalu stok produk jadi bertambah (kalau produknya menghitung stok).</div>
+ <label>Produk yang dibuat</label><select id="pr_p" onchange="prodnHint()">${ps.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select>
+ ${fld('pr_q','Jumlah hasil produksi','','number','','oninput="prodnHint()"')}${fld('pr_note','Catatan (opsional)','')}
+ <div class="hint" id="pr_h"></div>
+ <div class="acts2"><button class="btn pri" onclick="prodnSave(this)">Simpan Produksi</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
+ prodnHint();
+}
+function prodnNeed(){const p=D.products.find(x=>x.id===v('pr_p')),q=+v('pr_q')||0;if(!p)return null;return{p,q,rows:(p.recipe||[]).map(r=>{const b=D.products.find(x=>x.id===r.id);return{b,id:r.id,need:Math.round(r.q*q*1000)/1000}}).filter(x=>x.b)}}
+function prodnHint(){const n=prodnNeed(),h=$('#pr_h');if(!n||!h)return;h.innerHTML=n.q>0?n.rows.map(x=>`${esc(x.b.name)}: pakai <b>${fq(x.need)} ${esc(x.b.unit||'')}</b> (stok ${fq(+x.b.stock||0)})`+((+x.b.stock||0)<x.need?' <span class="badge v">kurang</span>':'')).join('<br>'):'Isi jumlah hasil produksi.'}
+async function prodnSave(btn){
+ const n=prodnNeed();if(!n||!(n.q>0)){alert('Isi jumlah hasil produksi');return}
+ const kurang=n.rows.filter(x=>(+x.b.stock||0)<x.need);
+ if(kurang.length&&!confirm('Stok kurang untuk: '+kurang.map(x=>x.b.name).join(', ')+'. Lanjutkan? Stok bahan akan menjadi minus.'))return;
+ const note='[PRODUKSI] '+n.p.name+(v('pr_note').trim()?' · '+v('pr_note').trim():'');let outOk=false;
+ btn.disabled=true;btn.textContent='Menyimpan…';
+ try{
+  await pushPost('stock_bulk',{mode:'out',note,items:n.rows.map(x=>({id:x.id,qty:x.need,note:note.slice(0,100)}))});outOk=true;
+  if(n.p.trackStock!==false)await pushPost('stock_bulk',{mode:'add',hppMode:'avg',note,items:[{id:n.p.id,qty:n.q,buyPrice:recCostVal(n.p.recipe),note:note.slice(0,100)}]});
+  closeDlg();render();
+ }catch(e){btn.disabled=false;btn.textContent='Simpan Produksi';alert(outOk?'Bahan sudah dipotong, tetapi stok produk jadi belum bertambah: '+e.message+'\n\nTambahkan stok produk jadi manual lewat + Stok, jangan ulang produksinya.':'Gagal menyimpan: '+e.message)}
 }
 
 (async function init(){
