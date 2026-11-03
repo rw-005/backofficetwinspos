@@ -281,7 +281,7 @@ function upsell(k){
 }
 const NAV=[
  ['Utama',[['ring','Ringkasan','home'],['analisa','Analisa Bisnis','trend']]],
- ['Penjualan',[['rsum','Ringkasan Penjualan','file'],['detail','Detail Penjualan','file'],['produk','Penjualan per Produk','box'],['kasir','Penjualan per Kasir','user'],['pkasir','Produk per Kasir','layers'],['pelanggan','Pelanggan','users'],['plglap','Penjualan per Pelanggan','users'],['fakturjual','Faktur Penjualan','file'],['piutang','Laporan Piutang','wallet']]],
+ ['Penjualan',[['rsum','Ringkasan Penjualan','file'],['lappen','Laporan Penjualan','trend'],['detail','Detail Penjualan','file'],['produk','Penjualan per Produk','box'],['kasir','Penjualan per Kasir','user'],['pkasir','Produk per Kasir','layers'],['pelanggan','Pelanggan','users'],['plglap','Penjualan per Pelanggan','users'],['fakturjual','Faktur Penjualan','file'],['piutang','Laporan Piutang','wallet']]],
  ['Pembelian',[['pemasok','Pemasok','store'],['fakturbeli','Faktur Pembelian','file'],['hutang','Laporan Hutang','wallet']]],
  ['Kas & Keuangan',[['cash','Kas Masuk & Keluar','wallet'],['arus','Arus Kas & Rekening','trend'],['shift','Laporan Shift','clock']]],
  ['Akuntansi',[['coa','Daftar Akun (COA)','layers'],['jurnal','Jurnal Umum','file'],['buku','Buku Besar','hist'],['lapkeu','Laporan Keuangan','trend']]],
@@ -291,7 +291,7 @@ const NAV=[
 let NAVOPEN={};try{NAVOPEN=JSON.parse(localStorage.getItem('twinsbo_nav')||'{}')||{}}catch(e){}
 const navGrp=k=>{const g=NAV.find(x=>x[1].some(y=>y[0]===k));return g?g[0]:''};
 function navTog(i){const g=NAV[i][0],el=document.getElementById('gp'+i);if(!el)return;el.classList.toggle('shut');NAVOPEN[g]=!el.classList.contains('shut');try{localStorage.setItem('twinsbo_nav',JSON.stringify(NAVOPEN))}catch(e){}}
-const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],arus:['Arus Kas & Rekening','Mutasi uang masuk dan keluar per rekening, seperti rekening koran'],
+const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['Laporan Penjualan','Metode pembayaran, kategori, varian, dan topping'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],arus:['Arus Kas & Rekening','Mutasi uang masuk dan keluar per rekening, seperti rekening koran'],
  pemasok:['Pemasok','Daftar pemasok dan laporan pembelian per pemasok'],fakturbeli:['Faktur Pembelian','Pembelian dari pemasok, hutang, dan pelunasan'],hutang:['Laporan Hutang','Umur hutang, kartu hutang per pemasok, dan riwayat pembayaran'],coa:['Daftar Akun (COA)','Bagan akun dan saldo tiap akun'],plglap:['Penjualan per Pelanggan','Total pembelian, laba, dan produk tiap pelanggan'],fakturjual:['Faktur Penjualan','Penjualan tempo ke pelanggan, piutang, dan penerimaan'],piutang:['Laporan Piutang','Umur piutang, kartu piutang, dan penerimaan'],jurnal:['Jurnal Umum','Jurnal otomatis dari penjualan, pembelian, kas, dan gaji'],buku:['Buku Besar','Mutasi dan saldo berjalan per akun'],lapkeu:['Laporan Keuangan','Neraca saldo, laba rugi, dan neraca'],
  karyawan:['Data Karyawan','Karyawan yang melayani di kasir, gaji pokok, dan keikutsertaan komisi'],komisi:['Komisi','Komisi penjualan, bertingkat dan dibagi bersama oleh yang melayani'],gaji:['Penggajian','Gaji bulanan, tunjangan, komisi, bonus, potongan, dan slip'],
  pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk']};
@@ -365,7 +365,26 @@ async function load(){
   return true;
  }catch(e){busy=false;throw e}
 }
+/* ---------- Logout otomatis bila tidak ada aktivitas ---------- */
+const ACTK='twinsbo_act';
+const idleMin=()=>{const v=cfg.idle;return(v===undefined||v===null||v==='')?30:(+v||0)};   // 0 = nonaktif
+let lastAct=Date.now();
+function actTouch(){const n=Date.now();if(n-lastAct<4000)return;lastAct=n;try{localStorage.setItem(ACTK,String(n))}catch(e){}}
+function actMark(){lastAct=Date.now();try{localStorage.setItem(ACTK,String(lastAct))}catch(e){}}
+function idleLast(){let l=lastAct;try{l=Math.max(l,+localStorage.getItem(ACTK)||0)}catch(e){}return l}
+function idleCheck(){
+ if(!cfg.pin)return;const m=idleMin();if(!m)return;
+ if(Date.now()-idleLast()>m*60000){
+  logout();
+  setTimeout(()=>{const e=document.getElementById('e');if(e){e.style.color='var(--mut)';e.textContent='Keluar otomatis karena tidak ada aktivitas selama '+(m>=60?(m/60)+' jam':m+' menit')+'.'}},60);
+ }
+}
+['pointerdown','keydown','touchstart','wheel','scroll','input'].forEach(ev=>window.addEventListener(ev,actTouch,{passive:true,capture:true}));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)idleCheck()});
+setInterval(idleCheck,30000);
+function setIdle(v){cfg.idle=+v;saveCfg();actMark();const e=document.getElementById('idle_ok');if(e){e.textContent='Tersimpan.';setTimeout(()=>{e.textContent=''},2000)}}
 async function doLogin(){
+ actMark();
  if(!API_URL)cfg.url=($('#u').value||'').trim();
  cfg.hp=$('#h').value.trim();cfg.pin=$('#t').value.trim();
  if(!baseUrl()||!cfg.hp||!cfg.pin){$('#e').textContent=API_URL?'Isi nomor HP dan PIN.':'Isi URL, nomor HP, dan PIN.';return}
@@ -528,7 +547,7 @@ function render(){
   return;
  }
  CUR=calc();
- const V={ring:vRing,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,mstok:vMStok,mpromo:vMPromo,moutlet:vMOutlet};
+ const V={ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,mstok:vMStok,mpromo:vMPromo,moutlet:vMOutlet};
  if(D&&isLocked(tab))tab='ring';
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
  $('#app').innerHTML=`<div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">TWINS<span>POS</span></div><small>${esc((D.outlet&&D.outlet.name)||cfg.nm||'Laporan pusat')}</small></div>
@@ -1316,10 +1335,123 @@ function saveLoyalty(btn){
  safe(()=>push('promo',{id:'loyalty',kind:'loyalty',name:'Poin Pelanggan',earnPer:ep,pointValue:pv,minRedeem:Math.max(0,Math.floor(mr)),maxPct:mp,active:ck('f_act')}),btn);
 }
 
+/* ---------- Laporan Penjualan: metode bayar, kategori, varian, topping ---------- */
+const LP={t:'metode',kasir:''};
+function lpSet(k,v){LP[k]=v;render()}
+const lpTx=d=>d.tx.filter(t=>!LP.kasir||t.cashier===LP.kasir);
+const lpRf=d=>d.rf.filter(r=>!LP.kasir||r.cashier===LP.kasir);
+const lpPct=(a,b)=>b?(a/b*100).toFixed(1)+'%':'-';
+const lpBar=p=>`<div style="height:6px;border-radius:4px;background:var(--bd);min-width:60px"><div style="height:6px;border-radius:4px;background:var(--pri);width:${Math.max(0,Math.min(100,p))}%"></div></div>`;
+function vLapPen(d){
+ const kasirs=[...new Set(d.tx.map(t=>t.cashier))].sort();
+ const tabs=[['metode','Metode Pembayaran'],['kategori','Kategori'],['varian','Varian'],['topping','Topping']];
+ const body={metode:lpMetode,kategori:lpKategori,varian:lpVarian,topping:lpTopping}[LP.t](d);
+ return`<div class="chips">${tabs.map(([k,l])=>`<button class="chip ${LP.t===k?'on':''}" onclick="lpSet('t','${k}')">${l}</button>`).join('')}</div>
+ <div class="tool"><select onchange="lpSet('kasir',this.value)"><option value="">Semua kasir</option>${kasirs.map(k=>`<option value="${esc(k)}" ${LP.kasir===k?'selected':''}>${esc(k)}</option>`).join('')}</select><button class="btn" onclick="lpExport()">${ic('dl',16)} CSV</button></div>`+body;
+}
+/* -- metode pembayaran -- */
+function lpMetodeData(d){
+ const tx=lpTx(d),rf=lpRf(d),R={},row=m=>R[m]||(R[m]={n:0,inn:0,ref:0,mdr:0});
+ tx.forEach(t=>{
+  const pays=t.payments||[],mdrT=(t.fee&&t.fee.mdr||0)*(feeNet(t)/(t.feeTot||1));
+  const el=pays.filter(p=>['tunai','kasbon','komplimen'].indexOf(p.m)<0),base=sum(el,p=>p.ap),seen={};
+  pays.forEach(p=>{const o=row(p.m);o.inn+=p.ap;if(!seen[p.m]){o.n++;seen[p.m]=1}if(base>0&&el.indexOf(p)>=0)o.mdr+=mdrT*p.ap/base});
+ });
+ rf.forEach(r=>{row(r.method).ref+=r.amount});
+ const l=Object.entries(R).map(([m,o])=>({m,name:METHODS[m]||m,...o,net:o.inn-o.ref,after:o.inn-o.ref-o.mdr}));
+ l.sort((a,b)=>b.net-a.net);return l;
+}
+function lpMetode(d){
+ const l=lpMetodeData(d),real=l.filter(x=>x.m!=='komplimen'),tot=sum(real,x=>x.net),mdr=sum(l,x=>x.mdr),top=real[0];
+ if(!l.length)return`<div class="card">${noData}</div>`;
+ const days={},ms=real.map(x=>x.m);
+ lpTx(d).forEach(t=>t.payments.forEach(p=>{if(p.m==='komplimen')return;const k=dk(t.ts),o=days[k]||(days[k]={});o[p.m]=(o[p.m]||0)+p.ap}));
+ lpRf(d).forEach(r=>{const k=dk(r.ts),o=days[k]||(days[k]={});o[r.method]=(o[r.method]||0)-r.amount});
+ const dks=Object.keys(days).sort().reverse().slice(0,31);
+ return`<div class="kg"><div class="kc hero"><small>Penerimaan bersih · ${esc(perLabel())}</small><b>${rp(tot)}</b><div style="margin-top:6px;opacity:.9">${real.length} metode dipakai</div></div>
+ <div class="kc"><small>Metode terbesar</small><b>${top?esc(top.name):'-'}</b><div class="mut" style="margin-top:4px">${top?lpPct(top.net,tot)+' dari penerimaan':''}</div></div>
+ <div class="kc"><small>Biaya MDR (estimasi)</small><b>${rp(mdr)}</b></div></div>
+ <div class="card"><h4>Penerimaan per Metode</h4><p>Klik baris untuk melihat daftar nota. MDR dibagi ke metode non-tunai sesuai nilai pembayarannya (estimasi).</p><div class="tw"><table><tr><th>Metode</th><th class="r">Nota</th><th class="r">Masuk</th><th class="r">Refund</th><th class="r">Bersih</th><th>Porsi</th><th class="r">MDR</th><th class="r">Setelah MDR</th></tr>
+ ${l.map(x=>`<tr class="cl" data-m="${esc(x.m)}" onclick="lpMetodeDetail(this.dataset.m)"><td><b>${esc(x.name)}</b>${x.m==='komplimen'?'<br><small class="mut">bukan uang masuk</small>':''}</td><td class="r">${x.n}</td><td class="r">${rp(x.inn)}</td><td class="r">${rp(x.ref)}</td><td class="r"><b>${rp(x.net)}</b></td><td>${x.m==='komplimen'?'-':lpBar(tot?x.net/tot*100:0)+'<small class="mut">'+lpPct(x.net,tot)+'</small>'}</td><td class="r">${rp(x.mdr)}</td><td class="r">${rp(x.after)}</td></tr>`).join('')}
+ <tr class="ft"><td>Total</td><td class="r">${lpTx(d).length}</td><td class="r">${rp(sum(real,x=>x.inn))}</td><td class="r">${rp(sum(real,x=>x.ref))}</td><td class="r">${rp(tot)}</td><td></td><td class="r">${rp(mdr)}</td><td class="r">${rp(sum(real,x=>x.after))}</td></tr></table></div></div>
+ <div class="card"><h4>Penerimaan per Hari</h4><p>Setelah refund, 31 hari terakhir pada periode ini</p><div class="tw"><table><tr><th>Tanggal</th>${ms.map(m=>`<th class="r">${esc(METHODS[m]||m)}</th>`).join('')}<th class="r">Total</th></tr>
+ ${dks.map(k=>`<tr><td>${esc(k.slice(8)+'/'+k.slice(5,7)+'/'+k.slice(0,4))}</td>${ms.map(m=>`<td class="r">${days[k][m]?rp(days[k][m]):'-'}</td>`).join('')}<td class="r"><b>${rp(sum(ms,m=>days[k][m]||0))}</b></td></tr>`).join('')}</table></div></div>`;
+}
+function lpMetodeDetail(m){
+ const rows=lpTx(CUR).filter(t=>t.payments.some(p=>p.m===m)).map(t=>({t,amt:sum(t.payments.filter(p=>p.m===m),p=>p.ap)})).sort((a,b)=>b.t.ts-a.t.ts);
+ dlg(`<h3>${esc(METHODS[m]||m)}</h3><div class="mut" style="margin-bottom:10px">${rows.length} nota · ${esc(perLabel())}${LP.kasir?' · kasir '+esc(LP.kasir):''}</div><div class="tw"><table><tr><th>Nota</th><th>Waktu</th><th>Kasir</th><th class="r">Jumlah</th></tr>${rows.slice(0,200).map(x=>`<tr><td>${esc(x.t.no||'')}</td><td>${fmtT(x.t.ts)}</td><td>${esc(x.t.cashier||'')}</td><td class="r">${rp(x.amt)}</td></tr>`).join('')}</table></div>${rows.length>200?'<div class="mut" style="margin-top:6px">Menampilkan 200 nota terbaru.</div>':''}<button class="btn pri" style="width:100%;margin-top:14px" onclick="closeDlg()">Tutup</button>`);
+}
+/* -- kategori -- */
+function lpItems(d){const o=[];lpTx(d).forEach(t=>t.items.forEach(i=>{const q=+(i.qty-(i.refQty||0)).toFixed(3);if(q>0)o.push({t,i,q})}));return o}
+function lpKatData(d){
+ const R={};
+ lpItems(d).forEach(({i,q})=>{const c=i.cat||'Umum',o=R[c]||(R[c]={c,q:0,rev:0,cogs:0,prods:{}});const rev=q*i.price,cg=q*(i.cogs||0);o.q+=q;o.rev+=rev;o.cogs+=cg;const p=o.prods[i.name]||(o.prods[i.name]={q:0,rev:0,unit:i.unit});p.q+=q;p.rev+=rev});
+ return Object.values(R).map(o=>({...o,profit:o.rev-o.cogs,m:o.rev?(o.rev-o.cogs)/o.rev*100:0})).sort((a,b)=>b.rev-a.rev);
+}
+function lpKategori(d){
+ const l=lpKatData(d),tot=sum(l,x=>x.rev);if(!l.length)return`<div class="card">${noData}</div>`;
+ return`<div class="kg"><div class="kc hero"><small>Penjualan item · ${esc(perLabel())}</small><b>${rp(tot)}</b><div style="margin-top:6px;opacity:.9">${l.length} kategori</div></div><div class="kc"><small>Kategori terbesar</small><b>${esc(l[0].c)}</b><div class="mut" style="margin-top:4px">${lpPct(l[0].rev,tot)} dari penjualan</div></div><div class="kc"><small>Laba kotor</small><b>${rp(sum(l,x=>x.profit))}</b></div></div>
+ <div class="card"><h4>Penjualan per Kategori</h4><p>Klik baris untuk melihat produk di kategori itu</p><div class="tw"><table><tr><th>Kategori</th><th class="r">Terjual</th><th class="r">Penjualan</th><th class="r">HPP</th><th class="r">Laba kotor</th><th class="r">Margin</th><th>Porsi</th></tr>
+ ${l.map(x=>`<tr class="cl" data-c="${esc(x.c)}" onclick="lpKatDetail(this.dataset.c)"><td><b>${esc(x.c)}</b></td><td class="r">${fq(x.q)}</td><td class="r">${rp(x.rev)}</td><td class="r">${rp(x.cogs)}</td><td class="r">${rp(x.profit)}</td><td class="r">${x.m.toFixed(1)}%</td><td>${lpBar(tot?x.rev/tot*100:0)}<small class="mut">${lpPct(x.rev,tot)}</small></td></tr>`).join('')}
+ <tr class="ft"><td>Total</td><td class="r">${fq(sum(l,x=>x.q))}</td><td class="r">${rp(tot)}</td><td class="r">${rp(sum(l,x=>x.cogs))}</td><td class="r">${rp(sum(l,x=>x.profit))}</td><td></td><td></td></tr></table></div></div>`;
+}
+function lpKatDetail(c){
+ const o=lpKatData(CUR).find(x=>x.c===c);if(!o)return;const rows=Object.entries(o.prods).sort((a,b)=>b[1].rev-a[1].rev);
+ dlg(`<h3>${esc(c)}</h3><div class="mut" style="margin-bottom:10px">${rows.length} produk · ${esc(perLabel())}</div><div class="tw"><table><tr><th>Produk</th><th class="r">Terjual</th><th class="r">Penjualan</th></tr>${rows.map(([n,p])=>`<tr><td>${esc(n)}</td><td class="r">${fq(p.q)} ${esc(p.unit||'')}</td><td class="r">${rp(p.rev)}</td></tr>`).join('')}</table></div><button class="btn pri" style="width:100%;margin-top:14px" onclick="closeDlg()">Tutup</button>`);
+}
+/* -- varian & topping -- */
+function lpOpts(i){
+ if(i.vn!==undefined||i.tn!==undefined)return{v:i.vn?{n:i.vn,p:+i.vp||0}:null,t:(i.tn||[]).map(x=>({n:x.n,p:+x.p||0,c:+x.c||0})),old:false};
+ const o={v:null,t:[],old:true},pr=(D.products||[]).find(x=>x.id===i.pid);if(!pr)return o;
+ (pr.variants||[]).forEach(v=>{if(!o.v&&i.name===pr.name+' ('+v.name+')')o.v={n:v.name,p:+v.price||0}});
+ const nt=String(i.note||'');if(nt.indexOf('+ ')===0)nt.slice(2).split(', ').forEach(n=>{const t=(pr.toppings||[]).find(x=>x.name===n);if(t)o.t.push({n:t.name,p:+t.price||0,c:+t.cogs||0})});
+ return o;
+}
+function lpVarData(d){
+ const R={};let old=0;
+ lpItems(d).forEach(({i,q})=>{const o=lpOpts(i);if(!o.v)return;if(o.old)old+=q;const r=R[o.v.n]||(R[o.v.n]={n:o.v.n,q:0,add:0,rev:0,prods:{}});r.q+=q;r.add+=q*o.v.p;r.rev+=q*i.price;const p=r.prods[i.name]||(r.prods[i.name]={q:0,add:0,rev:0});p.q+=q;p.add+=q*o.v.p;p.rev+=q*i.price});
+ return{list:Object.values(R).sort((a,b)=>b.q-a.q),old};
+}
+function lpVarian(d){
+ const {list:l,old}=lpVarData(d),tq=sum(l,x=>x.q);if(!l.length)return`<div class="card"><div class="empty">Belum ada penjualan dengan varian pada periode ini</div></div>`;
+ return`<div class="kg"><div class="kc hero"><small>Item bervarian · ${esc(perLabel())}</small><b>${fq(tq)}</b><div style="margin-top:6px;opacity:.9">${l.length} varian</div></div><div class="kc"><small>Tambahan harga dari varian</small><b>${rp(sum(l,x=>x.add))}</b></div><div class="kc"><small>Varian terlaris</small><b>${esc(l[0].n)}</b></div></div>
+ <div class="card"><h4>Penjualan per Varian</h4><p>Tambahan harga = selisih dari harga dasar produk (bisa minus). Klik baris untuk rincian per produk.${old?' <b>'+fq(old)+' item</b> dari nota lama dihitung dengan harga varian saat ini di daftar produk.':''}</p><div class="tw"><table><tr><th>Varian</th><th class="r">Terjual</th><th class="r">Tambahan harga</th><th class="r">Penjualan item</th><th>Porsi</th></tr>
+ ${l.map(x=>`<tr class="cl" data-v="${esc(x.n)}" onclick="lpVarDetail(this.dataset.v)"><td><b>${esc(x.n)}</b></td><td class="r">${fq(x.q)}</td><td class="r">${rp(x.add)}</td><td class="r">${rp(x.rev)}</td><td>${lpBar(tq?x.q/tq*100:0)}<small class="mut">${lpPct(x.q,tq)}</small></td></tr>`).join('')}
+ <tr class="ft"><td>Total</td><td class="r">${fq(tq)}</td><td class="r">${rp(sum(l,x=>x.add))}</td><td class="r">${rp(sum(l,x=>x.rev))}</td><td></td></tr></table></div></div>`;
+}
+function lpVarDetail(n){
+ const o=lpVarData(CUR).list.find(x=>x.n===n);if(!o)return;const rows=Object.entries(o.prods).sort((a,b)=>b[1].q-a[1].q);
+ dlg(`<h3>Varian ${esc(n)}</h3><div class="mut" style="margin-bottom:10px">${esc(perLabel())}</div><div class="tw"><table><tr><th>Produk</th><th class="r">Terjual</th><th class="r">Tambahan harga</th></tr>${rows.map(([p,x])=>`<tr><td>${esc(p)}</td><td class="r">${fq(x.q)}</td><td class="r">${rp(x.add)}</td></tr>`).join('')}</table></div><button class="btn pri" style="width:100%;margin-top:14px" onclick="closeDlg()">Tutup</button>`);
+}
+function lpTopData(d){
+ const R={};let old=0;
+ lpItems(d).forEach(({i,q})=>{const o=lpOpts(i);o.t.forEach(t=>{if(o.old)old+=q;const r=R[t.n]||(R[t.n]={n:t.n,q:0,rev:0,cogs:0,prods:{}});r.q+=q;r.rev+=q*t.p;r.cogs+=q*t.c;const p=r.prods[i.name]||(r.prods[i.name]={q:0,rev:0});p.q+=q;p.rev+=q*t.p})});
+ return{list:Object.values(R).map(x=>({...x,profit:x.rev-x.cogs})).sort((a,b)=>b.rev-a.rev),old};
+}
+function lpTopping(d){
+ const {list:l,old}=lpTopData(d),tq=sum(l,x=>x.q),tr=sum(l,x=>x.rev);if(!l.length)return`<div class="card"><div class="empty">Belum ada penjualan dengan topping pada periode ini</div></div>`;
+ return`<div class="kg"><div class="kc hero"><small>Omzet topping · ${esc(perLabel())}</small><b>${rp(tr)}</b><div style="margin-top:6px;opacity:.9">${fq(tq)} topping dipakai</div></div><div class="kc"><small>Laba topping</small><b>${rp(sum(l,x=>x.profit))}</b></div><div class="kc"><small>Topping terlaris</small><b>${esc(l.slice().sort((a,b)=>b.q-a.q)[0].n)}</b></div></div>
+ <div class="card"><h4>Penjualan per Topping</h4><p>Omzet = jumlah dipakai × harga tambahan. Klik baris untuk rincian per produk.${old?' <b>'+fq(old)+' pemakaian</b> dari nota lama dihitung dengan harga topping saat ini di daftar produk.':''}</p><div class="tw"><table><tr><th>Topping</th><th class="r">Dipakai</th><th class="r">Omzet</th><th class="r">HPP</th><th class="r">Laba</th><th>Porsi omzet</th></tr>
+ ${l.map(x=>`<tr class="cl" data-t="${esc(x.n)}" onclick="lpTopDetail(this.dataset.t)"><td><b>${esc(x.n)}</b></td><td class="r">${fq(x.q)}</td><td class="r">${rp(x.rev)}</td><td class="r">${rp(x.cogs)}</td><td class="r">${rp(x.profit)}</td><td>${lpBar(tr?x.rev/tr*100:0)}<small class="mut">${lpPct(x.rev,tr)}</small></td></tr>`).join('')}
+ <tr class="ft"><td>Total</td><td class="r">${fq(tq)}</td><td class="r">${rp(tr)}</td><td class="r">${rp(sum(l,x=>x.cogs))}</td><td class="r">${rp(sum(l,x=>x.profit))}</td><td></td></tr></table></div></div>`;
+}
+function lpTopDetail(n){
+ const o=lpTopData(CUR).list.find(x=>x.n===n);if(!o)return;const rows=Object.entries(o.prods).sort((a,b)=>b[1].q-a[1].q);
+ dlg(`<h3>Topping ${esc(n)}</h3><div class="mut" style="margin-bottom:10px">${esc(perLabel())}</div><div class="tw"><table><tr><th>Produk</th><th class="r">Dipakai</th><th class="r">Omzet</th></tr>${rows.map(([p,x])=>`<tr><td>${esc(p)}</td><td class="r">${fq(x.q)}</td><td class="r">${rp(x.rev)}</td></tr>`).join('')}</table></div><button class="btn pri" style="width:100%;margin-top:14px" onclick="closeDlg()">Tutup</button>`);
+}
+function lpExport(){
+ const d=CUR,k=LP.t;
+ if(k==='metode')return csv('Laporan-Metode-Pembayaran',[['Metode','Nota','Masuk','Refund','Bersih','MDR (estimasi)','Setelah MDR'],...lpMetodeData(d).map(x=>[x.name,x.n,Math.round(x.inn),Math.round(x.ref),Math.round(x.net),Math.round(x.mdr),Math.round(x.after)])]);
+ if(k==='kategori')return csv('Laporan-Kategori',[['Kategori','Terjual','Penjualan','HPP','Laba Kotor','Margin %'],...lpKatData(d).map(x=>[x.c,+x.q.toFixed(3),Math.round(x.rev),Math.round(x.cogs),Math.round(x.profit),+x.m.toFixed(1)])]);
+ if(k==='varian')return csv('Laporan-Varian',[['Varian','Terjual','Tambahan Harga','Penjualan Item'],...lpVarData(d).list.map(x=>[x.n,+x.q.toFixed(3),Math.round(x.add),Math.round(x.rev)])]);
+ return csv('Laporan-Topping',[['Topping','Dipakai','Omzet','HPP','Laba'],...lpTopData(d).list.map(x=>[x.n,+x.q.toFixed(3),Math.round(x.rev),Math.round(x.cogs),Math.round(x.profit)])]);
+}
+
 /* ---------- Outlet & Struk ---------- */
 function vMOutlet(){
  const o=D.outlet||{},r=D.receipt||{};
  return`<div class="note">Perubahan di sini disimpan ke server dan dipakai aplikasi kasir saat berikutnya menyinkronkan data.<br><small>Kode klien: <b>${esc(FT.code||'-')}</b> (dicatat di sheet MASTER KLIEN untuk mengatur fitur klien ini)</small></div>
+ <div class="card" style="margin-bottom:14px"><h4>Keamanan Sesi</h4><p>Keluar otomatis bila back office tidak dipakai (berlaku untuk perangkat ini)</p><div class="tool"><select onchange="setIdle(this.value)">${[[15,'15 menit'],[30,'30 menit'],[60,'1 jam'],[120,'2 jam'],[0,'Nonaktif']].map(([v,l])=>`<option value="${v}" ${idleMin()===v?'selected':''}>${l}</option>`).join('')}</select><span class="mut" id="idle_ok"></span></div></div>
  <div class="two"><div class="card"><h4>Info Outlet</h4><p>Tampil di kasir dan struk</p>
  ${fld('o_name','Nama outlet',o.name)}${fld('o_addr','Alamat',o.address)}<div class="g2">${fld('o_tel','Telepon',o.phone)}${fld('o_ig','Instagram / website',o.social)}${fld('o_tax','Pajak (%)',o.taxPct||0,'number')}${fld('o_svc','Service charge (%)',o.servicePct||0,'number')}</div>
  <button class="btn pri" style="width:100%;margin-top:16px" onclick="saveOutlet(this)">Simpan Info Outlet</button></div>
@@ -1569,7 +1701,8 @@ const activeBanks=()=>BANKS().filter(x=>x.active!==false);
 function defAcc(){const a=accOf('luar');return a&&a!=='-'?a:(activeBanks()[0]||{}).id||''}
 function payOpts(){
  const b=activeBanks(),d=defAcc();
- return b.map(x=>`<option value="acc:${esc(x.id)}" ${x.id===d?'selected':''}>Lunas, dari ${esc(x.name)}</option>`).join('')+'<option value="hutang">Belum dibayar (hutang ke supplier)</option><option value="none">Lunas, jangan catat di Arus Kas</option>';
+ const none='<option value="none">'+(b.length?'Lunas, jangan catat di Arus Kas':'Tidak dicatat di Arus Kas (belum ada rekening)')+'</option>';
+ return b.length?b.map(x=>`<option value="acc:${esc(x.id)}" ${x.id===d?'selected':''}>Lunas, dari ${esc(x.name)}</option>`).join('')+'<option value="hutang">Belum dibayar (hutang ke supplier)</option>'+none:none+'<option value="hutang">Belum dibayar (hutang ke supplier)</option>';
 }
 function accSel(id,sel){
  const b=activeBanks(),d=sel||defAcc();
@@ -2164,6 +2297,7 @@ function purDel(id){
 }
 
 (async function init(){
+ if(baseUrl()&&cfg.hp&&cfg.pin&&idleMin()&&Date.now()-idleLast()>idleMin()*60000){cfg.pin='';cfg.nm='';saveCfg();try{clearCache()}catch(e){}}
  if(baseUrl()&&cfg.hp&&cfg.pin){
   $('#app').innerHTML='<div class="lock"><div class="lockbox" style="text-align:center">Memuat data…</div></div>';
   const c=await readCache();
