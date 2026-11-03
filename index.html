@@ -433,9 +433,9 @@ function agg0(a,b){
  const day={},hour={},wd={};for(let h=0;h<24;h++)hour[h]=0;for(let w=0;w<7;w++)wd[w]=0;
  tx.forEach(t=>{const dt=new Date(t.ts);day[dk(t.ts)]=(day[dk(t.ts)]||0)+t.total;hour[dt.getHours()]+=t.total;wd[dt.getDay()]+=t.total});
  rf.forEach(r=>{day[dk(r.ts)]=(day[dk(r.ts)]||0)-r.amount});
- const cbycat={};cs.filter(x=>x.type==='out').forEach(x=>cbycat[x.cat]=(cbycat[x.cat]||0)+x.amount);
+ const cbycat={},cbysub={};cs.filter(x=>x.type==='out').forEach(x=>{cbycat[x.cat]=(cbycat[x.cat]||0)+x.amount;if(x.sub){const o=cbysub[x.cat]||(cbysub[x.cat]={});o[x.sub]=(o[x.sub]||0)+x.amount}});
  const disc=sum(tx,t=>(t.custDisc||0)+(t.autoDisc||0)+(t.voucherDisc||0)+(t.ptDisc||0)+(t.manualDisc||0));
- return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-opex-fees,gaji,komisi,opex,cincat,nonop,nonopcat,cmp,fMdr,fSvc,fAdm,fShip,fees,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0),subtotal:sum(tx,t=>(t.subtotal||0)+(t.custDisc||0)),cD:sum(tx,t=>t.custDisc||0),autoD:sum(tx,t=>t.autoDisc||0),vD:sum(tx,t=>t.voucherDisc||0),pD:sum(tx,t=>t.ptDisc||0),manD:sum(tx,t=>t.manualDisc||0),rnd:sum(tx,t=>t.rounding||0),taxEx:sum(tx.filter(t=>!t.taxIncl),t=>t.tax||0)};
+ return{tx,rf,cs,sh,gross,refAmt,omzet,net,cogs,profit:net-cogs,cout,cin,netProfit:net-cogs-opex-fees,gaji,komisi,opex,cbysub,cincat,nonop,nonopcat,cmp,fMdr,fSvc,fAdm,fShip,fees,by,rby,prod,kprod,cat,chan,kas,day,hour,wd,cbycat,items,disc,svc:sum(tx,t=>t.service||0),tax:sum(tx,t=>t.tax||0),subtotal:sum(tx,t=>(t.subtotal||0)+(t.custDisc||0)),cD:sum(tx,t=>t.custDisc||0),autoD:sum(tx,t=>t.autoDisc||0),vD:sum(tx,t=>t.voucherDisc||0),pD:sum(tx,t=>t.ptDisc||0),manD:sum(tx,t=>t.manualDisc||0),rnd:sum(tx,t=>t.rounding||0),taxEx:sum(tx.filter(t=>!t.taxIncl),t=>t.tax||0)};
 }
 function calc(){const[a,b]=range();return agg(a,b)}
 function prevAgg(){
@@ -606,7 +606,7 @@ function vRsum(d){
  <div class="rs-s">${H('Penjualan Bersih','b')}${R('Total Penjualan',d.gross)}${R('Pengembalian',d.refAmt,1)}${T('TOTAL PENJUALAN BERSIH',d.omzet)}</div>
  <div class="rs-s">${H('Laba Kotor','p')}${R('Total Penjualan Bersih',d.omzet)}${N('Pajak, service dan pembulatan (bukan laba)',lain)}${R('Penjualan setelah diskon',d.net)}${R('HPP (harga pokok penjualan)',d.cogs,1)}${T('TOTAL LABA KOTOR',lk)}${R('Margin laba kotor',0).replace(rp(0),pct(d.net?lk/d.net*100:0))}</div>
  <div class="rs-s">${H('Biaya Layanan &amp; Platform','y')}${R('MDR Metode Bayar',d.fMdr,1)}${R('Biaya Layanan / Komisi Platform',d.fSvc,1)}${R('Biaya Administrasi Platform',d.fAdm,1)}${R('Ongkir Ditanggung Toko',d.fShip,1)}${T('TOTAL BIAYA LAYANAN &amp; PLATFORM',d.fees,1)}</div>
- <div class="rs-s">${H('Biaya Operasional','o')}${oc.map(([k,v])=>R(esc(k),v,1)).join('')}${d.gaji?R('Gaji Karyawan',d.gaji,1):''}${d.komisi?R('Komisi Karyawan',d.komisi,1):''}${d.opex?'':'<div class="rs-r"><span class="mut">Belum ada pengeluaran pada periode ini</span><span></span></div>'}${T('TOTAL BIAYA OPERASIONAL',d.opex,1)}</div>
+ <div class="rs-s">${H('Biaya Operasional','o')}${oc.map(([k,v])=>R(esc(k),v,1)+Object.entries((d.cbysub||{})[k]||{}).sort((a,b)=>b[1]-a[1]).map(([n,x])=>R('&nbsp;&nbsp;&nbsp;› '+esc(n),x,1)).join('')).join('')}${d.gaji?R('Gaji Karyawan',d.gaji,1):''}${d.komisi?R('Komisi Karyawan',d.komisi,1):''}${d.opex?'':'<div class="rs-r"><span class="mut">Belum ada pengeluaran pada periode ini</span><span></span></div>'}${T('TOTAL BIAYA OPERASIONAL',d.opex,1)}</div>
  ${d.cin?`<div class="rs-s">${H('Uang Masuk Lain (bukan laba)','y')}${Object.entries(d.cincat).map(([k,v])=>R(esc(k),v)).join('')}${T('TOTAL UANG MASUK LAIN',d.cin)}</div>`:''}
  ${d.nonop?`<div class="rs-s">${H('Pengeluaran Non-Operasional (tidak mengurangi laba)','o')}${Object.entries(d.nonopcat).map(([k,v])=>R(esc(k),v,1)).join('')}${T('TOTAL NON-OPERASIONAL',d.nonop,1)}</div>`:''}
  <div class="rs-s">${H('Laba Bersih','g')}${R('Total Laba Kotor',lk)}${R('Total Biaya Layanan &amp; Platform',d.fees,1)}${R('Total Biaya Operasional',d.opex,1)}${T('TOTAL LABA BERSIH',lb)}${R('Margin laba bersih',0).replace(rp(0),pct(d.net?lb/d.net*100:0))}</div>
@@ -860,11 +860,11 @@ function cfFlows(){
   if(c>0)add(+p.paidTs,a,'pay','Komisi '+nm,0,c,'Otomatis',undefined,{cat:'Komisi'});
  });
  D.refunds.forEach(r=>add(r.ts,accOf(r.method),'ref','Refund '+(r.txNo||''),0,r.amount||0,'Otomatis'));
- D.cash.forEach(x=>add(x.ts,accOf(x.src==='luar'?'luar':'tunai'),'pos',(x.cat||'')+(x.note?' · '+x.note:''),x.type==='in'?x.amount:0,x.type==='out'?x.amount:0,'Kasir',undefined,{cat:x.cat||'Lainnya'}));
+ D.cash.forEach(x=>add(x.ts,accOf(x.src==='luar'?'luar':'tunai'),'pos',(x.cat||'')+(x.sub?' › '+x.sub:'')+(x.note?' · '+x.note:''),x.type==='in'?x.amount:0,x.type==='out'?x.amount:0,'Kasir',undefined,{cat:x.cat||'Lainnya'}));
  CFS().forEach(x=>{
   const n=x.note?' · '+x.note:'';
   if(x.type==='tf'){add(x.ts,x.acc,'tf','Transfer ke '+accName(x.to)+n,0,x.amount,'Manual',x.id);add(x.ts,x.to,'tf','Transfer dari '+accName(x.acc)+n,x.amount,0,'Manual',x.id)}
-  else add(x.ts,x.acc,x.type,(x.cat||'')+n,x.type==='in'?x.amount:0,x.type==='out'?x.amount:0,'Manual',x.id,{cat:x.cat||'Lainnya'});
+  else add(x.ts,x.acc,x.type,(x.cat||'')+(x.sub?' › '+x.sub:'')+n,x.type==='in'?x.amount:0,x.type==='out'?x.amount:0,'Manual',x.id,{cat:x.cat||'Lainnya'});
  });
  return L;
 }
@@ -926,7 +926,7 @@ function cfForm(type,id){
  dlg(`<h3>${id?'Ubah':'Catat'} ${tp==='in'?'Dana Masuk':tp==='out'?'Pengeluaran':'Transfer / Pencairan / Setoran'}</h3><datalist id="cl">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>${tp==='tf'?'<div class="mut" style="margin-bottom:8px">Contoh: pencairan dari Bank Penampung ke BCA, atau setoran dari Kas Kasir ke bank.</div>':''}
  <div class="g2">${fld('c_dt','Tanggal',dk(e.ts),'date')}<div><label>${tp==='tf'?'Dari rekening':'Rekening'}</label><select id="c_acc">${opt(e.acc)}</select></div>
  ${tp==='tf'?`<div><label>Ke rekening</label><select id="c_to">${opt(e.to)}</select></div>`:fld('c_cat','Kategori',e.cat,'text','','list="cl" oninput="if(/belanja|peralatan|stok|bahan|prive|cicilan/i.test(this.value)){var c=document.getElementById(\'c_nop\');if(c)c.checked=true}"')}
- ${fld('c_amt','Nominal (Rp)',e.amount,'number')}${fld('c_note','Catatan',e.note)}</div>
+ ${tp==='tf'?'':fld('c_sub','Item (beli / bayar apa)',e.sub,'text','mis. Gas, Plastik','list="csl"')}${fld('c_amt','Nominal (Rp)',e.amount,'number')}${fld('c_note','Catatan',e.note)}</div><datalist id="csl">${[...new Set([...CFS().filter(x=>x.sub).map(x=>x.sub),...(D.cash||[]).filter(x=>x.sub).map(x=>x.sub)])].sort().map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
  ${tp==='out'?chk('c_nop','Bukan biaya operasional (belanja stok, peralatan, cicilan pokok, prive): tetap tercatat di Arus Kas, tapi tidak mengurangi laba',e.nonop):''}
  <div class="acts2"><button class="btn pri" onclick="saveCf('${id||''}','${tp}',this)">Simpan</button>${id?`<button class="btn del" onclick="delCf('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
@@ -935,7 +935,7 @@ function saveCf(id,tp,btn){
  if(!d||amt<=0){alert('Isi tanggal dan nominal');return}
  if(tp==='tf'&&v('c_acc')===v('c_to')){alert('Rekening asal dan tujuan harus berbeda');return}
  const ts=old&&dk(old.ts)===d?old.ts:(d===dk(Date.now())?Date.now():new Date(d+'T12:00').getTime());
- safe(()=>push('cf',{id:id||'cf'+Date.now().toString(36),ts,type:tp,acc:v('c_acc'),to:tp==='tf'?v('c_to'):'',cat:tp==='tf'?'Transfer':(v('c_cat').trim()||'Lainnya'),amount:amt,note:v('c_note').trim(),nonop:tp==='out'&&ck('c_nop'),by:cfg.nm||''}),btn);
+ safe(()=>push('cf',{id:id||'cf'+Date.now().toString(36),ts,type:tp,acc:v('c_acc'),to:tp==='tf'?v('c_to'):'',cat:tp==='tf'?'Transfer':(v('c_cat').trim()||'Lainnya'),amount:amt,sub:tp==='tf'?'':v('c_sub').trim(),note:v('c_note').trim(),nonop:tp==='out'&&ck('c_nop'),by:cfg.nm||''}),btn);
 }
 function delCf(id){if(confirm('Hapus catatan ini?'))safe(()=>push('cf_del',{id}))}
 function rkDlg(){
@@ -967,10 +967,18 @@ function mapDlg(){
 function saveMap(btn){const o={};MKEYS.forEach(k=>o[k]=v('m_'+k));safe(()=>push('cfmap',o),btn)}
 
 /* ---------- Kas ---------- */
+function cashAcc(x){return x.src==='arus'?accName(x.acc):accName(accOf(x.src==='luar'?'luar':'tunai'))}
 function vCash(d){
+ const outs=d.cs.filter(x=>x.type==='out'),g={};
+ outs.forEach(x=>{const c=x.cat||'Lainnya',o=g[c]||(g[c]={t:0,n:0,s:{}}),k=x.sub||'(tanpa item)';o.t+=+x.amount||0;o.n++;const q=o.s[k]||(o.s[k]={t:0,n:0});q.t+=+x.amount||0;q.n++});
+ const cats=Object.entries(g).sort((a,b)=>b[1].t-a[1].t);
  return`<div class="kg"><div class="kc"><small>Pengeluaran</small><b style="color:var(--bad)">${rp(d.cout)}</b></div><div class="kc"><small>Uang masuk lain</small><b style="color:var(--ok)">${rp(d.cin)}</b></div>${hutKpi()}</div>
- <div class="two"><div class="card"><h4>Pengeluaran per Kategori</h4><p>${esc(perLabel())}</p>${Object.keys(d.cbycat).length?`<div class="tw"><table><tr><th>Kategori</th><th class="r">Total</th></tr>${Object.entries(d.cbycat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r"><b>${rp(v)}</b></td></tr>`).join('')}</table></div>`:'<div class="empty">Belum ada pengeluaran</div>'}</div>
- <div class="card"><h4>Catatan Kas</h4><p>Pengeluaran dan uang masuk</p><div class="tw">${d.cs.length?`<table><tr><th>Waktu</th><th>Kategori</th><th>Catatan</th><th class="r">Nominal</th></tr>${d.cs.slice(0,200).map(x=>`<tr><td>${fmtT(x.ts)}</td><td>${esc(x.cat)}${x.src==='luar'?' <span class="badge k">luar laci</span>':''}</td><td>${esc(x.note||'—')}</td><td class="r" style="color:var(--${x.type==='out'?'bad':'ok'})">${x.type==='out'?'−':'+'}${rp(x.amount)}</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada catatan</div>'}</div></div></div>`;
+ <div class="two"><div class="card"><div class="ch"><div><h4>Pengeluaran per Kategori dan Item</h4><p>${esc(perLabel())} · item diisi kasir saat mencatat pengeluaran</p></div><button class="btn" onclick="cashItemCsv()">${ic('dl',16)} CSV</button></div>${cats.length?`<div class="tw"><table><tr><th>Kategori / item</th><th class="r">Kali</th><th class="r">Total</th></tr>${cats.map(([k,o])=>`<tr class="ft"><td><b>${esc(k)}</b></td><td class="r">${o.n}</td><td class="r"><b>${rp(o.t)}</b></td></tr>${Object.entries(o.s).sort((a,b)=>b[1].t-a[1].t).map(([n,q])=>`<tr><td style="padding-left:24px">${esc(n)}</td><td class="r">${q.n}</td><td class="r">${rp(q.t)}</td></tr>`).join('')}`).join('')}</table></div>`:'<div class="empty">Belum ada pengeluaran</div>'}</div>
+ <div class="card"><h4>Catatan Kas</h4><p>Pengeluaran dan uang masuk, lengkap dengan rekening yang berubah</p><div class="tw">${d.cs.length?`<table><tr><th>Waktu</th><th>Kategori / item</th><th>Rekening</th><th>Catatan</th><th class="r">Nominal</th></tr>${d.cs.slice(0,200).map(x=>`<tr><td>${fmtT(x.ts)}</td><td>${esc(x.cat)}${x.sub?' › '+esc(x.sub):''}${x.src==='luar'?' <span class="badge k">luar laci</span>':''}</td><td>${esc(cashAcc(x))}</td><td>${esc(x.note||'—')}</td><td class="r" style="color:var(--${x.type==='out'?'bad':'ok'})">${x.type==='out'?'−':'+'}${rp(x.amount)}</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada catatan</div>'}</div></div></div>`;
+}
+function cashItemCsv(){
+ const[a,b]=range(),d=agg(a,b);
+ csv('Pengeluaran-per-Item',[['Waktu','Kategori','Item','Rekening','Catatan','Nominal'],...d.cs.filter(x=>x.type==='out').map(x=>[fmtT(x.ts),x.cat||'',x.sub||'',cashAcc(x),x.note||'',x.amount])]);
 }
 
 /* ---------- Pelanggan (logika ada di pelanggan.js) ---------- */
