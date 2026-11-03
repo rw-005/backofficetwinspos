@@ -2255,12 +2255,7 @@ function sinPay(id,btn){
   try{await cfIn(acc,a,'Pelunasan '+f.no+' · '+(f.customerName||''),'fj:'+f.id,pm.ts);scheduleLoad()}catch(e){alert('Pembayaran tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}
  },btn);
 }
-function sinDel(id){
- const f=SIN().find(x=>x.id===id);if(!f)return;
- const cfs=CFS().filter(x=>x.ref==='fj:'+id||String(x.ref||'').indexOf('rj:'+id+':')===0||(x.cat==='Pelunasan piutang'&&String(x.note||'').indexOf('Pelunasan '+f.no+' · ')===0));
- if(!confirm('Hapus faktur '+f.no+'?'+(cfs.length?' '+cfs.length+' catatan pembayarannya di Arus Kas ikut dihapus.':'')+' Stok yang sudah berkurang dari faktur ini TIDAK ikut dikembalikan (koreksi lewat Produk & Stok bila perlu).'))return;
- safe(async()=>{for(const c of cfs)await pushQuiet('cf_del',{id:c.id});await push('sinvoice_del',{id})});
-}
+function sinDel(id){delDlg('j',id)}
 function sinPrint(id){
  const f=SIN().find(x=>x.id===id);if(!f)return;const o=D.outlet||{},cu=(D.customers||[]).find(x=>x.id===f.customerId)||{},left=sinLeft(f),st=sinSt(f);
  const w=window.open('','_blank');if(!w){alert('Pop-up diblokir browser');return}
@@ -2424,11 +2419,40 @@ function purPay(id,btn){
   if(acc){try{await cfBuy(acc,a,'Faktur '+f.no+' · '+(f.supplierName||''),'fb:'+f.id,pm.ts);scheduleLoad()}catch(e){alert('Pembayaran tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
  },btn);
 }
-function purDel(id){
- const f=PUR().find(x=>x.id===id);if(!f)return;
- const cfs=CFS().filter(x=>x.ref==='fb:'+id||String(x.ref||'').indexOf('rb:'+id+':')===0||(x.cat==='Pembelian stok'&&String(x.note||'').indexOf('Faktur '+f.no+' · ')===0));
- if(!confirm('Hapus faktur '+f.no+'?'+(cfs.length?' '+cfs.length+' catatan pembayarannya di Arus Kas ikut dihapus.':'')+' Stok yang sudah bertambah dari faktur ini TIDAK ikut dikurangi (koreksi lewat Produk & Stok bila perlu).'))return;
- safe(async()=>{for(const c of cfs)await pushQuiet('cf_del',{id:c.id});await push('purchase_del',{id})});
+function purDel(id){delDlg('b',id)}
+
+/* ---------- Hapus faktur (opsi kembalikan stok) ---------- */
+function delNet(f){
+ const m=qtyByPid(f.items);(f.returns||[]).filter(r=>r.stock).forEach(r=>(r.items||[]).forEach(i=>{m[i.pid]=(m[i.pid]||0)-(+i.qty||0)}));
+ const out=[];Object.keys(m).forEach(k=>{const q=Math.round(m[k]*1000)/1000;if(q>0&&trk(k)){const p=D.products.find(x=>x.id===k);out.push({id:k,qty:q,name:p.name,unit:p.unit||'',stock:+p.stock||0})}});
+ return out;
+}
+function delCfs(k,f){
+ return k==='b'?CFS().filter(x=>x.ref==='fb:'+f.id||String(x.ref||'').indexOf('rb:'+f.id+':')===0||(x.cat==='Pembelian stok'&&String(x.note||'').indexOf('Faktur '+f.no+' · ')===0))
+  :CFS().filter(x=>x.ref==='fj:'+f.id||String(x.ref||'').indexOf('rj:'+f.id+':')===0||(x.cat==='Pelunasan piutang'&&String(x.note||'').indexOf('Pelunasan '+f.no+' · ')===0));
+}
+function delDlg(k,id){
+ const f=(k==='b'?PUR():SIN()).find(x=>x.id===id);if(!f)return;
+ const cfs=delCfs(k,f),net=f.stock?delNet(f):[],buy=k==='b';
+ dlg(`<h3>Hapus faktur ${esc(f.no)}?</h3><div class="mut" style="margin-bottom:8px">${esc(buy?f.supplierName||'-':f.customerName||'-')} · ${dk(f.ts)} · ${rp(f.total)}</div>
+ ${cfs.length?`<div class="hint" style="margin-bottom:8px">${cfs.length} catatan pembayarannya di Arus Kas ikut dihapus.</div>`:''}
+ ${net.length?`<div class="card" style="margin-bottom:10px"><h4>Stok</h4><p>${buy?'Faktur ini menambah stok. Bila dicentang, stok dikurangi lagi:':'Faktur ini mengurangi stok. Bila dicentang, stok dikembalikan:'}</p>
+ <div class="tw"><table><tr><th>Barang</th><th class="r">Stok sekarang</th><th class="r">${buy?'Dikurangi':'Ditambah'}</th><th class="r">Jadi</th></tr>${net.map(x=>`<tr><td>${esc(x.name)}</td><td class="r">${fq(x.stock)} ${esc(x.unit)}</td><td class="r">${buy?'−':'+'}${fq(x.qty)}</td><td class="r"${buy&&x.stock-x.qty<0?' style="color:var(--bad)"':''}>${fq(buy?x.stock-x.qty:x.stock+x.qty)}</td></tr>`).join('')}</table></div>
+ ${chk('dl_stk',buy?'Kurangi stok juga (faktur salah input, barang tidak jadi masuk)':'Kembalikan stok juga (faktur salah input, barang tidak jadi keluar)',true)}
+ ${buy&&net.some(x=>x.stock-x.qty<0)?'<div class="hint" style="margin-top:6px;color:var(--bad)">Sebagian barang akan menjadi minus karena sudah terjual. Hilangkan centang bila barangnya memang sudah ada.</div>':''}</div>`:`<div class="hint" style="margin-bottom:8px">${f.stock?'Tidak ada barang berstok pada faktur ini.':'Faktur ini tidak mengubah stok, jadi tidak ada yang perlu dikembalikan.'}</div>`}
+ <div class="acts2"><button class="btn del" onclick="delGo('${k}','${id}',this)">Hapus Faktur</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+async function delGo(k,id,btn){
+ const f=(k==='b'?PUR():SIN()).find(x=>x.id===id);if(!f)return;
+ const cfs=delCfs(k,f),net=f.stock?delNet(f):[],doStk=!!net.length&&ck('dl_stk'),buy=k==='b';
+ btn.disabled=true;btn.textContent='Menghapus…';let gone=false;
+ try{
+  for(const c of cfs)await pushQuiet('cf_del',{id:c.id});
+  await pushPost(buy?'purchase_del':'sinvoice_del',{id});gone=true;
+  if(doStk){const note=('[HAPUS-'+(buy?'FB':'FJ')+'] '+f.no).slice(0,100);
+   await pushPost('stock_bulk',buy?{mode:'out',note,items:net.map(x=>({id:x.id,qty:x.qty,note}))}:{mode:'add',hppMode:'none',note,items:net.map(x=>({id:x.id,qty:x.qty,note}))})}
+  closeDlg();render();
+ }catch(e){btn.disabled=false;btn.textContent='Hapus Faktur';alert(gone?'Faktur sudah terhapus, tetapi stok belum disesuaikan: '+e.message+'\n\nKoreksi stok manual lewat Produk & Stok. Jangan hapus ulang.':'Gagal menghapus: '+e.message)}
 }
 
 /* =================== TAHAP B: EDIT FAKTUR, RETUR, UANG MUKA =================== */
