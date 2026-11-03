@@ -398,12 +398,14 @@ async function refresh(){try{await load();render()}catch(e){alert('Gagal ambil d
 function range(){
  const n=new Date(),d0=new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime();
  if(P.k==='today')return[d0,d0+864e5];
+ if(P.k==='yest')return[d0-864e5,d0];
+ if(P.k==='lmonth')return[new Date(n.getFullYear(),n.getMonth()-1,1).getTime(),new Date(n.getFullYear(),n.getMonth(),1).getTime()];
  if(P.k==='7d')return[d0-6*864e5,d0+864e5];
  if(P.k==='month')return[new Date(n.getFullYear(),n.getMonth(),1).getTime(),d0+864e5];
  if(P.k==='all')return[0,Infinity];
  return[P.from?new Date(P.from+'T00:00').getTime():0,P.to?new Date(P.to+'T00:00').getTime()+864e5:Infinity];
 }
-function perLabel(){return{today:'Hari ini','7d':'7 hari terakhir',month:'Bulan ini',all:'Semua data'}[P.k]||('Kustom '+(P.from||'…')+' s/d '+(P.to||'…'))}
+function perLabel(){return{today:'Hari ini',yest:'Kemarin','7d':'7 hari terakhir',month:'Bulan ini',lmonth:'Bulan lalu',all:'Semua data'}[P.k]||('Kustom '+(P.from||'…')+' s/d '+(P.to||'…'))}
 const dk=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 function agg(a,b){const k=a+'|'+b;let r=AC.get(k);if(!r){r=agg0(a,b);AC.set(k,r);if(AC.size>40)AC.delete(AC.keys().next().value)}return r}
 function agg0(a,b){
@@ -563,7 +565,7 @@ function render(){
  if(tab==='pelanggan'&&window.PL)PL.mount('plv');
 }
 function periodBar(){
- const L=[['today','Hari ini'],['7d','7 hari'],['month','Bulan ini'],['all','Semua'],['custom','Kustom']];
+ const L=[['today','Hari ini'],['yest','Kemarin'],['7d','7 hari'],['month','Bulan ini'],['lmonth','Bulan lalu'],['all','Semua'],['custom','Kustom']];
  return`<div class="chips">${L.map(([k,l])=>`<button class="chip ${P.k===k?'on':''}" onclick="setP('${k}')">${l}</button>`).join('')}</div>`+(P.k==='custom'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;max-width:520px"><div><label style="margin-top:0">Dari</label><input type="date" value="${P.from}" onchange="P.from=this.value;render()"></div><div><label style="margin-top:0">Sampai</label><input type="date" value="${P.to}" onchange="P.to=this.value;render()"></div></div>`:'');
 }
 function setP(k){P.k=k;if(k==='custom'&&!P.from){const n=new Date();P.from=P.to=dk(n.getTime())}render()}
@@ -1022,6 +1024,7 @@ function vMProduk(){
  <select onchange="PM.k=this.value;render()"><option value="">Produk + bahan baku</option><option value="jual" ${PM.k==='jual'?'selected':''}>Produk jual saja</option><option value="bahan" ${PM.k==='bahan'?'selected':''}>Bahan baku saja</option></select>
  <button class="btn ${PM.low?'on':''}" onclick="PM.low=!PM.low;render()">Stok menipis</button>
  <button class="btn" onclick="prodnForm()">Produksi</button>
+ <button class="btn" onclick="bhOpen()">${ic('plus',16)} Impor Bahan Baku</button>
  <button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button>
  <button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button>
  <button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>
@@ -2492,6 +2495,64 @@ async function prodnSave(btn){
   if(n.p.trackStock!==false)await pushPost('stock_bulk',{mode:'add',hppMode:'avg',note,items:[{id:n.p.id,qty:n.q,buyPrice:recCostVal(n.p.recipe),note:note.slice(0,100)}]});
   closeDlg();render();
  }catch(e){btn.disabled=false;btn.textContent='Simpan Produksi';alert(outOk?'Bahan sudah dipotong, tetapi stok produk jadi belum bertambah: '+e.message+'\n\nTambahkan stok produk jadi manual lewat + Stok, jangan ulang produksinya.':'Gagal menyimpan: '+e.message)}
+}
+
+/* ---------- Impor bahan baku (template Excel) ---------- */
+const BH={rows:[]};
+function bhTpl(){
+ bkSave('Template-Bahan-Baku',[['Nama','Satuan','Stok Awal','Harga Beli per Satuan (HPP)','Batas Stok Menipis','Kategori'],['Tepung terigu','gram',5000,12,1000,'Bahan'],['Gula pasir','gram',2000,15,500,'Bahan'],['Telur','butir',60,2200,12,'Bahan']]);
+}
+function bhOpen(){
+ BH.rows=[];
+ dlg(`<h3>Impor Bahan Baku</h3>
+ <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template. 2. Hapus 3 baris contoh, isi bahan Anda (satu bahan per baris). 3. Simpan (tetap .xlsx atau CSV), lalu unggah di bawah.<br>Semua bahan otomatis ditandai <b>Bahan baku</b> dan tidak tampil di kasir. Nama yang sudah ada dilewati.</div>
+ <div class="acts2" style="margin-top:10px"><button class="btn" onclick="bhTpl()">${ic('dl',16)} Unduh template bahan baku</button></div>
+ <label>Unggah file Excel / CSV</label><input type="file" id="bh_file" accept=".xlsx,.xls,.csv,.txt" onchange="bhRead(this.files[0])">
+ <div id="bh_prev" style="margin-top:12px"></div>
+ <div class="acts2"><button class="btn" onclick="closeDlg()">Batal</button><button class="btn pri" id="bh_go" disabled onclick="bhApply(this)">Buat Bahan Baku</button></div>`,true);
+}
+function bhRead(f){
+ if(!f)return;const el=$('#bh_prev'),rd=new FileReader(),isX=/\.xlsx?$/i.test(f.name);
+ if(isX&&!window.XLSX){el.innerHTML='<div class="mut" style="color:var(--bad)">Pembaca Excel belum termuat (cek internet). Simpan file sebagai CSV lalu unggah lagi.</div>';return}
+ const proc=rows=>{
+  BH.rows=[];
+  if(rows.length<2){el.innerHTML='<div class="mut">File kosong atau formatnya tidak dikenali.</div>';bhPrev();return}
+  const h=rows[0].map(x=>String(x).toLowerCase().replace(/[^a-z]/g,'')),ix=k=>h.findIndex(x=>x.startsWith(k));
+  const c={name:ix('nama'),unit:ix('satuan'),stock:ix('stok'),cogs:ix('harga'),min:ix('batas'),cat:ix('kategori')};
+  if(c.name<0){el.innerHTML='<div class="mut" style="color:var(--bad)">Kolom Nama tidak ditemukan. Pakai template dari tombol di atas.</div>';bhPrev();return}
+  const g=(r,k)=>k>=0?String(r[k]==null?'':r[k]).trim():'';
+  BH.rows=rows.slice(1).map(r=>({name:g(r,c.name),unit:g(r,c.unit)||'gram',stock:bkNum(g(r,c.stock)),cogs:bkNum(g(r,c.cogs)),min:bkNum(g(r,c.min)),cat:g(r,c.cat)||'Bahan'})).filter(r=>r.name);
+  bhPrev();
+ };
+ rd.onload=e=>{try{
+  if(isX){const wb=XLSX.read(e.target.result,{type:'array'});proc(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}).map(r=>r.map(x=>x==null?'':String(x))).filter(r=>r.some(x=>x.trim()!=='')))}
+  else proc(bkCsv(String(e.target.result||'')));
+ }catch(err){el.innerHTML='<div class="mut" style="color:var(--bad)">File tidak bisa dibaca: '+esc(err.message)+'</div>'}};
+ isX?rd.readAsArrayBuffer(f):rd.readAsText(f);
+}
+function bhPrev(){
+ const el=$('#bh_prev'),go=$('#bh_go');if(!el)return;
+ const have=new Set(D.products.map(p=>String(p.name).trim().toLowerCase())),seen=new Set();BH.ok=[];
+ const out=BH.rows.map(r=>{
+  const k=r.name.toLowerCase();let st='ok',msg='';
+  if(have.has(k)){st='skip';msg='Nama sudah ada'}else if(seen.has(k)){st='skip';msg='Dobel di file'}
+  else if((r.stock!=null&&isNaN(r.stock))||(r.cogs!=null&&isNaN(r.cogs))||(r.min!=null&&isNaN(r.min))){st='bad';msg='Ada angka yang tidak valid'}
+  else if((r.stock||0)<0||(r.cogs||0)<0){st='bad';msg='Tidak boleh minus'}
+  seen.add(k);if(st==='ok')BH.ok.push(r);return{r,st,msg};
+ });
+ el.innerHTML=BH.rows.length?`<div style="margin-bottom:8px"><span class="badge g">${BH.ok.length} akan dibuat</span> ${out.length-BH.ok.length?`<span class="badge v">${out.length-BH.ok.length} dilewati</span>`:''}</div><div class="tw" style="max-height:34vh;overflow:auto"><table><tr><th>Bahan</th><th>Satuan</th><th class="r">Stok awal</th><th class="r">HPP</th><th>Status</th></tr>${out.slice(0,300).map(o=>`<tr><td>${esc(o.r.name)}</td><td>${esc(o.r.unit)}</td><td class="r">${fq(o.r.stock||0)}</td><td class="r">${rp(o.r.cogs||0)}</td><td>${o.st==='ok'?'<span class="badge g">Baru</span>':'<span class="badge v">'+esc(o.msg)+'</span>'}</td></tr>`).join('')}</table></div>`:'';
+ if(go)go.disabled=!BH.ok.length;
+}
+async function bhApply(btn){
+ if(!BH.ok.length)return;btn.disabled=true;let n=0;
+ try{
+  for(const r of BH.ok){
+   btn.textContent='Membuat '+n+'/'+BH.ok.length+'…';
+   await pushQuiet('product',{id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:r.name,sku:'',cat:r.cat,unit:r.unit,price:0,cogs:r.cogs||0,stock:r.stock||0,minStock:r.min||0,trackStock:true,active:true,bahan:true,recipe:[],updated:Date.now(),initStock:r.stock||0});
+   n++;
+  }
+  closeDlg();scheduleLoad();render();alert(n+' bahan baku dibuat.');
+ }catch(e){btn.disabled=false;btn.textContent='Buat Bahan Baku';alert('Berhenti setelah '+n+' bahan: '+e.message+'\n\nBahan yang sudah terbuat tidak akan dobel kalau Anda unggah ulang (nama yang sama dilewati).');scheduleLoad()}
 }
 
 (async function init(){
