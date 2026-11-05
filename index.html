@@ -1536,7 +1536,7 @@ function lpOpts(i){
 }
 function lpVarData(d){
  const R={};let old=0;
- lpItems(d).forEach(({i,q})=>{const o=lpOpts(i);if(!o.v)return;if(o.old)old+=q;const r=R[o.v.n]||(R[o.v.n]={n:o.v.n,q:0,add:0,rev:0,prods:{}});r.q+=q;r.add+=q*o.v.p;r.rev+=q*i.price;const p=r.prods[i.name]||(r.prods[i.name]={q:0,add:0,rev:0});p.q+=q;p.add+=q*o.v.p;p.rev+=q*i.price});
+ lpItems(d).forEach(({i,q})=>{const o=lpOpts(i);if(!o.v)return;if(o.old)old+=q;const pr=(D.products||[]).find(x=>x.id===i.pid),ad=(pr&&pr.vabs)?o.v.p-(+pr.price||0):o.v.p;const r=R[o.v.n]||(R[o.v.n]={n:o.v.n,q:0,add:0,rev:0,prods:{}});r.q+=q;r.add+=q*ad;r.rev+=q*i.price;const p=r.prods[i.name]||(r.prods[i.name]={q:0,add:0,rev:0});p.q+=q;p.add+=q*ad;p.rev+=q*i.price});
  return{list:Object.values(R).sort((a,b)=>b.q-a.q),old};
 }
 function lpVarian(d){
