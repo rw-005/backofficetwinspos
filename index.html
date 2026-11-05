@@ -205,6 +205,23 @@ tr.ft td{background:var(--soft);border-top:0}
  .cv .ax{font-size:19px}.cv .vl{font-size:20px}.cv .ln{stroke-width:4}
  .tb h2{font-size:19px}
 }
+/* Ringkasan Penjualan: gaya khas TWINS POS */
+.br h4{margin:0 0 4px;font-size:17px}
+.br-r{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr) minmax(90px,130px);gap:10px;align-items:center;padding:7px 0;font-size:14px}
+.br-t{position:relative;height:18px;border-radius:9px;background:color-mix(in srgb,var(--bd) 55%,transparent)}
+.br-b{position:absolute;top:0;bottom:0;border-radius:9px;background:var(--pri)}
+.br-b.m{background:#e5384f;opacity:.85}.br-b.t{background:var(--pri)}.br-b.neg{background:#e5384f}
+.br-v{text-align:right;font-weight:700;white-space:nowrap}
+.br-k .kc{border-left:4px solid var(--pri)}.br-k .kc small:last-child{margin-top:2px}
+@media (max-width:640px){.br-r{grid-template-columns:1fr auto;grid-template-areas:'n v' 't t'}.br-n{grid-area:n}.br-v{grid-area:v}.br-t{grid-area:t}}
+.rs-s{border:1.5px solid color-mix(in srgb,var(--tx) 22%,var(--bd));border-radius:14px;background:var(--card);margin-bottom:18px;overflow:hidden;box-shadow:var(--sh)}
+.rs-h,.rs-h.g,.rs-h.y,.rs-h.b,.rs-h.p,.rs-h.o{background:color-mix(in srgb,var(--pri) 9%,var(--card));padding:12px 16px;font-size:13.5px;font-weight:800;letter-spacing:.07em;color:var(--pri);border-bottom:1.5px solid color-mix(in srgb,var(--tx) 22%,var(--bd));border-left:5px solid var(--pri)}
+.rs-r{padding:13px 16px;border-top:1px solid color-mix(in srgb,var(--tx) 14%,var(--bd));font-size:15px;color:var(--tx)}
+.rs-s .rs-h+.rs-r{border-top:0}
+.rs-r span:last-child{font-weight:600;font-variant-numeric:tabular-nums}
+.rs-r:hover{background:color-mix(in srgb,var(--pri) 5%,var(--card))}
+.rs-r.tot{border-top:1.5px solid color-mix(in srgb,var(--tx) 40%,var(--bd));background:color-mix(in srgb,var(--tx) 5%,var(--card));font-size:15.5px}
+.rs-r.tot span:last-child{font-weight:800}
 </style>
 <script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.NOXLSX=1"></script>
@@ -620,8 +637,12 @@ function vRsum(d){
   ['BIAYA PROMOSI',''],['Harga Pelanggan & Grup',d.cD],['Promo Otomatis',d.autoD],['Voucher',d.vD],['Tukar Poin',d.pD],['Diskon Manual Kasir',d.manD],['Komplimen',d.cmp],['TOTAL BIAYA PROMOSI',promo],
   ['PENJUALAN BERSIH',''],['Total Penjualan',d.gross],['Pengembalian',d.refAmt],['TOTAL PENJUALAN BERSIH',d.omzet],
   ['LABA KOTOR',''],['Total Penjualan Bersih',d.omzet],['Pajak, service dan pembulatan (bukan laba)',lain],['Penjualan setelah diskon',d.net],['HPP',d.cogs],['TOTAL LABA KOTOR',lk],
-  ['BIAYA LAYANAN & PLATFORM',''],['MDR Metode Bayar',d.fMdr],['Biaya Layanan / Komisi Platform',d.fSvc],['Biaya Administrasi Platform',d.fAdm],['Ongkir Ditanggung Toko',d.fShip],['TOTAL BIAYA LAYANAN & PLATFORM',d.fees],['BIAYA OPERASIONAL',''],...oc.map(([k,v])=>[k,v]),['Gaji Karyawan',d.gaji],['Komisi Karyawan',d.komisi],['TOTAL BIAYA OPERASIONAL',d.opex],['UANG MASUK LAIN (BUKAN LABA)',''],...Object.entries(d.cincat).map(([k,v])=>[k,v]),['TOTAL UANG MASUK LAIN',d.cin],['PENGELUARAN NON-OPERASIONAL (TIDAK MENGURANGI LABA)',''],...Object.entries(d.nonopcat).map(([k,v])=>[k,v]),['TOTAL NON-OPERASIONAL',d.nonop],['LABA BERSIH',''],['Total Laba Kotor',lk],['Total Biaya Layanan & Platform',d.fees],['Total Biaya Operasional',d.opex],['TOTAL LABA BERSIH',lb]];
- return`<div class="kg rs-k">${Kc('Total Pendapatan',pend,'k1')}${Kc('Biaya Promosi',promo,'k2')}${Kc('Total Penjualan',d.gross,'k3')}${Kc('Penjualan Bersih',d.omzet,'k4')}${Kc('Total Laba Kotor',lk,'k5')}${Kc('Total Laba Bersih',lb,'k6')}</div>
+  ['BIAYA LAYANAN & PLATFORM',''],['MDR Metode Bayar',d.fMdr],['Biaya Layanan / Komisi Platform',d.fSvc],['Biaya Administrasi Platform',d.fAdm],['Ongkir Ditanggung Toko',d.fShip],['TOTAL BIAYA LAYANAN &amp; PLATFORM',d.fees],['BIAYA OPERASIONAL',''],...oc.map(([k,v])=>[k,v]),['Gaji Karyawan',d.gaji],['Komisi Karyawan',d.komisi],['TOTAL BIAYA OPERASIONAL',d.opex],['UANG MASUK LAIN (BUKAN LABA)',''],...Object.entries(d.cincat).map(([k,v])=>[k,v]),['TOTAL UANG MASUK LAIN',d.cin],['PENGELUARAN NON-OPERASIONAL (TIDAK MENGURANGI LABA)',''],...Object.entries(d.nonopcat).map(([k,v])=>[k,v]),['TOTAL NON-OPERASIONAL',d.nonop],['LABA BERSIH',''],['Total Laba Kotor',lk],['Total Biaya Layanan & Platform',d.fees],['Total Biaya Operasional',d.opex],['TOTAL LABA BERSIH',lb]];
+ const steps=(()=>{const a=d.net,b=a-d.cogs,c2=b-d.fees,e=c2-d.opex;return[['Penjualan bersih',0,a,'t'],['HPP',a,b,'m'],['Laba kotor',0,b,'t'],['Biaya layanan & platform',b,c2,'m'],['Biaya operasional',c2,e,'m'],['Laba bersih',0,e,'t']]})();
+ const lo=Math.min(0,...steps.map(x=>Math.min(x[1],x[2]))),hi=Math.max(1,...steps.map(x=>Math.max(x[1],x[2]))),sp=(hi-lo)||1,P=x=>(x-lo)/sp*100;
+ const bridge=`<div class="card br"><h4>Dari penjualan sampai laba</h4><p class="mut" style="margin:0 0 12px">${d.net>0?'Dari tiap Rp100 penjualan bersih, Rp'+Math.round(lb/d.net*100)+' menjadi laba bersih.':'Belum ada penjualan pada periode ini.'}</p>${steps.map(([n,x,y,k])=>{const l=Math.min(x,y),w=Math.abs(y-x),v=k==='m'?-(w):y;return`<div class="br-r"><span class="br-n">${n}</span><div class="br-t"><i class="br-b ${k}${(k==='t'&&y<0)?' neg':''}" style="left:${P(l).toFixed(2)}%;width:${Math.max(0.6,(w/sp*100)).toFixed(2)}%"></i></div><span class="br-v">${v<0?'−':''}${rp(Math.abs(v))}</span></div>`}).join('')}</div>`;
+ const m1=d.net?pct(lk/d.net*100):'-',m2=d.net?pct(lb/d.net*100):'-';
+ return`${bridge}<div class="kg br-k"><div class="kc"><small>Penjualan bersih</small><b>${rp(d.net)}</b></div><div class="kc"><small>Laba kotor</small><b>${rp(lk)}</b><small>Margin ${m1}</small></div><div class="kc"><small>Laba bersih</small><b>${rp(lb)}</b><small>Margin ${m2}</small></div><div class="kc"><small>Jumlah nota</small><b>${fq(d.tx.length)}</b><small>Rata-rata ${rp(d.tx.length?d.net/d.tx.length:0)}</small></div></div>
  <div class="ch" style="margin-bottom:12px;align-items:center"><div class="mut">${esc(perLabel())} · ${d.tx.length} nota</div><button class="btn" onclick="exportRsum()">${ic('dl',16)} Ekspor Laporan</button></div>
  <div class="rs-s">${H('Pendapatan','g')}${R('Penjualan Kotor',d.subtotal,0,'sub')}${R('Biaya Pelayanan (service)',d.svc,0,'svc')}${R('Pajak',d.taxEx,0,'tax')}${R('Pembulatan',d.rnd,0,'rnd')}${T('TOTAL PENDAPATAN',pend,0,'pend')}</div>
  <div class="rs-s">${H('Biaya Promosi','y')}${R('Harga Pelanggan & Grup',d.cD,1,'cD')}${R('Promo Otomatis',d.autoD,1,'autoD')}${R('Voucher',d.vD,1,'vD')}${R('Tukar Poin',d.pD,1,'pD')}${R('Diskon Manual Kasir',d.manD,1,'manD')}${R('Komplimen',d.cmp,1,'cmp')}${T('TOTAL BIAYA PROMOSI',promo,1,'promo')}</div>
@@ -2365,7 +2386,8 @@ function sinPrint(id){
  const rows=(f.items||[]).map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.name)}</td><td class="r">${fq(i.qty)} ${esc(i.unit||'')}</td><td class="r">${rp(i.price)}</td><td class="r">${rp(i.qty*i.price)}</td></tr>`).join('');
  const sub=f.sub!=null?f.sub:Math.round(sum(f.items||[],i=>i.qty*i.price)),sr=(l,n,b)=>`<tr${b?' class="b"':''}><td colspan="4" class="r">${l}</td><td class="r">${n}</td></tr>`;
  const pays=(f.payments||[]).map(p=>`<tr><td colspan="2">${fmtT(p.ts)}</td><td colspan="2">${esc(p.acc?accName(p.acc):(p.method||'-'))}</td><td class="r">${rp(p.amount)}</td></tr>`).join('');
- w.document.write(`<!doctype html><meta charset="utf-8"><title>Faktur ${esc(f.no)}</title><style>body{font:13px/1.5 Arial,sans-serif;color:#111;margin:28px auto;max-width:760px}h1{font-size:22px;margin:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}th{background:#f3f4f6}.r{text-align:right}.b td{font-weight:700;border-top:2px solid #111}.hd{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px}.bx{display:flex;justify-content:space-between;gap:20px}small{color:#555}@media print{button{display:none}}</style>
+ w.document.write(`<!doctype html><meta charset="utf-8"><title>Faktur ${esc(f.no)}</title><style>body{font:13px/1.5 Arial,sans-serif;color:#111;margin:28px auto;max-width:760px}h1{font-size:22px;margin:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}th{background:#f3f4f6}.r{text-align:right}.b td{font-weight:700;border-top:2px solid #111}.hd{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px}.bx{display:flex;justify-content:space-between;gap:20px}small{color:#555}@media print{button{display:none}}
+</style>
  <div class="hd"><div><h1>${esc(o.name||cfg.nm||'')}</h1><small>${esc(o.address||'')}${o.phone?'<br>Telp. '+esc(o.phone):''}</small></div><div style="text-align:right"><h1>FAKTUR PENJUALAN</h1><b>${esc(f.no)}</b><br><small>${dk(f.ts)}${f.due?'<br>Jatuh tempo: '+dk(f.due):''}</small></div></div>
  <div class="bx"><div><small>Kepada</small><br><b>${esc(f.customerName||'-')}</b>${cu.wa?'<br>'+esc(cu.wa):''}${cu.address?'<br>'+esc(cu.address):''}</div><div style="text-align:right"><small>Status</small><br><b>${SPST[st][0]}</b></div></div>
  <table><tr><th>#</th><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>${rows}${(f.disc||f.ship||f.tax)?sr('Subtotal',rp(sub))+(f.disc?sr('Diskon','− '+rp(f.disc)):'')+(f.ship?sr('Ongkos kirim',rp(f.ship)):'')+(f.tax?sr('PPN '+(f.taxPct||'')+'%',rp(f.tax)):''):''}${sr('TOTAL',rp(f.total),1)}</table>
