@@ -1176,6 +1176,7 @@ function prodForm(id,asBahan){
  <div id="f_recw" style="${p.bahan?'display:none':''}"><label style="margin-top:8px">Resep: bahan yang terpakai untuk 1 ${esc(p.unit||'satuan')} produk ini (opsional)</label><div id="f_rec">${(p.recipe||[]).map(r=>recRow(r,id)).join('')}</div><button class="btn sm" onclick="recAdd('${id||''}')">${ic('plus',14)} Tambah bahan</button>
  <div class="hint" id="f_rech"></div>${chk('f_rauto','HPP otomatis dari resep',p.recAuto!==false,'recCost()')}
  <div class="hint">Kalau “Hitung stok produk ini” <b>mati</b>, bahan terpotong otomatis setiap produk terjual di kasir. Kalau <b>hidup</b>, stok produk dihitung sendiri dan bahan dipotong saat Anda mencatat <b>Produksi</b>.</div></div>
+ ${id&&!p.bahan?`<div style="margin:10px 0"><button class="btn sm" onclick="ovForm('${id}')">Atur varian, topping &amp; resepnya…</button><div class="hint">${(p.variants||[]).length} varian, ${(p.toppings||[]).length} topping. Simpan dulu perubahan produk ini sebelum membuka.</div></div>`:''}
  ${chk('f_trk','Hitung stok produk ini',p.trackStock!==false||!!p.bahan)}${chk('f_act','Aktif dijual di kasir',p.active!==false)}
  <div class="acts2"><button class="btn pri" onclick="saveProd('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delProd('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
@@ -1186,6 +1187,62 @@ function saveProd(id,btn){
  if(D.products.some(x=>x.id!==id&&x.name.toLowerCase()===name.toLowerCase())){alert('Nama produk sudah ada');return}
  const old=D.products.find(x=>x.id===id)||{};
  safe(()=>push('product',{id:id||'p'+Date.now().toString(36),name,sku:v('f_sku').trim(),cat:v('f_cat').trim()||'Umum',unit:v('f_unit').trim()||'pcs',price:bhn?0:+price,cogs:(!bhn&&ck('f_rauto')&&recRows().length)?recCostVal():(+v('f_cogs')||0),stock:id?(old.stock||0):(+v('f_stock')||0),minStock:+v('f_min')||0,trackStock:bhn?true:ck('f_trk'),active:ck('f_act'),bahan:bhn,recipe:bhn?[]:recRows(),recAuto:ck('f_rauto'),updated:Date.now(),initStock:id?0:(+v('f_stock')||0)}),btn);
+}
+
+/* ---------- Varian & topping: harga, modal, resep ---------- */
+function ovRecRow(r,pid){
+ const bl=bahanList(pid);
+ return`<div class="prow rrow2" style="display:grid;grid-template-columns:1fr 90px 34px;gap:6px;margin-bottom:6px;align-items:center"><select class="rb" onchange="ovCost()"><option value="">— pilih bahan —</option>${bl.map(x=>`<option value="${esc(x.id)}" ${r&&r.id===x.id?'selected':''}>${esc(x.name)} (${esc(x.unit||'')})</option>`).join('')}</select><input class="rq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${r&&r.q?r.q:''}" oninput="ovCost()"><button class="btn sm del" onclick="this.parentNode.remove();ovCost()">✕</button></div>`;
+}
+function ovRow(kind,o,pid){
+ o=o||{};const rec=o.recipe||[],own=kind==='v'&&o.rm==='sendiri';
+ return`<div class="card ovrow" data-kind="${kind}" style="padding:12px;margin-bottom:10px">
+ <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px 96px 34px;gap:6px;align-items:center"><input class="on" maxlength="40" placeholder="Nama" value="${esc(o.name||'')}"><input class="op" type="number" step="any" inputmode="numeric" placeholder="Harga" value="${o.price?o.price:''}"><input class="oc" type="number" step="any" inputmode="numeric" placeholder="Modal" value="${o.cogs?o.cogs:''}"><button class="btn sm del" onclick="this.closest('.ovrow').remove()">✕</button></div>
+ ${kind==='v'?`<select class="om" style="margin-top:8px" onchange="ovMode(this)"><option value="ikut">Resep: ikut resep produk</option><option value="sendiri" ${own?'selected':''}>Resep: sendiri (menggantikan resep produk)</option></select>`:''}
+ <div class="orw" style="margin-top:8px;${kind==='v'&&!own?'display:none':''}"><div class="mut" style="font-size:12.5px;margin-bottom:6px">${kind==='v'?'Semua bahan untuk 1 porsi varian ini':'Bahan tambahan yang terpakai setiap topping ini dipilih'}</div><div class="orec">${rec.map(r=>ovRecRow(r,pid)).join('')}</div><button class="btn sm" onclick="ovRecAdd(this,'${pid}')">+ Tambah bahan</button><div class="hint orc"></div></div></div>`;
+}
+function ovMode(sel){const w=sel.closest('.ovrow').querySelector('.orw');w.style.display=sel.value==='sendiri'?'':'none';ovCost()}
+function ovRecAdd(btn,pid){if(!bahanList(pid).length){alert('Belum ada bahan baku. Tambah produk lalu centang “Bahan baku”.');return}btn.closest('.orw').querySelector('.orec').insertAdjacentHTML('beforeend',ovRecRow(null,pid));ovCost()}
+function ovRecs(row){return[...row.querySelectorAll('.rrow2')].map(r=>({id:r.querySelector('.rb').value,q:+r.querySelector('.rq').value||0})).filter(x=>x.id&&x.q>0)}
+function ovCost(){document.querySelectorAll('#dlgb .ovrow').forEach(r=>{const h=r.querySelector('.orc');if(!h)return;const rows=ovRecs(r);h.textContent=rows.length?'Biaya bahan: '+rp(recCostVal(rows))+(r.dataset.kind==='v'?' (dipakai sebagai modal varian ini)':' (dipakai sebagai modal topping ini)'):''})}
+function ovAdd(kind,pid){const box=$('#ov_'+kind);if(box.children.length>=20){alert('Maksimal 20');return}box.insertAdjacentHTML('beforeend',ovRow(kind,{},pid));const f=box.lastElementChild.querySelector('.on');if(f)f.focus()}
+function ovForm(id){
+ const p=D.products.find(x=>x.id===id);if(!p)return;
+ dlg(`<h3>Varian &amp; Topping · ${esc(p.name)}</h3>
+ <label>Cara harga varian</label><select id="ov_mode"><option value="abs" ${p.vabs?'selected':''}>Harga jual sendiri (mis. Hot 5.000, Ice 6.000)</option><option value="add" ${p.vabs?'':'selected'}>Tambahan dari harga jual (+/-)</option></select>
+ <div class="hint">Harga produk sekarang ${rp(p.price||0)}. Ubah cara ini hanya kalau Anda juga menyesuaikan angka varian di bawah.</div>
+ <h4 style="margin:14px 0 6px">Varian <small class="mut">(opsional, pilih satu saat memesan)</small></h4>
+ <div id="ov_v">${(p.variants||[]).map(x=>ovRow('v',x,id)).join('')}</div><button class="btn sm" onclick="ovAdd('v','${id}')">+ Tambah varian</button>
+ <div class="hint">Modal kosong = ikut modal produk (harga sendiri) atau tanpa tambahan modal (tambahan). Resep sendiri: modal dihitung otomatis dari bahan.</div>
+ <h4 style="margin:16px 0 6px">Topping <small class="mut">(opsional, boleh lebih dari satu)</small></h4>
+ <div id="ov_t">${(p.toppings||[]).map(x=>ovRow('t',x,id)).join('')}</div><button class="btn sm" onclick="ovAdd('t','${id}')">+ Tambah topping</button>
+ <div class="acts2" style="margin-top:14px"><button class="btn pri" onclick="ovSave('${id}',this)">Simpan</button><button class="btn" onclick="prodForm('${id}')">Kembali</button></div>`,true);
+ ovCost();
+}
+function ovRead(kind,what){
+ const out=[],seen={};
+ for(const r of document.querySelectorAll('#ov_'+kind+' .ovrow')){
+  const name=r.querySelector('.on').value.trim(),pv=r.querySelector('.op').value.trim(),cv=r.querySelector('.oc').value.trim();
+  if(!name&&!pv&&!cv&&!ovRecs(r).length)continue;
+  if(!name)return{err:'Nama '+what+' belum diisi'};
+  const price=pv===''?0:+pv,cogs=cv===''?0:+cv;
+  if(isNaN(price)||isNaN(cogs)||cogs<0)return{err:'Harga/modal '+what+' "'+name+'" tidak valid'};
+  if(seen[name.toLowerCase()])return{err:'Nama '+what+' dobel: '+name};
+  seen[name.toLowerCase()]=1;
+  const o={name:name,price:Math.round(price),cogs:Math.round(cogs)},rc=ovRecs(r);
+  if(rc.length)o.recipe=rc;
+  if(kind==='v'&&r.querySelector('.om').value==='sendiri'&&rc.length)o.rm='sendiri';
+  out.push(o);
+ }
+ return{list:out};
+}
+function ovSave(id,btn){
+ const p=D.products.find(x=>x.id===id);if(!p)return;
+ const vs=ovRead('v','varian');if(vs.err){alert(vs.err);return}
+ const ts=ovRead('t','topping');if(ts.err){alert(ts.err);return}
+ const sel=$('#ov_mode').value==='abs';
+ if($('#ov_v').querySelectorAll('.om').length&&[...$('#ov_v').querySelectorAll('.ovrow')].some(r=>r.querySelector('.om').value==='sendiri'&&!ovRecs(r).length)&&!confirm('Ada varian bermode "resep sendiri" tanpa bahan. Varian itu akan memakai resep produk. Lanjut simpan?'))return;
+ safe(()=>pushPost('product',{id:id,name:p.name,variants:vs.list,toppings:ts.list,vabs:sel}),btn);
 }
 function delProd(id){if(confirm('Hapus produk ini dari daftar? Riwayat penjualan lama tetap tersimpan. (Untuk menyembunyikan saja, matikan “Aktif”.)'))safe(()=>push('product_del',{id}))}
 function stockForm(id){
