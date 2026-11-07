@@ -1257,7 +1257,7 @@ function vMProduk(){
  const lowBtn=`<button class="btn ${PM.low?'on':''}" onclick="PM.low=!PM.low;render()">Stok menipis</button>`;
  const tool=isR?`<div class="tool">${search}<span style="margin-left:auto"><button class="btn pri" onclick="prodnForm()">${ic('plus',16)} Catat Produksi</button></span></div>`
   :isB?`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="bhOpen()">${ic('plus',16)} Impor Bahan Baku</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm('',true)">${ic('plus',16)} Tambah Bahan Baku</button></div>`
-  :`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>`;
+  :`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="ipOpen()">${ic('plus',16)} Impor Produk</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>`;
  return tabs+kpi+`<div class="card">${tool}<div class="tw" id="mpt">${mpBody()}</div></div>`+(isR?pkCard():'');
 }
 function mpBody(){return PM.k==='resep'?mpTableR():PM.k==='bahan'?mpTableB(mpFiltered()):mpTable(mpFiltered())}
@@ -1293,12 +1293,20 @@ function mpTable(l){
  if(!l.length)return'<div class="empty">Belum ada produk. Tekan “Tambah Produk”.</div>';
  return`<table><tr><th>Produk</th><th>Kategori</th><th class="r">Harga</th><th class="r">HPP</th><th class="r">Margin</th><th class="r">Stok</th><th>Status</th><th></th></tr>${l.map(p=>{
   const m=p.price?((p.price-(p.cogs||0))/p.price*100):0,s=+p.stock||0,lowS=p.trackStock!==false&&s<=(+p.minStock||0);
-  return`<tr><td><b>${esc(p.name)}</b>${p.bahan?' <span class="badge k">Bahan baku</span>':(p.recipe&&p.recipe.length)?' <span class="badge g">Resep</span>':''}${p.sku?'<br><small class="mut">'+esc(p.sku)+'</small>':''}</td><td>${esc(p.cat||'Umum')}</td><td class="r">${rp(p.price)}</td><td class="r">${rp(p.cogs)}</td><td class="r" style="color:var(--${m<=0?'bad':m<10?'warn':'ok'})">${pct(m)}</td>
+  return`<tr><td><b>${esc(p.name)}</b>${p.bahan?' <span class="badge k">Bahan baku</span>':(p.paket&&p.paket.length)?' <span class="badge g">Paket</span>':(p.recipe&&p.recipe.length)?' <span class="badge g">Resep</span>':''}${p.sku?'<br><small class="mut">'+esc(p.sku)+'</small>':''}</td><td>${esc(p.cat||'Umum')}</td><td class="r">${rp(p.price)}</td><td class="r">${rp(p.cogs)}</td><td class="r" style="color:var(--${m<=0?'bad':m<10?'warn':'ok'})">${pct(m)}</td>
   <td class="r">${p.trackStock===false?'<span class="mut">tanpa stok</span>':`<b style="color:var(--${lowS?'bad':'tx'})">${fq(s)}</b> ${esc(p.unit)}${lowS?' <span class="badge v">menipis</span>':''}`}</td>
   <td>${p.active===false?'<span class="badge v">Nonaktif</span>':'<span class="badge g">Aktif</span>'}</td>
   <td style="text-align:right">${p.trackStock===false?'':`<button class="btn sm" onclick="stockForm('${p.id}')">+ Stok</button> `}<button class="btn sm" onclick="prodForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`;
 }
 function exportMProduk(){csv('Produk',[['Nama','Kode','Kategori','Satuan','Harga Jual','HPP','Stok','Stok Minimum','Aktif'],...mpFiltered().map(p=>[p.name,p.sku||'',p.cat||'',p.unit,p.price,p.cogs||0,p.stock||0,p.minStock||0,p.active===false?'Tidak':'Ya'])])}
+function pkRow(r,self){
+ const o=D.products.filter(x=>x.id!==self&&!(x.paket&&x.paket.length)).map(x=>`<option value="${esc(x.id)}" ${r&&r.pid===x.id?'selected':''}>${esc(x.name)}${x.bahan?' (bahan)':''}</option>`).join('');
+ return`<div class="pkr" style="display:grid;grid-template-columns:1fr 80px 34px;gap:6px;margin-bottom:6px"><select class="pkp" onchange="pkCost()">${o}</select><input class="pkq" type="number" step="any" oninput="pkCost()" value="${r?r.q:1}"><button class="btn sm" type="button" onclick="this.parentNode.remove();pkCost()">${ic('x',14)}</button></div>`;
+}
+function pkRows(){const m={};document.querySelectorAll('#f_pk .pkr').forEach(r=>{const id=r.querySelector('.pkp').value,q=+r.querySelector('.pkq').value;if(id&&q>0)m[id]=+((m[id]||0)+q).toFixed(3)});return Object.keys(m).map(k=>({pid:k,q:m[k]}))}
+function pkCostVal(rows){return Math.round(sum(rows||pkRows(),r=>{const b=D.products.find(x=>x.id===r.pid);return(+r.q||0)*(b?(b.recipe&&b.recipe.length&&b.trackStock===false?recCostVal(b.recipe):+b.cogs||0):0)}))}
+function pkCost(){const r=pkRows(),h=$('#f_pkh');if(h)h.textContent=r.length?'HPP paket otomatis: '+rp(pkCostVal(r))+' · tanpa resep & tanpa hitung stok sendiri, stok mengikuti isi paket.':''}
+function pkAdd(ex){$('#f_pk').insertAdjacentHTML('beforeend',pkRow(null,ex));pkCost()}
 function prodForm(id,asBahan){
  const p=D.products.find(x=>x.id===id)||{active:true,unit:asBahan?'gram':'pcs',trackStock:true,bahan:!!asBahan,cat:asBahan?'Bahan':''};
  const cats=[...new Set(D.products.map(x=>x.cat).filter(Boolean))].sort();
@@ -1312,6 +1320,7 @@ function prodForm(id,asBahan){
  <div id="f_recw" style="${p.bahan?'display:none':''}"><label style="margin-top:8px">Resep: bahan yang terpakai untuk 1 ${esc(p.unit||'satuan')} produk ini (opsional)</label><div id="f_rec">${(p.recipe||[]).map(r=>recRow(r,id)).join('')}</div><button class="btn sm" onclick="recAdd('${id||''}')">${ic('plus',14)} Tambah bahan</button>
  <div class="hint" id="f_rech"></div>${chk('f_rauto','HPP otomatis dari resep',p.recAuto!==false,'recCost()')}
  <div class="hint">Kalau “Hitung stok produk ini” <b>mati</b>, bahan terpotong otomatis setiap produk terjual di kasir. Kalau <b>hidup</b>, stok produk dihitung sendiri dan bahan dipotong saat Anda mencatat <b>Produksi</b>.</div></div>
+ <div id="f_pkw" style="${p.bahan?'display:none':''}"><label style="margin-top:8px">Paket: jual beberapa item sekaligus dengan satu harga (opsional)</label><div id="f_pk">${(p.paket||[]).map(r=>pkRow(r,id)).join('')}</div><button class="btn sm" onclick="pkAdd('${id||''}')">${ic('plus',14)} Tambah isi paket</button><div class="hint" id="f_pkh"></div></div>
  ${id&&!p.bahan?`<div style="margin:10px 0"><button class="btn sm" onclick="ovForm('${id}')">Atur varian, topping &amp; resepnya…</button><div class="hint">${(p.variants||[]).length} varian, ${(p.toppings||[]).length} topping. Simpan dulu perubahan produk ini sebelum membuka.</div></div>`:''}
  ${chk('f_trk','Hitung stok produk ini',p.trackStock!==false||!!p.bahan)}${chk('f_act','Aktif dijual di kasir',p.active!==false)}
  <div class="acts2"><button class="btn pri" onclick="saveProd('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delProd('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
@@ -1322,7 +1331,7 @@ function saveProd(id,btn){
  if(!bhn&&(price===''||!(+price>=0))){alert('Isi harga jual');return}
  if(D.products.some(x=>x.id!==id&&x.name.toLowerCase()===name.toLowerCase())){alert('Nama produk sudah ada');return}
  const old=D.products.find(x=>x.id===id)||{};
- safe(()=>push('product',{id:id||'p'+Date.now().toString(36),name,sku:v('f_sku').trim(),cat:v('f_cat').trim()||'Umum',unit:v('f_unit').trim()||'pcs',price:bhn?0:+price,cogs:(!bhn&&ck('f_rauto')&&recRows().length)?recCostVal():(+v('f_cogs')||0),stock:id?(old.stock||0):(+v('f_stock')||0),minStock:+v('f_min')||0,trackStock:bhn?true:ck('f_trk'),active:ck('f_act'),bahan:bhn,recipe:bhn?[]:recRows(),recAuto:ck('f_rauto'),updated:Date.now(),initStock:id?0:(+v('f_stock')||0)}),btn);
+ safe(()=>push('product',{id:id||'p'+Date.now().toString(36),name,sku:v('f_sku').trim(),cat:v('f_cat').trim()||'Umum',unit:v('f_unit').trim()||'pcs',price:bhn?0:+price,cogs:(!bhn&&pkRows().length)?pkCostVal():(!bhn&&ck('f_rauto')&&recRows().length)?recCostVal():(+v('f_cogs')||0),stock:id?(old.stock||0):(+v('f_stock')||0),minStock:+v('f_min')||0,trackStock:bhn?true:(pkRows().length?false:ck('f_trk')),active:ck('f_act'),bahan:bhn,recipe:bhn?[]:(pkRows().length?[]:recRows()),paket:bhn?[]:pkRows(),recAuto:ck('f_rauto'),updated:Date.now(),initStock:id?0:(+v('f_stock')||0)}),btn);
 }
 
 /* ---------- Varian & topping: harga, modal, resep ---------- */
@@ -1839,7 +1848,7 @@ function prevStruk(){
  if(v('r_foot'))L.push('',ctr(v('r_foot')));
  e.textContent=L.join('\n');e.classList.toggle('w80',v('r_w')==='80');
 }
-function saveOutlet(btn){safe(()=>push('outlet',{...(D.outlet||{}),name:v('o_name').trim(),address:v('o_addr').trim(),phone:v('o_tel').trim(),social:v('o_ig').trim(),taxPct:+v('o_tax')||0,servicePct:+v('o_svc')||0}),btn)}
+function saveOutlet(btn){safe(()=>push('outlet',{...(D.outlet||{}),ots:Date.now(),name:v('o_name').trim(),address:v('o_addr').trim(),phone:v('o_tel').trim(),social:v('o_ig').trim(),taxPct:+v('o_tax')||0,servicePct:+v('o_svc')||0}),btn)}
 function saveReceipt(btn){safe(()=>push('receipt',{header:v('r_head').trim(),footer:v('r_foot').trim(),width:+v('r_w'),showAddress:ck('r_ad'),showCashier:ck('r_cs'),showTable:ck('r_tb'),showPayment:ck('r_pm')}),btn)}
 
 /* =================== KARYAWAN, KOMISI & GAJI =================== */
@@ -2872,7 +2881,7 @@ function recAdd(ex){if(!bahanList(ex).length){alert('Belum ada bahan baku. Tamba
 function recRows(){return[...document.querySelectorAll('#f_rec .rrow')].map(r=>({id:r.querySelector('.rb').value,q:+r.querySelector('.rq').value||0})).filter(x=>x.id&&x.q>0)}
 function recCostVal(rows){return Math.round(sum(rows||recRows(),r=>{const b=D.products.find(x=>x.id===r.id);return(+r.q||0)*(b?+b.cogs||0:0)}))}
 function recCost(){const h=$('#f_rech');if(!h)return;const rows=recRows();h.textContent=rows.length?'Biaya bahan per satuan: '+rp(recCostVal(rows))+(ck('f_rauto')?'. HPP produk akan diisi dengan angka ini.':'.'):'';}
-function recUi(){const w=$('#f_recw');if(w)w.style.display=ck('f_bhn')?'none':'';if(ck('f_bhn')){const t=$('#f_trk');if(t)t.checked=true}}
+function recUi(){const pw=$('#f_pkw');if(pw)pw.style.display=ck('f_bhn')?'none':'';const w=$('#f_recw');if(w)w.style.display=ck('f_bhn')?'none':'';if(ck('f_bhn')){const t=$('#f_trk');if(t)t.checked=true}}
 function prodnForm(pre){
  const ps=D.products.filter(p=>!p.bahan&&(p.recipe||[]).length&&p.active!==false);
  if(!ps.length){alert('Belum ada produk yang punya resep. Buat resep dulu lewat Ubah produk.');return}
@@ -2954,6 +2963,66 @@ async function bhApply(btn){
   }
   closeDlg();scheduleLoad();render();alert(n+' bahan baku dibuat.');
  }catch(e){btn.disabled=false;btn.textContent='Buat Bahan Baku';alert('Berhenti setelah '+n+' bahan: '+e.message+'\n\nBahan yang sudah terbuat tidak akan dobel kalau Anda unggah ulang (nama yang sama dilewati).');scheduleLoad()}
+}
+
+/* ---------- Impor produk (template Excel) ---------- */
+const IP={rows:[],ok:[]};
+function ipTpl(){
+ bkSave('Template-Produk',[['Nama','Kode','Kategori','Satuan','Harga Jual','HPP','Stok Awal','Batas Stok Menipis','Hitung Stok (Ya/Tidak)'],['Kopi Susu','','Minuman','gelas',18000,7000,50,10,'Ya'],['Roti Coklat','8991234567890','Roti','pcs',8000,3000,30,5,'Ya'],['Jasa Antar','','Jasa','kali',5000,0,0,0,'Tidak']]);
+}
+function ipOpen(){
+ IP.rows=[];IP.ok=[];
+ dlg(`<h3>Impor Produk</h3>
+ <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template. 2. Hapus 3 baris contoh, isi produk Anda (satu produk per baris). 3. Simpan (tetap .xlsx atau CSV), lalu unggah di bawah.<br>Nama yang sudah ada dilewati. Varian, topping, resep, dan paket diatur lewat form produk setelah diimpor.</div>
+ <div class="acts2" style="margin-top:10px"><button class="btn" onclick="ipTpl()">${ic('dl',16)} Unduh template produk</button></div>
+ <label>Unggah file Excel / CSV</label><input type="file" id="ip_file" accept=".xlsx,.xls,.csv,.txt" onchange="ipRead(this.files[0])">
+ <div id="ip_prev" style="margin-top:12px"></div>
+ <div class="acts2"><button class="btn" onclick="closeDlg()">Batal</button><button class="btn pri" id="ip_go" disabled onclick="ipApply(this)">Buat Produk</button></div>`,true);
+}
+function ipRead(f){
+ if(!f)return;const el=$('#ip_prev'),rd=new FileReader(),isX=/\.xlsx?$/i.test(f.name);
+ if(isX&&!window.XLSX){el.innerHTML='<div class="mut" style="color:var(--bad)">Pembaca Excel belum termuat (cek internet). Simpan file sebagai CSV lalu unggah lagi.</div>';return}
+ const proc=rows=>{
+  IP.rows=[];
+  if(rows.length<2){el.innerHTML='<div class="mut">File kosong atau formatnya tidak dikenali.</div>';ipPrev();return}
+  const h=rows[0].map(x=>String(x).toLowerCase().replace(/[^a-z]/g,'')),ix=k=>h.findIndex(x=>x.startsWith(k));
+  const c={name:ix('nama'),sku:ix('kode'),cat:ix('kategori'),unit:ix('satuan'),price:ix('hargajual'),cogs:ix('hpp'),stock:ix('stok'),min:ix('batas'),trk:ix('hitung')};
+  if(c.name<0){el.innerHTML='<div class="mut" style="color:var(--bad)">Kolom Nama tidak ditemukan. Pakai template dari tombol di atas.</div>';ipPrev();return}
+  const g=(r,k)=>k>=0?String(r[k]==null?'':r[k]).trim():'';
+  IP.rows=rows.slice(1).map(r=>({name:g(r,c.name),sku:g(r,c.sku),cat:g(r,c.cat)||'Umum',unit:g(r,c.unit)||'pcs',price:bkNum(g(r,c.price)),cogs:bkNum(g(r,c.cogs)),stock:bkNum(g(r,c.stock)),min:bkNum(g(r,c.min)),trk:!/^(tidak|no|n|0|false)$/i.test(g(r,c.trk))})).filter(r=>r.name);
+  ipPrev();
+ };
+ rd.onload=e=>{try{
+  if(isX){const wb=XLSX.read(e.target.result,{type:'array'});proc(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}).map(r=>r.map(x=>x==null?'':String(x))).filter(r=>r.some(x=>x.trim()!=='')))}
+  else proc(bkCsv(String(e.target.result||'')));
+ }catch(err){el.innerHTML='<div class="mut" style="color:var(--bad)">File tidak bisa dibaca: '+esc(err.message)+'</div>'}};
+ isX?rd.readAsArrayBuffer(f):rd.readAsText(f);
+}
+function ipPrev(){
+ const el=$('#ip_prev'),go=$('#ip_go');if(!el)return;
+ const have=new Set(D.products.map(p=>String(p.name).trim().toLowerCase())),seen=new Set();IP.ok=[];
+ const out=IP.rows.map(r=>{
+  const k=r.name.toLowerCase();let st='ok',msg='';
+  if(have.has(k)){st='skip';msg='Nama sudah ada'}else if(seen.has(k)){st='skip';msg='Dobel di file'}
+  else if([r.price,r.cogs,r.stock,r.min].some(x=>x!=null&&isNaN(x))){st='bad';msg='Ada angka yang tidak valid'}
+  else if(r.price==null||r.price===''){st='bad';msg='Harga jual kosong'}
+  else if([r.price,r.cogs,r.stock].some(x=>(x||0)<0)){st='bad';msg='Tidak boleh minus'}
+  seen.add(k);if(st==='ok')IP.ok.push(r);return{r,st,msg};
+ });
+ el.innerHTML=IP.rows.length?`<div style="margin-bottom:8px"><span class="badge g">${IP.ok.length} akan dibuat</span> ${out.length-IP.ok.length?`<span class="badge v">${out.length-IP.ok.length} dilewati</span>`:''}</div><div class="tw" style="max-height:34vh;overflow:auto"><table><tr><th>Produk</th><th>Kategori</th><th class="r">Harga</th><th class="r">HPP</th><th class="r">Stok</th><th>Status</th></tr>${out.slice(0,300).map(o=>`<tr><td>${esc(o.r.name)}</td><td>${esc(o.r.cat)}</td><td class="r">${rp(o.r.price||0)}</td><td class="r">${rp(o.r.cogs||0)}</td><td class="r">${o.r.trk?fq(o.r.stock||0):'–'}</td><td>${o.st==='ok'?'<span class="badge g">Baru</span>':'<span class="badge v">'+esc(o.msg)+'</span>'}</td></tr>`).join('')}</table></div>`:'';
+ if(go)go.disabled=!IP.ok.length;
+}
+async function ipApply(btn){
+ if(!IP.ok.length)return;btn.disabled=true;let n=0;
+ try{
+  for(const r of IP.ok){
+   btn.textContent='Membuat '+n+'/'+IP.ok.length+'…';
+   const st=r.trk?(r.stock||0):0;
+   await pushQuiet('product',{id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:r.name,sku:r.sku,cat:r.cat,unit:r.unit,price:r.price||0,cogs:r.cogs||0,stock:st,minStock:r.min||0,trackStock:r.trk,active:true,bahan:false,recipe:[],paket:[],recAuto:true,updated:Date.now(),initStock:st});
+   n++;
+  }
+  closeDlg();scheduleLoad();render();alert(n+' produk dibuat.');
+ }catch(e){btn.disabled=false;btn.textContent='Buat Produk';alert('Berhenti setelah '+n+' produk: '+e.message+'\n\nProduk yang sudah terbuat tidak akan dobel kalau Anda unggah ulang (nama yang sama dilewati).');scheduleLoad()}
 }
 
 (async function init(){
