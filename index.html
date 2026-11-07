@@ -2968,12 +2968,12 @@ async function bhApply(btn){
 /* ---------- Impor produk (template Excel) ---------- */
 const IP={rows:[],ok:[]};
 function ipTpl(){
- bkSave('Template-Produk',[['Nama','Kode','Kategori','Satuan','Harga Jual','HPP','Stok Awal','Batas Stok Menipis','Hitung Stok (Ya/Tidak)'],['Kopi Susu','','Minuman','gelas',18000,7000,50,10,'Ya'],['Roti Coklat','8991234567890','Roti','pcs',8000,3000,30,5,'Ya'],['Jasa Antar','','Jasa','kali',5000,0,0,0,'Tidak']]);
+ bkSave('Template-Produk',[['Nama','Kode','Kategori','Satuan','Harga Jual','HPP','Stok Awal','Batas Stok Menipis','Hitung Stok (Ya/Tidak)','Varian','Topping','Cara Harga Varian (Tambahan/Sendiri)'],['Kopi Susu','','Minuman','gelas',18000,7000,50,10,'Ya','Small:0; Regular:3000; Large:6000','Boba:3000:1000; Cheese Foam:5000:2000','Tambahan'],['Es Teh','','Minuman','gelas',0,2000,40,5,'Ya','Hot:5000; Ice:6000','','Sendiri'],['Roti Coklat','8991234567890','Roti','pcs',8000,3000,30,5,'Ya','','',''],['Jasa Antar','','Jasa','kali',5000,0,0,0,'Tidak','','','']]);
 }
 function ipOpen(){
  IP.rows=[];IP.ok=[];
  dlg(`<h3>Impor Produk</h3>
- <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template. 2. Hapus 3 baris contoh, isi produk Anda (satu produk per baris). 3. Simpan (tetap .xlsx atau CSV), lalu unggah di bawah.<br>Nama yang sudah ada dilewati. Varian, topping, resep, dan paket diatur lewat form produk setelah diimpor.</div>
+ <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template. 2. Hapus 3 baris contoh, isi produk Anda (satu produk per baris). 3. Simpan (tetap .xlsx atau CSV), lalu unggah di bawah.<br>Nama yang sudah ada dilewati. Kolom Varian dan Topping diisi dengan format <b>Nama:Harga:Modal</b> dipisah titik koma (modal boleh dikosongkan), mis. <i>Small:0; Large:6000</i>. Resep dan paket diatur lewat form produk setelah diimpor.</div>
  <div class="acts2" style="margin-top:10px"><button class="btn" onclick="ipTpl()">${ic('dl',16)} Unduh template produk</button></div>
  <label>Unggah file Excel / CSV</label><input type="file" id="ip_file" accept=".xlsx,.xls,.csv,.txt" onchange="ipRead(this.files[0])">
  <div id="ip_prev" style="margin-top:12px"></div>
@@ -2986,10 +2986,10 @@ function ipRead(f){
   IP.rows=[];
   if(rows.length<2){el.innerHTML='<div class="mut">File kosong atau formatnya tidak dikenali.</div>';ipPrev();return}
   const h=rows[0].map(x=>String(x).toLowerCase().replace(/[^a-z]/g,'')),ix=k=>h.findIndex(x=>x.startsWith(k));
-  const c={name:ix('nama'),sku:ix('kode'),cat:ix('kategori'),unit:ix('satuan'),price:ix('hargajual'),cogs:ix('hpp'),stock:ix('stok'),min:ix('batas'),trk:ix('hitung')};
+  const c={name:ix('nama'),sku:ix('kode'),cat:ix('kategori'),unit:ix('satuan'),price:ix('hargajual'),cogs:ix('hpp'),stock:ix('stok'),min:ix('batas'),trk:ix('hitung'),vr:ix('varian'),tp:ix('topping'),vm:ix('cara')};
   if(c.name<0){el.innerHTML='<div class="mut" style="color:var(--bad)">Kolom Nama tidak ditemukan. Pakai template dari tombol di atas.</div>';ipPrev();return}
   const g=(r,k)=>k>=0?String(r[k]==null?'':r[k]).trim():'';
-  IP.rows=rows.slice(1).map(r=>({name:g(r,c.name),sku:g(r,c.sku),cat:g(r,c.cat)||'Umum',unit:g(r,c.unit)||'pcs',price:bkNum(g(r,c.price)),cogs:bkNum(g(r,c.cogs)),stock:bkNum(g(r,c.stock)),min:bkNum(g(r,c.min)),trk:!/^(tidak|no|n|0|false)$/i.test(g(r,c.trk))})).filter(r=>r.name);
+  IP.rows=rows.slice(1).map(r=>({name:g(r,c.name),sku:g(r,c.sku),cat:g(r,c.cat)||'Umum',unit:g(r,c.unit)||'pcs',price:bkNum(g(r,c.price)),cogs:bkNum(g(r,c.cogs)),stock:bkNum(g(r,c.stock)),min:bkNum(g(r,c.min)),trk:!/^(tidak|no|n|0|false)$/i.test(g(r,c.trk)),vr:g(r,c.vr),tp:g(r,c.tp),vabs:/^sendiri|^abs/i.test(g(r,c.vm))})).filter(r=>r.name);
   ipPrev();
  };
  rd.onload=e=>{try{
@@ -2998,6 +2998,15 @@ function ipRead(f){
  }catch(err){el.innerHTML='<div class="mut" style="color:var(--bad)">File tidak bisa dibaca: '+esc(err.message)+'</div>'}};
  isX?rd.readAsArrayBuffer(f):rd.readAsText(f);
 }
+function ipOpts(str,what){
+ const out=[],seen={};const parts=String(str||'').split(/[\n;|]+/).map(x=>x.trim()).filter(Boolean);
+ if(parts.length>12)return{err:'Maksimal 12 '+what};
+ for(const x of parts){const a=x.split(':'),name=a[0].trim();if(!name)return{err:what+' tanpa nama'};
+  const pr=(a[1]===undefined||a[1].trim()==='')?0:bkNum(a[1].trim()),cg=(a[2]===undefined||a[2].trim()==='')?0:bkNum(a[2].trim());
+  if(isNaN(pr)||isNaN(cg)||cg<0)return{err:what+' "'+name+'": angka tidak valid'};
+  if(seen[name.toLowerCase()])return{err:what+' dobel: '+name};seen[name.toLowerCase()]=1;
+  out.push({name:name,price:Math.round(pr),cogs:Math.round(cg)})}
+ return{list:out}}
 function ipPrev(){
  const el=$('#ip_prev'),go=$('#ip_go');if(!el)return;
  const have=new Set(D.products.map(p=>String(p.name).trim().toLowerCase())),seen=new Set();IP.ok=[];
@@ -3006,10 +3015,12 @@ function ipPrev(){
   if(have.has(k)){st='skip';msg='Nama sudah ada'}else if(seen.has(k)){st='skip';msg='Dobel di file'}
   else if([r.price,r.cogs,r.stock,r.min].some(x=>x!=null&&isNaN(x))){st='bad';msg='Ada angka yang tidak valid'}
   else if(r.price==null||r.price===''){st='bad';msg='Harga jual kosong'}
+  else if((r.v=ipOpts(r.vr,'Varian')).err){st='bad';msg=r.v.err}
+  else if((r.t=ipOpts(r.tp,'Topping')).err){st='bad';msg=r.t.err}
   else if([r.price,r.cogs,r.stock].some(x=>(x||0)<0)){st='bad';msg='Tidak boleh minus'}
   seen.add(k);if(st==='ok')IP.ok.push(r);return{r,st,msg};
  });
- el.innerHTML=IP.rows.length?`<div style="margin-bottom:8px"><span class="badge g">${IP.ok.length} akan dibuat</span> ${out.length-IP.ok.length?`<span class="badge v">${out.length-IP.ok.length} dilewati</span>`:''}</div><div class="tw" style="max-height:34vh;overflow:auto"><table><tr><th>Produk</th><th>Kategori</th><th class="r">Harga</th><th class="r">HPP</th><th class="r">Stok</th><th>Status</th></tr>${out.slice(0,300).map(o=>`<tr><td>${esc(o.r.name)}</td><td>${esc(o.r.cat)}</td><td class="r">${rp(o.r.price||0)}</td><td class="r">${rp(o.r.cogs||0)}</td><td class="r">${o.r.trk?fq(o.r.stock||0):'–'}</td><td>${o.st==='ok'?'<span class="badge g">Baru</span>':'<span class="badge v">'+esc(o.msg)+'</span>'}</td></tr>`).join('')}</table></div>`:'';
+ el.innerHTML=IP.rows.length?`<div style="margin-bottom:8px"><span class="badge g">${IP.ok.length} akan dibuat</span> ${out.length-IP.ok.length?`<span class="badge v">${out.length-IP.ok.length} dilewati</span>`:''}</div><div class="tw" style="max-height:34vh;overflow:auto"><table><tr><th>Produk</th><th>Kategori</th><th class="r">Harga</th><th class="r">HPP</th><th class="r">Stok</th><th>Varian/Topping</th><th>Status</th></tr>${out.slice(0,300).map(o=>`<tr><td>${esc(o.r.name)}</td><td>${esc(o.r.cat)}</td><td class="r">${rp(o.r.price||0)}</td><td class="r">${rp(o.r.cogs||0)}</td><td class="r">${o.r.trk?fq(o.r.stock||0):'–'}</td><td>${o.st==='ok'?((o.r.v.list.length?o.r.v.list.length+' varian':'')+(o.r.v.list.length&&o.r.t.list.length?', ':'')+(o.r.t.list.length?o.r.t.list.length+' topping':'')||'–'):'–'}</td><td>${o.st==='ok'?'<span class="badge g">Baru</span>':'<span class="badge v">'+esc(o.msg)+'</span>'}</td></tr>`).join('')}</table></div>`:'';
  if(go)go.disabled=!IP.ok.length;
 }
 async function ipApply(btn){
@@ -3018,7 +3029,7 @@ async function ipApply(btn){
   for(const r of IP.ok){
    btn.textContent='Membuat '+n+'/'+IP.ok.length+'…';
    const st=r.trk?(r.stock||0):0;
-   await pushQuiet('product',{id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:r.name,sku:r.sku,cat:r.cat,unit:r.unit,price:r.price||0,cogs:r.cogs||0,stock:st,minStock:r.min||0,trackStock:r.trk,active:true,bahan:false,recipe:[],paket:[],recAuto:true,updated:Date.now(),initStock:st});
+   await pushQuiet('product',{id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:r.name,sku:r.sku,cat:r.cat,unit:r.unit,price:r.price||0,cogs:r.cogs||0,stock:st,minStock:r.min||0,trackStock:r.trk,active:true,bahan:false,recipe:[],paket:[],recAuto:true,variants:r.v.list,toppings:r.t.list,vabs:!!r.vabs,updated:Date.now(),initStock:st});
    n++;
   }
   closeDlg();scheduleLoad();render();alert(n+' produk dibuat.');
