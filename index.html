@@ -130,6 +130,19 @@ tr.ft td{font-weight:800;border-top:2px solid var(--bd);background:var(--soft)}
 .rs-k .kc{border-bottom-width:4px}
 .kc.k1{border-bottom-color:#00c897}.kc.k2{border-bottom-color:#f5c518}.kc.k3{border-bottom-color:#0b84e5}.kc.k4{border-bottom-color:#6cb8f5}.kc.k5{border-bottom-color:#7c3aed}.kc.k6{border-bottom-color:#12a150}
 .rs-h.o{background:rgba(229,56,79,.12)}
+/* Ringkasan: donat, riwayat, arus kas */
+.dn{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.dn svg{width:168px;height:168px;flex:none}
+.dn .dc{font-weight:800;fill:var(--tx)}.dn .ds{fill:var(--mut)}
+.dn-l{flex:1;min-width:170px}
+.dn-r{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);font-size:14px}
+.dn-r:last-child{border-bottom:0}
+.dn-r i{width:11px;height:11px;border-radius:3px;flex:none}
+.dn-r span{flex:1}.dn-r b{white-space:nowrap}.dn-r small{color:var(--mut);margin-left:4px}
+.dn-n{margin-top:10px;font-size:13px;color:var(--mut)}
+.rh-r{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--bd);font-size:14px}
+.rh-r:last-child{border-bottom:0}.rh-r small{color:var(--mut)}.rh-r b{text-align:right}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin-bottom:6px}.lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 </style>
 <style id="modern">
 :root{--bg:#f4f6fc;--sh:0 1px 2px rgba(16,28,72,.04),0 10px 32px rgba(16,28,72,.07);--side:linear-gradient(185deg,#2457f5 0%,#1637a8 55%,#0d2160 100%)}
@@ -307,7 +320,11 @@ function upsell(k){
  let wa=String(FT.wa||'').replace(/\D/g,'');if(wa.indexOf('0')===0)wa='62'+wa.slice(1);
  dlg(`<div style="text-align:center;padding:8px 4px"><div style="width:60px;height:60px;border-radius:18px;background:var(--pri);color:#fff;display:grid;place-items:center;margin:0 auto 10px">${ic('lock',28)}</div><h3 style="margin:0 0 6px">Fitur ${esc(n)}</h3><p class="mut" style="margin:0 0 6px">${FT.exp?'Masa aktif fitur ini sudah berakhir.':'Fitur ini belum aktif di akun kamu.'} Hubungi TWINS POS untuk upgrade fitur.</p><div class="acts2">${wa?`<a class="btn pri" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}">Chat WhatsApp</a>`:''}<button class="btn" onclick="closeDlg()">Tutup</button></div></div>`);
 }
-const NAV=[
+/* Mode Owner (aplikasi Android owner): hanya laporan, tidak bisa mengubah data, tidak bisa unduh/cetak.
+   Aktif bila alamat memakai ?app=owner (diingat di perangkat itu); ?app=full mematikannya. */
+const OWNER=(()=>{try{if(/[?&]app=full\b/.test(location.search))localStorage.removeItem('twinsbo_owner');if(/[?&]app=owner\b/.test(location.search))localStorage.setItem('twinsbo_owner','1');return localStorage.getItem('twinsbo_owner')==='1'}catch(e){return /[?&]app=owner\b/.test(location.search)}})();
+const OWN_OK=['ring','analisa','rsum','lappen','detail','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok'];
+const NAV_ALL=[
  ['Utama',[['ring','Ringkasan','home'],['analisa','Analisa Bisnis','trend']]],
  ['Penjualan',[['rsum','Ringkasan Penjualan','file'],['lappen','Laporan Penjualan','trend'],['detail','Detail Penjualan','file'],['produk','Penjualan per Produk','box'],['kasir','Penjualan per Kasir','user'],['pkasir','Produk per Kasir','layers'],['plglap','Penjualan per Pelanggan','users'],['fakturjual','Faktur Penjualan','file'],['pesanan','Pesanan & DP','wallet'],['piutang','Laporan Piutang','wallet']]],
  ['Pembelian',[['fakturbeli','Faktur Pembelian','file'],['hutang','Laporan Hutang','wallet']]],
@@ -317,6 +334,7 @@ const NAV=[
  ['Data Master',[['mproduk','Produk & Stok','plus'],['mstok','Riwayat Stok','hist'],['pelanggan','Pelanggan','users'],['pemasok','Pemasok','store'],['karyawan','Data Karyawan','users'],['rekening','Rekening & Akun Kas','wallet']]],
  ['Pengaturan',[['mpromo','Diskon & Promo','tag'],['moutlet','Outlet & Struk','store'],['mkeamanan','Keamanan','user']]]
 ];
+const NAV=OWNER?NAV_ALL.map(([g,l])=>[g==='Data Master'?'Stok':g,l.filter(x=>OWN_OK.includes(x[0]))]).filter(x=>x[1].length):NAV_ALL;
 let NAVOPEN={};try{NAVOPEN=JSON.parse(localStorage.getItem('twinsbo_nav')||'{}')||{}}catch(e){}
 const navGrp=k=>{const g=NAV.find(x=>x[1].some(y=>y[0]===k));return g?g[0]:''};
 function navTog(i){const g=NAV[i][0],el=document.getElementById('gp'+i);if(!el)return;el.classList.toggle('shut');NAVOPEN[g]=!el.classList.contains('shut');try{localStorage.setItem('twinsbo_nav',JSON.stringify(NAVOPEN))}catch(e){}}
@@ -324,6 +342,15 @@ const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['
  pemasok:['Pemasok','Daftar pemasok dan laporan pembelian per pemasok'],fakturbeli:['Faktur Pembelian','Pembelian dari pemasok, hutang, dan pelunasan'],hutang:['Laporan Hutang','Umur hutang, kartu hutang per pemasok, dan riwayat pembayaran'],coa:['Daftar Akun (COA)','Bagan akun dan saldo tiap akun'],plglap:['Penjualan per Pelanggan','Total pembelian, laba, dan produk tiap pelanggan'],fakturjual:['Faktur Penjualan','Penjualan tempo ke pelanggan, piutang, dan penerimaan'],piutang:['Laporan Piutang','Umur piutang, kartu piutang, dan penerimaan'],jurnal:['Jurnal Umum','Jurnal otomatis dari penjualan, pembelian, kas, dan gaji'],buku:['Buku Besar','Mutasi dan saldo berjalan per akun'],lapkeu:['Laporan Keuangan','Neraca saldo, laba rugi, dan neraca'],
  karyawan:['Data Karyawan','Karyawan yang melayani di kasir, gaji pokok, dan keikutsertaan komisi'],komisi:['Komisi','Komisi penjualan, bertingkat dan dibagi bersama oleh yang melayani'],gaji:['Penggajian','Gaji bulanan, tunjangan, komisi, bonus, potongan, dan slip'],
  pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
+if(OWNER){
+ const _no=()=>{alert('Aplikasi owner hanya untuk melihat laporan. Unduh, cetak, dan ubah data dinonaktifkan.')};
+ csv=_no;bkSave=_no;window.print=_no;
+ push=pushPost=pushQuiet=async()=>{throw new Error('Aplikasi owner hanya untuk melihat laporan')};
+ const st=document.createElement('style');st.textContent='@media print{body{display:none!important}}';document.head.appendChild(st);
+ const clean=()=>document.querySelectorAll('button,a.btn').forEach(b=>{const o=(b.getAttribute('onclick')||'');if(/csv|export|print|unduh|tpl|\bdownload/i.test(o)||/^\s*(unduh|cetak|ekspor|export)\b/i.test(b.textContent))b.remove()});
+ const _r=render;render=function(){_r.apply(this,arguments);clean()};
+ const _d=dlg;dlg=function(){_d.apply(this,arguments);clean()};
+}
 const MG=['mproduk','mstok','mpromo','moutlet','karyawan','komisi','gaji','rekening','mkeamanan','pelanggan','pemasok'];
 
 /* Isi dengan URL Web App (Apps Script) agar login hanya perlu PIN. Kosongkan = URL diminta sekali di layar login. */
@@ -588,6 +615,7 @@ function render(){
  }
  CUR=calc();
  const V={ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,mstok:vMStok,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan};
+ if(OWNER&&!OWN_OK.includes(tab))tab='ring';
  if(D&&isLocked(tab))tab='ring';
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
  $('#app').innerHTML=`<div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">TWINS<span>POS</span></div><small>${esc((D.outlet&&D.outlet.name)||cfg.nm||'Laporan pusat')}</small></div>
@@ -609,6 +637,53 @@ function periodBar(){
 function setP(k){P.k=k;if(k==='custom'&&!P.from){const n=new Date();P.from=P.to=dk(n.getTime())}render()}
 
 /* ---------- Ringkasan ---------- */
+/* ---------- Ringkasan: grafik tambahan ---------- */
+function donut(segs,mid,sub){
+ const tot=sum(segs,x=>x.v),R=15.9155;let off=25,arcs='';
+ if(tot>0)segs.filter(x=>x.v>0).forEach(x=>{const l=x.v/tot*100;arcs+=`<circle r="${R}" cx="21" cy="21" fill="none" stroke="${x.c}" stroke-width="6.5" stroke-dasharray="${Math.max(0,l-.6).toFixed(2)} ${(100-l+.6).toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"/>`;off-=l});
+ return`<svg viewBox="0 0 42 42" role="img"><circle r="${R}" cx="21" cy="21" fill="none" stroke="var(--bd)" stroke-width="6.5"/>${arcs}<text x="21" y="${sub?20.5:22.5}" text-anchor="middle" class="dc" style="font-size:4.4px">${mid}</text>${sub?`<text x="21" y="26" text-anchor="middle" class="ds" style="font-size:2.9px">${sub}</text>`:''}</svg>`;
+}
+function dnLegend(segs,fmt){
+ const tot=sum(segs,x=>x.v);
+ return segs.map(x=>`<div class="dn-r"><i style="background:${x.c}"></i><span>${esc(x.l)}</span><b>${fmt?fmt(x):rp(x.v)}</b><small>${tot>0?Math.round(x.v/tot*100)+'%':''}</small></div>`).join('');
+}
+function ringLaba(){
+ const y=new Date().getFullYear(),a=new Date(y,0,1).getTime(),b=new Date(y+1,0,1).getTime(),d=agg(a,b),lb=d.net-d.cogs-d.fees-d.opex;
+ const segs=[{l:'HPP (modal barang)',v:d.cogs,c:'var(--warn)'},{l:'Biaya layanan & platform',v:d.fees,c:'var(--pri)'},{l:'Biaya operasional',v:d.opex,c:'var(--bad)'}];
+ if(lb>0)segs.push({l:'Laba bersih',v:lb,c:'var(--ok)'});
+ const has=d.net>0||d.cogs>0||d.opex>0;
+ return`<div class="card"><h4>Laba Rugi Tahun ${y}</h4><p>Dari tiap rupiah penjualan bersih, ke mana perginya</p>${has?`<div class="dn">${donut(segs,lb>=0?cfmt(lb):'-'+cfmt(-lb),lb>=0?'Laba bersih':'Rugi')}<div class="dn-l">${dnLegend(segs)}<div class="dn-n">Penjualan bersih ${rp(d.net)} · ${d.net>0?(lb>=0?'margin laba ':'margin ')+Math.round(lb/d.net*100)+'%':'belum ada penjualan'}${lb<0?'<br><b style="color:var(--bad)">Biaya lebih besar dari penjualan: rugi '+rp(-lb)+'</b>':''}</div></div></div>`:noData}</div>`;
+}
+function ringFaktur(judul,sub,list,left,ket,goto){
+ const y=new Date().getFullYear(),a=new Date(y,0,1).getTime(),b=new Date(y+1,0,1).getTime(),L=list.filter(f=>f.ts>=a&&f.ts<b);
+ const lunas=L.filter(f=>left(f)<=0),bel=L.filter(f=>left(f)>0),tot=f=>Math.max(0,+f.total||0);
+ const segs=[{l:'Lunas',v:sum(lunas,tot),c:'var(--ok)',n:lunas.length},{l:'Belum lunas',v:sum(bel,x=>left(x)),c:'var(--bad)',n:bel.length}];
+ const dsegs=[{l:'Lunas',v:sum(lunas,tot),c:'var(--ok)'},{l:'Belum lunas',v:sum(bel,tot),c:'var(--bad)'}];
+ return`<div class="card"><div class="ch"><div><h4>${judul}</h4><p>${sub} · tahun ${y}</p></div><button class="btn sm" onclick="go('${goto}')">Lihat</button></div>${L.length?`<div class="dn">${donut(dsegs,L.length+' faktur',ket)}<div class="dn-l">${dnLegend(segs,x=>x.n+' faktur · '+rp(x.v))}${bel.length?'<div class="dn-n">Sisa yang belum dibayar: <b style="color:var(--bad)">'+rp(sum(bel,x=>left(x)))+'</b></div>':'<div class="dn-n">Semua faktur sudah lunas.</div>'}</div></div>`:'<div class="empty">Belum ada faktur tahun ini</div>'}</div>`;
+}
+function ringRiwayat(d){
+ const l=d.tx.slice(0,8);
+ return`<div class="card"><div class="ch"><div><h4>Riwayat Transaksi</h4><p>8 transaksi terbaru · ${esc(perLabel())}</p></div><button class="btn sm" onclick="go('detail')">Semua</button></div>${l.length?l.map(t=>`<div class="rh-r"><span><b>${esc(t.no||t.id)}</b><br><small>${esc(fmtDT(t.ts))} · ${esc(t.cashier||'-')} · ${esc(typeLabel(t.type,t.channel))}</small></span><b>${rp(t.total)}<br><small style="font-weight:600">${esc((t.payments||[]).map(p=>METHODS[p.m]||p.m).join(', '))}</small></b></div>`).join(''):noData}</div>`;
+}
+function ringKas(){
+ let rows=[];try{rows=Object.values(cfCalc()).flatMap(s=>s.rows)}catch(e){}
+ rows=rows.filter(r=>r.kind!=='tf');
+ const day={};rows.forEach(r=>{const k=dk(r.ts),o=day[k]||(day[k]={i:0,o:0});o.i+=r.inn||0;o.o+=r.out||0});
+ const ks=Object.keys(day).sort().slice(-31),n=ks.length;
+ if(!n)return`<div class="card"><h4>Arus Kas</h4><p>${esc(perLabel())}</p>${noData}</div>`;
+ const W=640,H=210,L0=46,T=14,B=26,iw=W-L0-8,ih=H-T-B,hi=Math.max(1,...ks.map(k=>Math.max(day[k].i,day[k].o))),slot=iw/n,bw=Math.min(14,slot*.36),Y=v=>T+ih-v/hi*ih;
+ let g='';[0,.5,1].forEach(f=>{const v=hi*f,y=Y(v);g+=`<line x1="${L0}" x2="${W-8}" y1="${y}" y2="${y}" stroke="var(--bd)"/><text x="${L0-6}" y="${y+4}" text-anchor="end" style="font-size:11px;fill:var(--mut)">${cfmt(v)}</text>`});
+ const step=Math.ceil(n/8);
+ ks.forEach((k,i)=>{const cx=L0+slot*(i+.5),o=day[k];
+  g+=`<g class="pt" data-tip="${esc(k.slice(8)+'/'+k.slice(5,7))}||Masuk ${rp(o.i)} · Keluar ${rp(o.o)}"><rect x="${cx-slot/2}" y="${T}" width="${slot}" height="${ih}" fill="transparent"/><rect x="${cx-bw-1}" y="${Y(o.i)}" width="${bw}" height="${Math.max(0,T+ih-Y(o.i))}" rx="2" fill="var(--ok)"/><rect x="${cx+1}" y="${Y(o.o)}" width="${bw}" height="${Math.max(0,T+ih-Y(o.o))}" rx="2" fill="var(--bad)"/></g>`;
+  if(i%step===0)g+=`<text x="${cx}" y="${H-8}" text-anchor="middle" style="font-size:11px;fill:var(--mut)">${k.slice(8)}/${k.slice(5,7)}</text>`});
+ const ti=sum(ks,k=>day[k].i),to=sum(ks,k=>day[k].o);
+ return`<div class="card"><div class="ch"><div><h4>Arus Kas</h4><p>${esc(perLabel())}${Object.keys(day).length>31?' · 31 hari terakhir':''}</p></div><button class="btn sm" onclick="go('arus')">Lihat</button></div><div class="lg"><span><i style="background:var(--ok)"></i>Masuk ${rp(ti)}</span><span><i style="background:var(--bad)"></i>Keluar ${rp(to)}</span><span><b style="color:${ti-to>=0?'var(--ok)':'var(--bad)'}">Selisih ${rp(ti-to)}</b></span></div><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${g}</svg></div>`;
+}
+function ringExtra(d){
+ const fb=hasF('pembelian')?ringFaktur('Faktur Pembelian','Lunas dan belum lunas',PUR(),purLeft,'Pembelian','fakturbeli'):'',fj=hasF('fakturjual')?ringFaktur('Faktur Penjualan','Lunas dan belum lunas',SIN(),sinLeft,'Penjualan','fakturjual'):'';
+ return`<div class="two">${ringLaba()}${ringKas()}</div>${fb||fj?`<div class="two">${fb}${fj}</div>`:''}${ringRiwayat(d)}`;
+}
 function vRing(d){
  const keys=Object.keys(d.day).sort(),dv=keys.map(k=>d.day[k]);
  const hv=[],hl=[];for(let h=6;h<=23;h++){hv.push(d.hour[h]);hl.push(p2(h))}
@@ -616,6 +691,7 @@ function vRing(d){
  const top=Object.entries(d.prod).sort((x,y)=>y[1].q-x[1].q).slice(0,5),mx=top.length&&top[0][1].q>0?top[0][1].q:1;
  return`<div class="kg"><div class="kc hero"><small>Total omzet (setelah refund) · ${esc(perLabel())}</small><b>${rp(d.omzet)}</b><div style="margin-top:6px;opacity:.9">${d.tx.length} nota${d.refAmt?' · refund '+rp(d.refAmt):''}</div></div>
  <div class="kc"><small>Estimasi laba kotor</small><b>${rp(d.profit)}</b></div><div class="kc"><small>Pengeluaran operasional (termasuk gaji & komisi)</small><b>${rp(d.opex)}</b></div><div class="kc"><small>Estimasi laba bersih</small><b>${rp(d.netProfit)}</b></div><div class="kc"><small>Rata-rata per nota</small><b>${rp(d.tx.length?d.gross/d.tx.length:0)}</b></div>${hutRing()}${piuRing()}<div class="kc"><small>Service charge</small><b>${rp(d.svc)}</b></div><div class="kc"><small>Pajak</small><b>${rp(d.tax)}</b></div></div>
+ ${ringExtra(d)}
  <div class="card"><h4>Penjualan per Hari</h4><p>Setelah dikurangi refund</p>${dv.length?bars(dv,keys.map(k=>k.slice(8)+'/'+k.slice(5,7)),'area'):noData}</div>
  <div class="two"><div class="card"><h4>Jam Ramai</h4><p>Total penjualan per jam (06–23)</p>${d.tx.length?bars(hv,hl):noData}</div>
  <div class="card"><h4>5 Produk Terlaris</h4><p>Berdasarkan jumlah terjual</p>${top.length?top.map((x,i)=>`<div class="row"><div class="rk">${i+1}</div><div class="grow"><b>${esc(x[0])}</b><div class="bar"><i style="width:${Math.max(4,Math.round(x[1].q/mx*100))}%"></i></div></div><div class="val">${fq(x[1].q)} ${esc(x[1].unit)}<small>${rp(x[1].rev)}</small></div></div>`).join(''):noData}</div></div>
