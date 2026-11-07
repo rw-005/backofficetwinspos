@@ -2148,9 +2148,26 @@ function vFakturBeli(){
 function purExport(){
  csv('Faktur-Pembelian',[['No Faktur','Tanggal','Pemasok','Diskon','Ongkir','PPN','Total','Dibayar','Sisa','Jatuh Tempo','Status'],...purList().map(f=>[f.no,dk(f.ts),f.supplierName||'',f.disc||0,f.ship||0,f.tax||0,f.total,purPaid(f),purLeft(f),f.due?dk(f.due):'',PST[purSt(f)][0]])]);
 }
+/* ---- pilih barang: Jenis (Bahan Baku / Produk) -> Kategori -> Barang ---- */
+function itmPool(m){return m==='pur'?D.products.filter(p=>p.trackStock!==false):D.products.filter(p=>p.active!==false)}
+function itmJ(p){return p&&p.bahan?'bahan':'produk'}
+function itmCatOf(p){return p.cat||p.category||'Umum'}
+function itmCatOpts(m,j,sel){const c=[...new Set(itmPool(m).filter(p=>itmJ(p)===j).map(itmCatOf))].sort((a,b)=>String(a).localeCompare(String(b)));return`<option value="">Semua kategori (${c.length})</option>`+c.map(x=>`<option value="${esc(x)}" ${x===sel?'selected':''}>${esc(x)}</option>`).join('')}
+function itmItemOpts(m,j,cat,sel){const l=itmPool(m).filter(p=>itmJ(p)===j&&(!cat||itmCatOf(p)===cat)).sort((a,b)=>String(a.name).localeCompare(String(b.name)));return`<option value="">— pilih ${j==='bahan'?'bahan baku':'produk'} —</option>`+l.map(p=>`<option value="${esc(p.id)}" data-c="${+p.cogs||0}" data-pr="${+p.price||0}" ${p.id===sel?'selected':''}>${esc(p.name)} (${esc(p.unit||'')})</option>`).join('')}
+function itmPick(it,m){
+ const cur=it&&D.products.find(p=>p.id===it.pid),j=cur?itmJ(cur):(window._itmJ||'produk'),cat=cur?itmCatOf(cur):'';
+ const pk=m==='pur'?'purPick':'sinPick';
+ return`<div class="pf" style="grid-column:1/-1;display:grid;grid-template-columns:132px 1fr;gap:6px"><select class="pj" onchange="itmChg(this,'${m}',1)"><option value="produk" ${j==='produk'?'selected':''}>Produk</option><option value="bahan" ${j==='bahan'?'selected':''}>Bahan Baku</option></select><select class="pc" onchange="itmChg(this,'${m}')">${itmCatOpts(m,j,cat)}</select></div><select class="pp" style="grid-column:1/-1" onchange="${pk}(this)">${itmItemOpts(m,j,cat,it&&it.pid)}</select>`;
+}
+function itmChg(el,m,jenis){
+ const r=el.closest('.prow'),j=r.querySelector('.pj').value;window._itmJ=j;
+ const pc=r.querySelector('.pc');if(jenis)pc.innerHTML=itmCatOpts(m,j,'');
+ r.querySelector('.pp').innerHTML=itmItemOpts(m,j,pc.value,'');
+ (m==='pur'?purTot:sinTot)();
+}
 function purRow(it){
  const ps=D.products.filter(p=>p.trackStock!==false).sort((x,y)=>String(x.name).localeCompare(String(y.name)));
- return`<div class="prow" style="display:grid;grid-template-columns:1fr 84px 112px 34px;gap:6px;margin-bottom:6px;align-items:center"><select class="pp" onchange="purPick(this)"><option value="">— pilih produk —</option>${ps.map(p=>`<option value="${esc(p.id)}" data-c="${+p.cogs||0}" ${it&&it.pid===p.id?'selected':''}>${esc(p.name)} (${esc(p.unit||'')})</option>`).join('')}</select><input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?it.qty:''}" oninput="purTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga beli" value="${it?it.price:''}" oninput="purTot()"><button class="btn sm del" onclick="this.parentNode.remove();purTot()">✕</button><div class="pbx" style="grid-column:1/-1;display:none;grid-template-columns:1fr 1fr;gap:6px"><input class="pn" maxlength="30" placeholder="No. batch (opsional)" value="${esc(it&&it.bn||'')}"><input class="pe" type="date" title="Tanggal expired" value="${esc(it&&it.ex||'')}"></div></div>`;
+ return`<div class="prow" style="display:grid;grid-template-columns:1fr 1fr 34px;gap:6px;margin-bottom:6px;align-items:center">${itmPick(it,'pur')}<input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?it.qty:''}" oninput="purTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga beli" value="${it?it.price:''}" oninput="purTot()"><button class="btn sm del" onclick="this.parentNode.remove();purTot()">✕</button><div class="pbx" style="grid-column:1/-1;display:none;grid-template-columns:1fr 1fr;gap:6px"><input class="pn" maxlength="30" placeholder="No. batch (opsional)" value="${esc(it&&it.bn||'')}"><input class="pe" type="date" title="Tanggal expired" value="${esc(it&&it.ex||'')}"></div></div>`;
 }
 function purPick(sel){const r=sel.parentNode,pb=r.querySelector('.pb'),c=sel.selectedOptions[0]&&sel.selectedOptions[0].dataset.c;if(pb&&!pb.value&&+c>0)pb.value=c;purTot()}
 function purAdd(){const r=$('#p_rows');if(r.children.length>=60){alert('Maksimal 60 barang per faktur');return}r.insertAdjacentHTML('beforeend',purRow());purBx()}
@@ -2427,7 +2444,7 @@ function vFakturJual(){
 function sinExport(){csv('Faktur-Penjualan',[['No Faktur','Tanggal','Pelanggan','Diskon','Ongkir','PPN','Total','Diterima','Sisa','Jatuh Tempo','Status'],...sinList().map(f=>[f.no,dk(f.ts),f.customerName||'',f.disc||0,f.ship||0,f.tax||0,f.total,sinPaid(f),sinLeft(f),f.due?dk(f.due):'',SPST[sinSt(f)][0]])])}
 function sinRow(it){
  const ps=D.products.filter(p=>p.active!==false).sort((x,y)=>String(x.name).localeCompare(String(y.name)));
- return`<div class="prow" style="display:grid;grid-template-columns:1fr 84px 112px 34px;gap:6px;margin-bottom:6px;align-items:center"><select class="pp" onchange="sinPick(this)"><option value="">— pilih produk —</option>${ps.map(p=>`<option value="${esc(p.id)}" data-pr="${+p.price||0}" ${it&&it.pid===p.id?'selected':''}>${esc(p.name)} (${esc(p.unit||'')})</option>`).join('')}</select><input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?it.qty:''}" oninput="sinTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga jual" value="${it?it.price:''}" oninput="sinTot()"><button class="btn sm del" onclick="this.parentNode.remove();sinTot()">✕</button></div>`;
+ return`<div class="prow" style="display:grid;grid-template-columns:1fr 1fr 34px;gap:6px;margin-bottom:6px;align-items:center">${itmPick(it,'sin')}<input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?it.qty:''}" oninput="sinTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga jual" value="${it?it.price:''}" oninput="sinTot()"><button class="btn sm del" onclick="this.parentNode.remove();sinTot()">✕</button></div>`;
 }
 function sinPick(sel){const r=sel.parentNode,pb=r.querySelector('.pb'),c=sel.selectedOptions[0]&&sel.selectedOptions[0].dataset.pr;if(pb&&!pb.value&&+c>0)pb.value=c;sinTot()}
 function sinAdd(){const r=$('#j_rows');if(r.children.length>=60){alert('Maksimal 60 barang per faktur');return}r.insertAdjacentHTML('beforeend',sinRow())}
