@@ -2150,11 +2150,12 @@ function purExport(){
 }
 function purRow(it){
  const ps=D.products.filter(p=>p.trackStock!==false).sort((x,y)=>String(x.name).localeCompare(String(y.name)));
- return`<div class="prow" style="display:grid;grid-template-columns:1fr 84px 112px 34px;gap:6px;margin-bottom:6px;align-items:center"><select class="pp" onchange="purPick(this)"><option value="">— pilih produk —</option>${ps.map(p=>`<option value="${esc(p.id)}" data-c="${+p.cogs||0}" ${it&&it.pid===p.id?'selected':''}>${esc(p.name)} (${esc(p.unit||'')})</option>`).join('')}</select><input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?it.qty:''}" oninput="purTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga beli" value="${it?it.price:''}" oninput="purTot()"><button class="btn sm del" onclick="this.parentNode.remove();purTot()">✕</button></div>`;
+ return`<div class="prow" style="display:grid;grid-template-columns:1fr 84px 112px 34px;gap:6px;margin-bottom:6px;align-items:center"><select class="pp" onchange="purPick(this)"><option value="">— pilih produk —</option>${ps.map(p=>`<option value="${esc(p.id)}" data-c="${+p.cogs||0}" ${it&&it.pid===p.id?'selected':''}>${esc(p.name)} (${esc(p.unit||'')})</option>`).join('')}</select><input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?it.qty:''}" oninput="purTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga beli" value="${it?it.price:''}" oninput="purTot()"><button class="btn sm del" onclick="this.parentNode.remove();purTot()">✕</button><div class="pbx" style="grid-column:1/-1;display:none;grid-template-columns:1fr 1fr;gap:6px"><input class="pn" maxlength="30" placeholder="No. batch (opsional)" value="${esc(it&&it.bn||'')}"><input class="pe" type="date" title="Tanggal expired" value="${esc(it&&it.ex||'')}"></div></div>`;
 }
 function purPick(sel){const r=sel.parentNode,pb=r.querySelector('.pb'),c=sel.selectedOptions[0]&&sel.selectedOptions[0].dataset.c;if(pb&&!pb.value&&+c>0)pb.value=c;purTot()}
-function purAdd(){const r=$('#p_rows');if(r.children.length>=60){alert('Maksimal 60 barang per faktur');return}r.insertAdjacentHTML('beforeend',purRow())}
-function purItems(){return[...document.querySelectorAll('#p_rows .prow')].map(r=>{const id=r.querySelector('.pp').value,p=D.products.find(x=>x.id===id);return{pid:id,name:p?p.name:'',unit:p?p.unit:'',qty:+r.querySelector('.pq').value||0,price:+r.querySelector('.pb').value||0}}).filter(x=>x.pid&&x.qty>0)}
+function purAdd(){const r=$('#p_rows');if(r.children.length>=60){alert('Maksimal 60 barang per faktur');return}r.insertAdjacentHTML('beforeend',purRow());purBx()}
+function purBx(){const c=$('#p_bx'),on=!!(c&&c.checked);document.querySelectorAll('#p_rows .pbx').forEach(x=>x.style.display=on?'grid':'none')}
+function purItems(){return[...document.querySelectorAll('#p_rows .prow')].map(r=>{const id=r.querySelector('.pp').value,p=D.products.find(x=>x.id===id);return{pid:id,name:p?p.name:'',unit:p?p.unit:'',qty:+r.querySelector('.pq').value||0,price:+r.querySelector('.pb').value||0,...(((!$('#p_bx')||$('#p_bx').checked)&&/^\d{4}-\d{2}-\d{2}$/.test(r.querySelector('.pe').value))?{ex:r.querySelector('.pe').value,bn:r.querySelector('.pn').value.trim().slice(0,30)}:{})}}).filter(x=>x.pid&&x.qty>0)}
 function purCalc(items){items=items||purItems();const sub=Math.round(sum(items,x=>x.qty*x.price)),disc=Math.min(sub,Math.max(0,Math.round(+v('p_disc')||0))),ship=Math.max(0,Math.round(+v('p_ship')||0)),pct=Math.max(0,+v('p_tax')||0),tax=Math.round((sub-disc)*pct/100);return{sub,disc,ship,pct,tax,total:sub-disc+ship+tax}}
 function purTot(){const c=purCalc(),e=$('#p_tot'),d=$('#p_det');if(e)e.textContent=rp(c.total);if(d)d.textContent=(c.disc||c.ship||c.tax)?'Barang '+rp(c.sub)+(c.disc?' − diskon '+rp(c.disc):'')+(c.ship?' + ongkir '+rp(c.ship):'')+(c.tax?' + PPN '+rp(c.tax):''):'';purPayUi()}
 function purTerm(){const t=+v('p_term');if(t>0){const d=new Date(dts(v('p_date')));d.setDate(d.getDate()+t);$('#p_due').value=dk(d.getTime())}else if(t===0)$('#p_due').value=''}
@@ -2165,14 +2166,14 @@ function purForm(supId,ed){
  if(!D.products.some(p=>p.trackStock!==false)){alert('Belum ada produk dengan hitung stok.');return}
  dlg(`<h3>${ed?'Edit Faktur '+esc(ed.no):'Faktur Pembelian Baru'}</h3>
  <div class="g2"><div><label>Pemasok</label><select id="p_sup">${sp.map(s=>`<option value="${esc(s.id)}" ${s.id===(ed?ed.supplierId:supId)?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>${fld('p_no','No. faktur',ed?ed.no:purNo())}${fld('p_date','Tanggal',dk(ed?ed.ts:Date.now()),'date')}<div><label>Termin</label><select id="p_term" onchange="purTerm()"><option value="-1">Pilih tanggal sendiri</option><option value="0">Tunai</option><option value="7">7 hari</option><option value="14">14 hari</option><option value="30">30 hari</option><option value="60">60 hari</option></select></div>${fld('p_due','Jatuh tempo (opsional)',ed&&ed.due?dk(ed.due):'','date')}</div>
- <label>Barang</label><div id="p_rows">${ed?ed.items.map(i=>purRow(i)).join(''):purRow()+purRow()}</div><button class="btn sm" onclick="purAdd()">${ic('plus',14)} Tambah barang</button>
+ <label>Barang</label>${ed?'':`<label style="display:flex;gap:8px;align-items:center;margin:2px 0 8px;font-weight:600"><input type="checkbox" id="p_bx" onchange="purBx()" ${hasExp()?'checked':''}> Catat batch dan tanggal expired per barang</label>`}<div id="p_rows">${ed?ed.items.map(i=>purRow(i)).join(''):purRow()+purRow()}</div><button class="btn sm" onclick="purAdd()">${ic('plus',14)} Tambah barang</button>
  <div class="g2" style="margin-top:8px"><div><label>Diskon (Rp)</label><input id="p_disc" type="number" inputmode="numeric" min="0" placeholder="0" value="${ed&&ed.disc||''}" oninput="purTot()"></div><div><label>Ongkos kirim (Rp)</label><input id="p_ship" type="number" inputmode="numeric" min="0" placeholder="0" value="${ed&&ed.ship||''}" oninput="purTot()"></div><div><label>PPN (%) opsional</label><input id="p_tax" type="number" inputmode="decimal" min="0" placeholder="0" value="${ed&&ed.taxPct||''}" oninput="purTot()"></div></div>
  <div style="text-align:right;margin:10px 0 2px"><div class="mut" id="p_det" style="font-size:12px"></div><span class="mut">Total faktur</span> <b id="p_tot" style="font-size:20px">${rp(0)}</b></div>
  ${ed?'':`<div class="g2"><div><label>Pembayaran</label><select id="p_pay" onchange="purPayUi()"><option value="lunas">Lunas sekarang</option><option value="hutang">Belum dibayar (hutang)</option><option value="sebagian">Bayar sebagian</option>${SUP().some(x=>supDp(x.id)>0)?'<option value="dp">Potong dari uang muka pemasok</option>':''}</select></div><div><label>Dibayar dari rekening</label>${accSel('p_acc')}</div></div>
  <div id="p_amtw" style="display:none">${fld('p_amt','Jumlah dibayar sekarang (Rp)','','number')}</div><div class="hint" id="p_payh"></div>`}
  ${fld('p_note','Catatan',ed?ed.note:'')}${ed?'':chk('p_stk','Tambah stok produk otomatis (HPP dihitung rata-rata)',true)}
  <div class="acts2"><button class="btn pri" onclick="${ed?`purEditSave('${ed.id}',this)`:'purSave(this)'}">${ed?'Simpan Perubahan':'Simpan Faktur'}</button><button class="btn" onclick="closeDlg()">Batal</button></div>`,true);
- purPayUi();if(ed)purTot();
+ purPayUi();if(ed)purTot();purBx();
 }
 async function purSave(btn){
  const sp=SUP().find(x=>x.id===v('p_sup'));if(!sp){alert('Pilih pemasok');return}
@@ -2188,6 +2189,10 @@ async function purSave(btn){
  btn.disabled=true;btn.textContent='Menyimpan…';let stokOk=false;
  try{
   if(rec.stock){await pushPost('stock_bulk',{mode:'add',hppMode:'avg',note:'[FB] '+no,items:items.map(x=>({id:x.pid,qty:x.qty,buyPrice:C.sub>0?Math.round(x.price+(C.ship-C.disc)*(x.price/C.sub)):x.price,note:('[FB] '+no+' · '+sp.name).slice(0,100)}))});stokOk=true}
+  if(rec.stock){
+   const g={};items.forEach(x=>{if(x.ex)(g[x.pid]=g[x.pid]||[]).push({id:'b'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),no:x.bn||'',exp:x.ex,q:x.qty,ts:Date.now(),ref:no})});
+   for(const pid of Object.keys(g)){const pr=D.products.find(z=>z.id===pid);if(pr)try{await pushPost('product',{id:pid,name:pr.name,bt:(pr.bt||[]).concat(g[pid])})}catch(e){alert('Faktur tersimpan, tetapi batch '+pr.name+' gagal dicatat: '+e.message+'\nCatat manual di Atur Stok.')}}
+  }
   await pushPost('purchase',rec);
   if(rec.payments[0]&&rec.payments[0].acc){try{await cfBuy(rec.payments[0].acc,rec.payments[0].amount,'Faktur '+no+' · '+sp.name,'fb:'+rec.id,rec.payments[0].ts);scheduleLoad()}catch(e){alert('Faktur tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
   closeDlg();render();
