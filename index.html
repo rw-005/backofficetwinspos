@@ -331,7 +331,7 @@ const NAV_ALL=[
  ['Kas & Keuangan',[['cash','Kas Masuk & Keluar','wallet'],['arus','Arus Kas & Rekening','trend'],['shift','Laporan Shift','clock']]],
  ['Akuntansi',[['coa','Daftar Akun (COA)','layers'],['jurnal','Jurnal Umum','file'],['buku','Buku Besar','hist'],['lapkeu','Laporan Keuangan','trend']]],
  ['Karyawan',[['komisi','Komisi','tag'],['gaji','Penggajian','wallet']]],
- ['Data Master',[['mproduk','Produk & Stok','plus'],['mstok','Riwayat Stok','hist'],['mexp','Expired','clock'],['pelanggan','Pelanggan','users'],['pemasok','Pemasok','store'],['karyawan','Data Karyawan','users'],['rekening','Rekening & Akun Kas','wallet']]],
+ ['Data Master',[['mproduk','Produk & Stok','plus'],['mkat','Kategori','tag'],['monline','Harga Online','bag'],['mpaket','Paket','table'],['mstok','Riwayat Stok','hist'],['mexp','Expired','clock'],['pelanggan','Pelanggan','users'],['pemasok','Pemasok','store'],['karyawan','Data Karyawan','users'],['rekening','Rekening & Akun Kas','wallet']]],
  ['Pengaturan',[['mpromo','Diskon & Promo','tag'],['moutlet','Outlet & Struk','store'],['mkeamanan','Keamanan','user']]]
 ];
 const NAV=OWNER?NAV_ALL.map(([g,l])=>[g==='Data Master'?'Stok':g,l.filter(x=>OWN_OK.includes(x[0]))]).filter(x=>x[1].length):NAV_ALL;
@@ -341,7 +341,7 @@ function navTog(i){const g=NAV[i][0],el=document.getElementById('gp'+i);if(!el)r
 const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['Laporan Penjualan','Metode pembayaran, kategori, varian, dan topping'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],arus:['Arus Kas & Rekening','Mutasi uang masuk dan keluar per rekening, seperti rekening koran'],
  pemasok:['Pemasok','Daftar pemasok dan laporan pembelian per pemasok'],fakturbeli:['Faktur Pembelian','Pembelian dari pemasok, hutang, dan pelunasan'],hutang:['Laporan Hutang','Umur hutang, kartu hutang per pemasok, dan riwayat pembayaran'],coa:['Daftar Akun (COA)','Bagan akun dan saldo tiap akun'],plglap:['Penjualan per Pelanggan','Total pembelian, laba, dan produk tiap pelanggan'],fakturjual:['Faktur Penjualan','Penjualan tempo ke pelanggan, piutang, dan penerimaan'],piutang:['Laporan Piutang','Umur piutang, kartu piutang, dan penerimaan'],jurnal:['Jurnal Umum','Jurnal otomatis dari penjualan, pembelian, kas, dan gaji'],buku:['Buku Besar','Mutasi dan saldo berjalan per akun'],lapkeu:['Laporan Keuangan','Neraca saldo, laba rugi, dan neraca'],
  karyawan:['Data Karyawan','Karyawan yang melayani di kasir, gaji pokok, dan keikutsertaan komisi'],komisi:['Komisi','Komisi penjualan, bertingkat dan dibagi bersama oleh yang melayani'],gaji:['Penggajian','Gaji bulanan, tunjangan, komisi, bonus, potongan, dan slip'],
- pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mexp:['Expired','Batch yang sudah dan akan kedaluwarsa'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
+ pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mkat:['Kategori','Urutan, nama, dan daftar kategori produk'],mpaket:['Paket','Jual beberapa item sekaligus dengan satu harga; stok dan HPP mengikuti isinya'],monline:['Harga Online','Harga atau markup tiap produk untuk ShopeeFood, GrabFood, dan GoFood'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mexp:['Expired','Batch yang sudah dan akan kedaluwarsa'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
 if(OWNER){
  const _no=()=>{alert('Aplikasi owner hanya untuk melihat laporan. Unduh, cetak, dan ubah data dinonaktifkan.')};
  csv=_no;bkSave=_no;window.print=_no;
@@ -351,7 +351,7 @@ if(OWNER){
  const _r=render;render=function(){_r.apply(this,arguments);clean()};
  const _d=dlg;dlg=function(){_d.apply(this,arguments);clean()};
 }
-const MG=['mproduk','mstok','mexp','mpromo','moutlet','karyawan','komisi','gaji','rekening','mkeamanan','pelanggan','pemasok'];
+const MG=['mkat','monline','mpaket','mproduk','mstok','mexp','mpromo','moutlet','karyawan','komisi','gaji','rekening','mkeamanan','pelanggan','pemasok'];
 
 /* Isi dengan URL Web App (Apps Script) agar login hanya perlu PIN. Kosongkan = URL diminta sekali di layar login. */
 const API_URL='';
@@ -614,7 +614,7 @@ function render(){
   return;
  }
  CUR=calc();
- const V={ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan};
+ const V={ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan};
  if(OWNER&&!OWN_OK.includes(tab))tab='ring';
  if(D&&isLocked(tab))tab='ring';
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
@@ -1300,7 +1300,7 @@ function mpTable(l){
 }
 function exportMProduk(){csv('Produk',[['Nama','Kode','Kategori','Satuan','Harga Jual','HPP','Stok','Stok Minimum','Aktif'],...mpFiltered().map(p=>[p.name,p.sku||'',p.cat||'',p.unit,p.price,p.cogs||0,p.stock||0,p.minStock||0,p.active===false?'Tidak':'Ya'])])}
 function chpV(p,k){const c=(p.chp||{})[k],m=(p.chm||{})[k];return c>0?['price',c]:(m&&+m.v>0?[m.m,m.v]:['auto',''])}
-function chpBox(p){return`<div style="margin-top:8px"><label>Harga &amp; markup per platform online (opsional)</label><div class="hint">Atur per produk: harga pas, naik persen, atau naik nominal. "Ikut markup umum" = pakai Pengaturan Online di kasir. Varian dan topping tetap ditambahkan.</div><label style="display:flex;gap:8px;align-items:center;margin:6px 0 8px;font-weight:400"><input type="checkbox" id="f_mku" ${p.mku?'checked':''}> Kena markup umum (dipakai bila pengaturan Online di kasir = hanya produk dicentang)</label>${Object.keys(CH).map(k=>{const [t,v]=chpV(p,k);const o=[['auto','Ikut markup umum'],['price','Harga pas (Rp)'],['pct','Naik persen (%)'],['rp','Naik nominal (Rp)']].map(x=>`<option value="${x[0]}" ${x[0]===t?'selected':''}>${x[1]}</option>`).join('');return`<div class="chr" data-ch="${k}" style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="width:90px;flex:none">${CH[k]}</span><select class="chs" style="flex:1;min-width:0">${o}</select><input class="chpi" type="number" step="any" style="width:90px" value="${v}"></div>`}).join('')}</div>`}
+function chpBox(p){return`<div style="margin-top:8px"><label>Harga &amp; markup per platform online (opsional)</label><div class="hint">Atur per produk: harga pas, naik persen, atau naik nominal. "Ikut markup umum" = pakai Pengaturan Online di kasir. Varian dan topping tetap ditambahkan.</div><label style="display:flex;gap:8px;align-items:center;margin:6px 0 8px;font-weight:400"><input type="checkbox" id="f_mku" ${p.mku?'checked':''}> Kena markup umum (dipakai bila pengaturan Online di kasir = hanya produk dicentang)</label>${Object.keys(CH).map(k=>{const [t,v]=chpV(p,k);const o=[['auto','Ikut markup umum'],['price','Harga pas (Rp)'],['pct','Naik persen (%)'],['rp','Naik nominal (Rp)']].map(x=>`<option value="${x[0]}" ${x[0]===t?'selected':''}>${x[1]}</option>`).join('');return`<div class="chr" data-ch="${k}" style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="width:90px;flex:none">${CH[k]}</span><select class="chs" style="flex:1;min-width:0">${o}</select><input class="chpi" type="number" step="any" style="width:90px" value="${v}" oninput="const s=this.parentNode.querySelector('.chs');if(s.value==='auto'&&this.value)s.value='price'"></div>`}).join('')}</div>`}
 function chpRead(){const a={},m={};document.querySelectorAll('.chr').forEach(r=>{const k=r.dataset.ch,t=r.querySelector('.chs').value,v=parseFloat(r.querySelector('.chpi').value);if(!(v>0))return;if(t==='price')a[k]=Math.round(v);else if(t==='pct'||t==='rp')m[k]={m:t,v:+v.toFixed(2)}});return{chp:a,chm:m}}
 function pkRow(r,self){
  const o=D.products.filter(x=>x.id!==self&&!(x.paket&&x.paket.length)).map(x=>`<option value="${esc(x.id)}" ${r&&r.pid===x.id?'selected':''}>${esc(x.name)}${x.bahan?' (bahan)':''}</option>`).join('');
@@ -1323,19 +1323,20 @@ function prodForm(id,asBahan){
  <div id="f_recw" style="${p.bahan?'display:none':''}"><label style="margin-top:8px">Resep: bahan yang terpakai untuk 1 ${esc(p.unit||'satuan')} produk ini (opsional)</label><div id="f_rec">${(p.recipe||[]).map(r=>recRow(r,id)).join('')}</div><button class="btn sm" onclick="recAdd('${id||''}')">${ic('plus',14)} Tambah bahan</button>
  <div class="hint" id="f_rech"></div>${chk('f_rauto','HPP otomatis dari resep',p.recAuto!==false,'recCost()')}
  <div class="hint">Kalau “Hitung stok produk ini” <b>mati</b>, bahan terpotong otomatis setiap produk terjual di kasir. Kalau <b>hidup</b>, stok produk dihitung sendiri dan bahan dipotong saat Anda mencatat <b>Produksi</b>.</div></div>
- <div id="f_chw" style="${p.bahan?'display:none':''}">${chpBox(p)}</div>
- <div id="f_pkw" style="${p.bahan?'display:none':''}"><label style="margin-top:8px">Paket: jual beberapa item sekaligus dengan satu harga (opsional)</label><div id="f_pk">${(p.paket||[]).map(r=>pkRow(r,id)).join('')}</div><button class="btn sm" onclick="pkAdd('${id||''}')">${ic('plus',14)} Tambah isi paket</button><div class="hint" id="f_pkh"></div></div>
- ${id&&!p.bahan?`<div style="margin:10px 0"><button class="btn sm" onclick="ovForm('${id}')">Atur varian, topping &amp; resepnya…</button><div class="hint">${(p.variants||[]).length} varian, ${(p.toppings||[]).length} topping. Simpan dulu perubahan produk ini sebelum membuka.</div></div>`:''}
+ <div id="f_chw" style="display:none"></div>
+  ${id&&!p.bahan?`<div style="margin:10px 0"><button class="btn sm" onclick="ovForm('${id}')">Atur varian, topping &amp; resepnya…</button><div class="hint">${(p.variants||[]).length} varian, ${(p.toppings||[]).length} topping. Simpan dulu perubahan produk ini sebelum membuka.</div></div>`:(!id&&!p.bahan?`<div class="hint" style="margin:10px 0">Varian, topping &amp; resep: tekan <b>Simpan &amp; atur varian/topping</b> di bawah, produk disimpan lalu pengaturannya langsung terbuka.</div>`:'')}
  ${chk('f_trk','Hitung stok produk ini',p.trackStock!==false||!!p.bahan)}${chk('f_act','Aktif dijual di kasir',p.active!==false)}
- <div class="acts2"><button class="btn pri" onclick="saveProd('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delProd('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
+ <div class="acts2"><button class="btn pri" onclick="saveProd('${id||''}',this)">Simpan</button>${!id?`<button class="btn" onclick="saveProd('',this,true)">Simpan &amp; atur varian/topping</button>`:''}${id?`<button class="btn del" onclick="delProd('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
-function saveProd(id,btn){
+function saveProd(id,btn,thenOv){
  const name=v('f_name').trim(),price=v('f_price'),bhn=ck('f_bhn');
  if(!name){alert('Isi nama produk');return}
  if(!bhn&&(price===''||!(+price>=0))){alert('Isi harga jual');return}
  if(D.products.some(x=>x.id!==id&&x.name.toLowerCase()===name.toLowerCase())){alert('Nama produk sudah ada');return}
  const old=D.products.find(x=>x.id===id)||{};
- safe(()=>push('product',{id:id||'p'+Date.now().toString(36),name,sku:v('f_sku').trim(),cat:v('f_cat').trim()||'Umum',unit:v('f_unit').trim()||'pcs',price:bhn?0:+price,cogs:(!bhn&&pkRows().length)?pkCostVal():(!bhn&&ck('f_rauto')&&recRows().length)?recCostVal():(+v('f_cogs')||0),stock:id?(old.stock||0):(+v('f_stock')||0),minStock:+v('f_min')||0,trackStock:bhn?true:(pkRows().length?false:ck('f_trk')),active:ck('f_act'),bahan:bhn,chp:bhn?{}:chpRead().chp,chm:bhn?{}:chpRead().chm,mku:bhn?false:ck('f_mku'),recipe:bhn?[]:(pkRows().length?[]:recRows()),paket:bhn?[]:pkRows(),recAuto:ck('f_rauto'),updated:Date.now(),initStock:id?0:(+v('f_stock')||0)}),btn);
+ const nid=id||'p'+Date.now().toString(36);let okSave=false;
+ const pr={id:nid,name,sku:v('f_sku').trim(),cat:v('f_cat').trim()||'Umum',unit:v('f_unit').trim()||'pcs',price:bhn?0:+price,cogs:(!bhn&&(old.paket||[]).length)?pkCostVal(old.paket):(!bhn&&ck('f_rauto')&&recRows().length)?recCostVal():(+v('f_cogs')||0),stock:id?(old.stock||0):(+v('f_stock')||0),minStock:+v('f_min')||0,trackStock:bhn?true:((old.paket||[]).length?false:ck('f_trk')),active:ck('f_act'),bahan:bhn,recipe:bhn?[]:((old.paket||[]).length?[]:recRows()),recAuto:ck('f_rauto'),updated:Date.now(),initStock:id?0:(+v('f_stock')||0)};
+ Promise.resolve(safe(async()=>{await push('product',pr);okSave=true;if(thenOv&&!D.products.some(x=>x.id===nid))D.products.push({...pr,variants:[],toppings:[]})},btn)).then(()=>{if(thenOv&&okSave&&!bhn)setTimeout(()=>ovForm(nid),30)});
 }
 
 /* ---------- Varian & topping: harga, modal, resep ---------- */
@@ -3038,6 +3039,87 @@ async function ipApply(btn){
   }
   closeDlg();scheduleLoad();render();alert(n+' produk dibuat.');
  }catch(e){btn.disabled=false;btn.textContent='Buat Produk';alert('Berhenti setelah '+n+' produk: '+e.message+'\n\nProduk yang sudah terbuat tidak akan dobel kalau Anda unggah ulang (nama yang sama dilewati).');scheduleLoad()}
+}
+
+/* ---------- Kategori, Harga Online, Varian & Topping (menu terpisah dari form produk) ---------- */
+function katNames(){
+ const have=[...new Set(D.products.filter(p=>!p.bahan).map(p=>(p.cat||'Umum')))],ord=((D.outlet||{}).catorder||[]).filter(c=>typeof c==='string');
+ const out=[];ord.forEach(c=>{if(!out.includes(c))out.push(c)});
+ have.sort((a,b)=>a.localeCompare(b)).forEach(c=>{if(!out.includes(c))out.push(c)});
+ return out;
+}
+function katCount(c){return D.products.filter(p=>!p.bahan&&(p.cat||'Umum')===c).length}
+function katHtml(){
+ const L=katNames();
+ return`<div class="card"><div class="note">Urutan di sini dipakai sebagai urutan tombol kategori di kasir (kasir ikut setelah sinkron). Geser dengan panah, atau tekan <b>⤒</b> untuk memindahkan ke paling depan.</div>
+ <div class="tool"><input id="kat_new" placeholder="Nama kategori baru…"><button class="btn pri" onclick="katAdd()">${ic('plus',16)} Tambah</button></div>
+ <div class="tw"><table><tr><th style="width:120px">Urutan</th><th>Kategori</th><th class="r">Produk</th><th></th></tr>${L.map((c,i)=>`<tr><td style="white-space:nowrap"><button class="btn sm" ${i===0?'disabled':''} onclick="katTop(${i})" title="Ke paling depan">⤒</button> <button class="btn sm" ${i===0?'disabled':''} onclick="katMove(${i},-1)">▲</button> <button class="btn sm" ${i===L.length-1?'disabled':''} onclick="katMove(${i},1)">▼</button></td><td><b>${esc(c)}</b></td><td class="r">${katCount(c)}</td><td class="r" style="white-space:nowrap"><button class="btn sm" onclick="katRename(${i})">Ganti nama</button> <button class="btn sm" ${katCount(c)?'disabled title="Masih ada produk di kategori ini"':''} onclick="katDel(${i})">Hapus</button></td></tr>`).join('')||'<tr><td colspan="4" class="mut">Belum ada kategori.</td></tr>'}</table></div></div>`;
+}
+async function katSave(order){
+ try{await push('outlet',{...(D.outlet||{}),catorder:order});D.outlet=D.outlet||{};D.outlet.catorder=order;render()}catch(e){alert('Gagal menyimpan: '+e.message)}
+}
+function katMove(i,d){const L=katNames(),j=i+d;if(j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];katSave(L)}
+function katTop(i){const L=katNames();L.unshift(L.splice(i,1)[0]);katSave(L)}
+function katAdd(){const v=($('#kat_new').value||'').trim();if(!v)return;const L=katNames();if(L.some(c=>c.toLowerCase()===v.toLowerCase())){alert('Kategori sudah ada.');return}L.push(v);katSave(L)}
+function katDel(i){const L=katNames(),c=L[i];if(katCount(c)){alert('Masih ada produk di kategori ini.');return}if(!confirm('Hapus kategori "'+c+'"?'))return;L.splice(i,1);katSave(L)}
+function katRename(i){
+ const c=katNames()[i];
+ dlg(`<h3>Ganti nama kategori</h3><label>Nama baru</label><input id="kat_rn" value="${esc(c)}"><div class="hint">${katCount(c)} produk akan ikut pindah ke nama baru. Aturan yang menyebut nama lama (promo per kategori, printer dapur/bar per kategori di kasir) perlu disesuaikan.</div><div class="acts2"><button class="btn" onclick="closeDlg()">Batal</button><button class="btn pri" onclick="katRenameGo(${i},this)">Simpan</button></div>`);
+}
+async function katRenameGo(i,btn){
+ const L=katNames(),old=L[i],nv=($('#kat_rn').value||'').trim();
+ if(!nv||nv===old){closeDlg();return}
+ if(L.some((c,k)=>k!==i&&c.toLowerCase()===nv.toLowerCase())){alert('Nama itu sudah dipakai kategori lain.');return}
+ btn.disabled=true;const ps=D.products.filter(p=>!p.bahan&&(p.cat||'Umum')===old);let n=0;
+ try{
+  for(const p of ps){btn.textContent='Memindahkan '+n+'/'+ps.length+'…';await push('product',{id:p.id,cat:nv,updated:Date.now()});p.cat=nv;n++}
+  L[i]=nv;await push('outlet',{...(D.outlet||{}),catorder:L});D.outlet=D.outlet||{};D.outlet.catorder=L;closeDlg();render();
+ }catch(e){btn.disabled=false;btn.textContent='Simpan';alert('Berhenti setelah '+n+' produk: '+e.message+'\n\nUlangi untuk menyelesaikan.')}
+}
+let ONL={q:'',cat:''};
+function onlHtml(){
+ const q=ONL.q.toLowerCase(),L=D.products.filter(p=>!p.bahan&&p.active!==false&&(!ONL.cat||(p.cat||'Umum')===ONL.cat)&&(!q||(p.name+' '+(p.cat||'')).toLowerCase().includes(q))).sort((a,b)=>String(a.cat||'').localeCompare(String(b.cat||''))||String(a.name).localeCompare(b.name)).slice(0,150);
+ const opt=t=>[['auto','Ikut umum'],['price','Harga pas'],['pct','Naik %'],['rp','Naik Rp']].map(x=>`<option value="${x[0]}" ${x[0]===t?'selected':''}>${x[1]}</option>`).join('');
+ return`<div class="card"><div class="note">Atur harga tiap produk untuk ShopeeFood, GrabFood, dan GoFood sekaligus. <b>Ikut umum</b> = pakai markup di Pengaturan Online kasir. Ubah beberapa baris lalu tekan <b>Simpan perubahan</b>.</div>
+ <div class="tool"><input placeholder="Cari produk…" value="${esc(ONL.q)}" oninput="ONL.q=this.value;clearTimeout(window._ot);window._ot=setTimeout(render,300)"><select onchange="ONL.cat=this.value;render()"><option value="">Semua kategori</option>${katNames().map(c=>`<option ${ONL.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select><button class="btn pri" onclick="onlSave(this)">Simpan perubahan</button></div>
+ <div class="tw"><table><tr><th>Produk</th><th class="r">Harga</th><th>Kena markup umum</th>${Object.keys(CH).map(k=>`<th>${CH[k]}</th>`).join('')}</tr>${L.map(p=>`<tr data-pid="${esc(p.id)}"><td>${esc(p.name)}<div class="mut" style="font-size:12px">${esc(p.cat||'Umum')}</div></td><td class="r">${rp(p.price)}</td><td style="text-align:center"><input type="checkbox" class="mkc" data-m0="${p.mku?1:0}" ${p.mku?'checked':''}></td>${Object.keys(CH).map(k=>{const [t,v]=chpV(p,k);return`<td><div class="onc" data-ch="${k}" data-t0="${t}" data-v0="${v}" style="display:flex;gap:4px"><select class="chs" style="width:92px">${opt(t)}</select><input class="chpi" type="number" step="any" style="width:84px" value="${v}" oninput="const s=this.parentNode.querySelector('.chs');if(s.value==='auto'&&this.value)s.value='price'"></div></td>`}).join('')}</tr>`).join('')||'<tr><td colspan="6" class="mut">Tidak ada produk.</td></tr>'}</table></div></div>`;
+}
+async function onlSave(btn){
+ const rows=[...document.querySelectorAll('tr[data-pid]')],ch=[];
+ rows.forEach(r=>{const a={},m={};let dirty=false;r.querySelectorAll('.onc').forEach(c=>{const k=c.dataset.ch,t=c.querySelector('.chs').value,vs=c.querySelector('.chpi').value,v=parseFloat(vs);if(t!==c.dataset.t0||String(vs)!==String(c.dataset.v0))dirty=true;if(!(v>0))return;if(t==='price')a[k]=Math.round(v);else if(t==='pct'||t==='rp')m[k]={m:t,v:+v.toFixed(2)}});const mk=r.querySelector('.mkc');if(mk&&(mk.checked?1:0)!==+mk.dataset.m0)dirty=true;if(dirty)ch.push({id:r.dataset.pid,chp:a,chm:m,mku:!!(mk&&mk.checked)})});
+ if(!ch.length){alert('Tidak ada perubahan.');return}
+ btn.disabled=true;let n=0;
+ try{for(const c of ch){btn.textContent='Menyimpan '+n+'/'+ch.length+'…';await push('product',{id:c.id,chp:c.chp,chm:c.chm,mku:c.mku,updated:Date.now()});const p=D.products.find(x=>x.id===c.id);if(p){p.chp=c.chp;p.chm=c.chm;p.mku=c.mku}n++}alert(n+' produk disimpan.');render()}
+ catch(e){btn.disabled=false;btn.textContent='Simpan perubahan';alert('Berhenti setelah '+n+' produk: '+e.message)}
+}
+
+/* ---------- Menu Paket ---------- */
+function pktAvail(p){let m=Infinity;(p.paket||[]).forEach(r=>{const x=D.products.find(z=>z.id===r.pid);if(!x){m=0;return}if(x.trackStock!==false&&(+r.q||0)>0)m=Math.min(m,Math.floor(((+x.stock||0)+1e-9)/r.q))});return m}
+function pktInfo(p){return(p.paket||[]).map(r=>{const x=D.products.find(z=>z.id===r.pid);return(+r.q!==1?r.q+' ':'')+(x?x.name:'(dihapus)')}).join(', ')}
+let PKT={q:''};
+function pktHtml(){
+ const q=PKT.q.toLowerCase(),L=D.products.filter(p=>(p.paket||[]).length&&(!q||(p.name+' '+(p.cat||'')).toLowerCase().includes(q))).sort((a,b)=>String(a.name).localeCompare(b.name));
+ return`<div class="card"><div class="note">Paket = beberapa item dijual sekaligus dengan satu harga. Stok dan HPP otomatis mengikuti isi paket. Paket muncul di kasir seperti produk biasa.</div>
+ <div class="tool"><input placeholder="Cari paket…" value="${esc(PKT.q)}" oninput="PKT.q=this.value;clearTimeout(window._pt);window._pt=setTimeout(render,300)"><button class="btn pri" onclick="pktForm('')">${ic('plus',16)} Tambah Paket</button></div>
+ <div class="tw"><table><tr><th>Paket</th><th>Isi</th><th class="r">Harga</th><th class="r">HPP</th><th class="r">Tersedia</th><th></th></tr>${L.map(p=>{const a=pktAvail(p);return`<tr><td><b>${esc(p.name)}</b><div class="mut" style="font-size:12px">${esc(p.cat||'Umum')}${p.active===false?' · nonaktif':''}</div></td><td>${esc(pktInfo(p))}</td><td class="r">${rp(p.price)}</td><td class="r">${rp(p.cogs||0)}</td><td class="r">${a===Infinity?'–':a<=0?'<span style="color:var(--bad)">Habis</span>':a}</td><td class="r"><button class="btn sm" onclick="pktForm('${esc(p.id)}')">Ubah</button></td></tr>`}).join('')||'<tr><td colspan="6" class="mut">Belum ada paket. Tekan Tambah Paket.</td></tr>'}</table></div></div>`;
+}
+function pktForm(id){
+ const p=D.products.find(x=>x.id===id)||{paket:[],active:true};
+ dlg(`<h3>${id?'Ubah':'Tambah'} Paket</h3>
+ <div class="g2">${fld('pk_name','Nama paket',p.name)}${fld('pk_cat','Kategori',p.cat||'Paket','text','mis. Paket','list="catl"')}</div>
+ <div class="g2">${fld('pk_price','Harga jual paket',p.price,'number')}${fld('pk_unit','Satuan',p.unit||'paket')}</div>
+ <label style="margin-top:8px">Isi paket</label><div id="f_pk">${(p.paket||[]).map(r=>pkRow(r,id)).join('')}</div><button class="btn sm" onclick="pkAdd('${id}')">${ic('plus',14)} Tambah isi</button><div class="hint" id="f_pkh"></div>
+ ${chk('pk_act','Aktif dijual di kasir',p.active!==false)}
+ <div class="acts2"><button class="btn pri" onclick="pktSave('${id}',this)">Simpan</button>${id?`<button class="btn del" onclick="delProd('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`,true);
+ pkCost();
+}
+function pktSave(id,btn){
+ const name=v('pk_name').trim(),price=v('pk_price'),rows=pkRows();
+ if(!name){alert('Isi nama paket');return}
+ if(price===''||!(+price>=0)){alert('Isi harga jual paket');return}
+ if(!rows.length){alert('Tambahkan minimal satu isi paket');return}
+ if(D.products.some(x=>x.id!==id&&x.name.toLowerCase()===name.toLowerCase())){alert('Nama sudah dipakai produk lain');return}
+ safe(()=>push('product',{id:id||'pk'+Date.now().toString(36),name,sku:'',cat:v('pk_cat').trim()||'Paket',unit:v('pk_unit').trim()||'paket',price:+price,cogs:pkCostVal(rows),stock:0,minStock:0,trackStock:false,active:ck('pk_act'),bahan:false,recipe:[],paket:rows,recAuto:false,updated:Date.now(),initStock:0}),btn);
 }
 
 (async function init(){
