@@ -1714,7 +1714,13 @@ function lpPlatData(d){
   o.n++;o.gross+=(t.total||0)-(t.compAmt||0);o.ref+=t.refunded||0;
   o.svc+=(f.svc||0)*k;o.adm+=(f.adm||0)*k;o.ship+=(f.ship||0)*k;o.mdr+=(f.mdr||0)*k;
  });
- return Object.values(R).map(o=>{const pot=o.svc+o.adm+o.ship+o.mdr;return{...o,name:CH[o.c]||o.c,pot,net:o.gross-o.ref-pot,acc:chAcc({type:'online',channel:o.c})}}).sort((a,b)=>b.gross-a.gross);
+ /* metode bayar tambahan berjenis "komisi platform" (mis. Shopee, Grabfood sebagai metode bayar) */
+ const svcM={};pmxL().forEach(x=>{if(x&&x.kind==='svc')svcM[x.id]=x.name});
+ lpTx(d).forEach(t=>{
+  const pm=t.fee&&t.fee.pm;if(!pm)return;const k=t.feeTot?feeNet(t)/t.feeTot:0,seen={};
+  (t.payments||[]).forEach(p=>{const nm=svcM[p.m];if(!nm)return;const o=row('pm:'+p.m);o.pmName=nm+' (metode bayar)';o.gross+=p.ap||0;o.ref+=(t.refunded||0)*(p.ap||0)/(t.total||1);if(!seen[p.m]){seen[p.m]=1;o.n++;o.svc+=(pm[p.m]||0)*k}});
+ });
+ return Object.values(R).map(o=>{const pot=o.svc+o.adm+o.ship+o.mdr;return{...o,name:o.pmName||CH[o.c]||o.c,pot,net:o.gross-o.ref-pot,acc:o.pmName?(CMAP()[String(o.c).slice(3)]&&BANKS().some(x=>x.id===CMAP()[String(o.c).slice(3)])?CMAP()[String(o.c).slice(3)]:''):chAcc({type:'online',channel:o.c})}}).sort((a,b)=>b.gross-a.gross);
 }
 function lpPlatform(d){
  const l=lpPlatData(d);if(!l.length)return`<div class="card">${noData}<div class="mut" style="padding:0 16px 16px">Laporan ini berisi pesanan dengan tipe online (ShopeeFood, GrabFood, GoFood). Isi potongannya di menu <b>Biaya &amp; Metode Bayar</b>.</div></div>`;
@@ -1730,9 +1736,11 @@ function lpPlatform(d){
 function lpMetodeData(d){
  const tx=lpTx(d),rf=lpRf(d),R={},row=m=>R[m]||(R[m]={n:0,inn:0,ref:0,mdr:0});
  tx.forEach(t=>{
-  const pays=t.payments||[],mdrT=(t.fee&&t.fee.mdr||0)*(feeNet(t)/(t.feeTot||1));
-  const el=pays.filter(p=>['tunai','kasbon','komplimen'].indexOf(p.m)<0),base=sum(el,p=>p.ap),seen={};
-  pays.forEach(p=>{const o=row(p.m);o.inn+=p.ap;if(!seen[p.m]){o.n++;seen[p.m]=1}if(base>0&&el.indexOf(p)>=0)o.mdr+=mdrT*p.ap/base});
+  const pays=t.payments||[],kk=t.feeTot?feeNet(t)/t.feeTot:0,mdrT=(t.fee&&t.fee.mdr||0)*(feeNet(t)/(t.feeTot||1)),pmx=t.fee&&t.fee.pm;
+  const el=pays.filter(p=>['tunai','kasbon','komplimen'].indexOf(p.m)<0),base=sum(el,p=>p.ap),seen={},pdone={};
+  pays.forEach(p=>{const o=row(p.m);o.inn+=p.ap;if(!seen[p.m]){o.n++;seen[p.m]=1}
+   if(pmx){if(!pdone[p.m]){pdone[p.m]=1;o.mdr+=(pmx[p.m]||0)*kk}}
+   else if(base>0&&el.indexOf(p)>=0)o.mdr+=mdrT*p.ap/base});
  });
  rf.forEach(r=>{row(r.method).ref+=r.amount});
  const l=Object.entries(R).map(([m,o])=>({m,name:METHODS[m]||m,...o,net:o.inn-o.ref,after:o.inn-o.ref-o.mdr}));
@@ -1747,8 +1755,8 @@ function lpMetode(d){
  const dks=Object.keys(days).sort().reverse().slice(0,31);
  return`<div class="kg"><div class="kc hero"><small>Penerimaan bersih · ${esc(perLabel())}</small><b>${rp(tot)}</b><div style="margin-top:6px;opacity:.9">${real.length} metode dipakai</div></div>
  <div class="kc"><small>Metode terbesar</small><b>${top?esc(top.name):'-'}</b><div class="mut" style="margin-top:4px">${top?lpPct(top.net,tot)+' dari penerimaan':''}</div></div>
- <div class="kc"><small>Biaya MDR (estimasi)</small><b>${rp(mdr)}</b></div></div>
- <div class="card"><h4>Penerimaan per Metode</h4><p>Klik baris untuk melihat daftar nota. MDR dibagi ke metode non-tunai sesuai nilai pembayarannya (estimasi).</p><div class="tw"><table><tr><th>Metode</th><th class="r">Nota</th><th class="r">Masuk</th><th class="r">Refund</th><th class="r">Bersih</th><th>Porsi</th><th class="r">MDR</th><th class="r">Setelah MDR</th></tr>
+ <div class="kc"><small>Potongan metode bayar (estimasi)</small><b>${rp(mdr)}</b></div></div>
+ <div class="card"><h4>Penerimaan per Metode</h4><p>Klik baris untuk melihat daftar nota. MDR dibagi ke metode non-tunai sesuai nilai pembayarannya (estimasi).</p><div class="tw"><table><tr><th>Metode</th><th class="r">Nota</th><th class="r">Masuk</th><th class="r">Refund</th><th class="r">Bersih</th><th>Porsi</th><th class="r">Potongan</th><th class="r">Setelah potongan</th></tr>
  ${l.map(x=>`<tr class="cl" data-m="${esc(x.m)}" onclick="lpMetodeDetail(this.dataset.m)"><td><b>${esc(x.name)}</b>${x.m==='komplimen'?'<br><small class="mut">bukan uang masuk</small>':''}</td><td class="r">${x.n}</td><td class="r">${rp(x.inn)}</td><td class="r">${rp(x.ref)}</td><td class="r"><b>${rp(x.net)}</b></td><td>${x.m==='komplimen'?'-':lpBar(tot?x.net/tot*100:0)+'<small class="mut">'+lpPct(x.net,tot)+'</small>'}</td><td class="r">${rp(x.mdr)}</td><td class="r">${rp(x.after)}</td></tr>`).join('')}
  <tr class="ft"><td>Total</td><td class="r">${lpTx(d).length}</td><td class="r">${rp(sum(real,x=>x.inn))}</td><td class="r">${rp(sum(real,x=>x.ref))}</td><td class="r">${rp(tot)}</td><td></td><td class="r">${rp(mdr)}</td><td class="r">${rp(sum(real,x=>x.after))}</td></tr></table></div></div>
  <div class="card"><h4>Penerimaan per Hari</h4><p>Setelah refund, 31 hari terakhir pada periode ini</p><div class="tw"><table><tr><th>Tanggal</th>${ms.map(m=>`<th class="r">${esc(METHODS[m]||m)}</th>`).join('')}<th class="r">Total</th></tr>
@@ -3206,7 +3214,7 @@ function vMBayar(){
  const F=bxFees(),mg=(k,a)=>((F.mdr||{})[k]||{})[a]||0,cg=(k,a)=>((F.chan||{})[k]||{})[a]||0,l=pmxL();
  return`<div class="note">Atur sekali di sini, kasir ikut setelah sinkron. Potongan dicatat otomatis di tiap nota, mengurangi saldo rekening tujuan, dan tampil di laporan (Laporan Penjualan: Metode Pembayaran dan Platform Online). Rekening tujuan diatur di <b>Arus Kas &amp; Rekening → Atur Penjualan → Rekening</b>.</div>
  <div class="card"><div class="tool"><b>Metode Bayar Tambahan</b><button class="btn pri" style="margin-left:auto" onclick="bxForm()">${ic('plus',16)} Tambah Metode</button></div>
- <div class="tw">${l.length?`<table><tr><th>Nama</th><th class="r">Potongan %</th><th class="r">Tambahan Rp</th><th>Status</th><th></th></tr>${l.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="r">${+x.pct||0}%</td><td class="r">${rp(+x.flat||0)}</td><td>${x.active===false?'<span class="badge">Nonaktif</span>':'<span class="badge ok">Aktif</span>'}</td><td class="r"><button class="btn sm" onclick="bxForm('${esc(x.id)}')">Ubah</button></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada metode tambahan. Contoh: ShopeePay, OVO, Voucher.</div>'}</div></div>
+ <div class="tw">${l.length?`<table><tr><th>Nama</th><th class="r">Potongan %</th><th class="r">Tambahan Rp</th><th>Dicatat sebagai</th><th>Status</th><th></th></tr>${l.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="r">${+x.pct||0}%</td><td class="r">${rp(+x.flat||0)}</td><td>${x.kind==='svc'?'Komisi platform':'MDR'}</td><td>${x.active===false?'<span class="badge">Nonaktif</span>':'<span class="badge ok">Aktif</span>'}</td><td class="r"><button class="btn sm" onclick="bxForm('${esc(x.id)}')">Ubah</button></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada metode tambahan. Contoh: ShopeePay, OVO, Voucher.</div>'}</div></div>
  <div class="card"><h4>Potongan Metode Bayar (MDR)</h4><p>Dipotong penyedia pembayaran dari uang yang diterima toko. Tagihan pelanggan tidak berubah.</p>
  <div class="g2">${BXD.mdr.map(k=>fld('bx_m_'+k+'_p',METHODS[k]+' · persen (%)',mg(k,'pct'),'number')+fld('bx_m_'+k+'_f',METHODS[k]+' · tambahan Rp per transaksi',mg(k,'flat'),'number')).join('')}</div></div>
  <div class="card"><h4>Potongan Platform Online</h4><p>Dipotong platform dari tiap pesanan online.</p>
@@ -3223,7 +3231,7 @@ function bxPush(fees,pmx,btn){return safe(()=>push('outlet',{...(D.outlet||{}),f
 function bxSave(btn){bxPush(bxReadFees(),pmxL(),btn)}
 function bxForm(id){
  const x=pmxL().find(y=>y.id===id)||{name:'',pct:0,flat:0,active:true};
- dlg(`<h3>${id?'Ubah':'Tambah'} Metode Bayar</h3><div class="g2">${fld('bx_n','Nama (mis. ShopeePay)',x.name)}${fld('bx_p','Potongan (%) dari nominal',x.pct,'number')}${fld('bx_f','Potongan tambahan Rp per transaksi',x.flat,'number')}<div><label>Status</label><select id="bx_a"><option value="1" ${x.active!==false?'selected':''}>Aktif (tampil di kasir)</option><option value="0" ${x.active===false?'selected':''}>Nonaktif</option></select></div></div>
+ dlg(`<h3>${id?'Ubah':'Tambah'} Metode Bayar</h3><div class="g2">${fld('bx_n','Nama (mis. ShopeePay)',x.name)}${fld('bx_p','Potongan (%) dari nominal',x.pct,'number')}${fld('bx_f','Potongan tambahan Rp per transaksi',x.flat,'number')}<div><label>Dicatat sebagai</label><select id="bx_k"><option value="mdr" ${x.kind!=='svc'?'selected':''}>Biaya metode bayar (MDR)</option><option value="svc" ${x.kind==='svc'?'selected':''}>Komisi / biaya platform</option></select></div><div><label>Status</label><select id="bx_a"><option value="1" ${x.active!==false?'selected':''}>Aktif (tampil di kasir)</option><option value="0" ${x.active===false?'selected':''}>Nonaktif</option></select></div></div>
  <div class="mut" style="margin-top:8px">Metode yang dinonaktifkan hilang dari kasir, tetapi riwayat transaksinya tetap ada.</div>
  <div class="acts2"><button class="btn pri" onclick="bxSaveM('${id||''}',this)">Simpan</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
@@ -3231,7 +3239,7 @@ function bxSaveM(id,btn){
  const name=v('bx_n').trim();if(!name){alert('Isi nama metode');return}
  const lc=name.toLowerCase();
  if(Object.values(METHODS_BASE).some(n=>n.toLowerCase()===lc)||pmxL().some(y=>y.id!==id&&String(y.name).toLowerCase()===lc)){alert('Nama itu sudah dipakai metode lain');return}
- const rec={id:id||'m_'+Math.random().toString(36).slice(2,8),name:name.slice(0,30),pct:Math.min(100,Math.max(0,parseFloat(v('bx_p'))||0)),flat:Math.max(0,parseFloat(v('bx_f'))||0),active:v('bx_a')!=='0'};
+ const rec={id:id||'m_'+Math.random().toString(36).slice(2,8),name:name.slice(0,30),pct:Math.min(100,Math.max(0,parseFloat(v('bx_p'))||0)),flat:Math.max(0,parseFloat(v('bx_f'))||0),kind:v('bx_k')==='svc'?'svc':'mdr',active:v('bx_a')!=='0'};
  const l=id?pmxL().map(y=>y.id===id?rec:y):[...pmxL(),rec];
  if(l.length>30){alert('Maksimal 30 metode');return}
  bxPush((D.outlet&&D.outlet.fees)||bxReadFeesSafe(),l,btn);
