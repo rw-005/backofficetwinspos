@@ -1234,6 +1234,7 @@ async function push(kind,payload){
  const u=baseUrl(),q='action=bopush&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||'')+'&kind='+encodeURIComponent(kind)+'&payload='+encodeURIComponent(JSON.stringify(payload));
  const r=await fetch(u+(u.includes('?')?'&':'?')+q,{redirect:'follow'});
  const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
+ if(D&&['outlet','staff','akun','receipt','cfmap'].includes(kind))D[kind]=JSON.parse(JSON.stringify(payload));   // simpanan berikutnya tidak memakai data lama
  scheduleLoad();
 }
 async function safe(f,btn){
@@ -3110,7 +3111,7 @@ async function katRenameGo(i,btn){
  if(L.some((c,k)=>k!==i&&c.toLowerCase()===nv.toLowerCase())){alert('Nama itu sudah dipakai kategori lain.');return}
  btn.disabled=true;const ps=D.products.filter(p=>!p.bahan&&(p.cat||'Umum')===old);let n=0;
  try{
-  for(const p of ps){btn.textContent='Memindahkan '+n+'/'+ps.length+'…';await push('product',{id:p.id,cat:nv,updated:Date.now()});p.cat=nv;n++}
+  for(const p of ps){btn.textContent='Memindahkan '+n+'/'+ps.length+'…';await push('product',{id:p.id,name:p.name,cat:nv,updated:Date.now()});p.cat=nv;n++}
   L[i]=nv;await push('outlet',{...(D.outlet||{}),catorder:L});D.outlet=D.outlet||{};D.outlet.catorder=L;closeDlg();render();
  }catch(e){btn.disabled=false;btn.textContent='Simpan';alert('Berhenti setelah '+n+' produk: '+e.message+'\n\nUlangi untuk menyelesaikan.')}
 }
@@ -3127,7 +3128,7 @@ async function onlSave(btn){
  rows.forEach(r=>{const a={},m={};let dirty=false;r.querySelectorAll('.onc').forEach(c=>{const k=c.dataset.ch,t=c.querySelector('.chs').value,vs=c.querySelector('.chpi').value,v=parseFloat(vs);if(t!==c.dataset.t0||String(vs)!==String(c.dataset.v0))dirty=true;if(!(v>0))return;if(t==='price')a[k]=Math.round(v);else if(t==='pct'||t==='rp')m[k]={m:t,v:+v.toFixed(2)}});const mk=r.querySelector('.mkc');if(mk&&(mk.checked?1:0)!==+mk.dataset.m0)dirty=true;if(dirty)ch.push({id:r.dataset.pid,chp:a,chm:m,mku:!!(mk&&mk.checked)})});
  if(!ch.length){alert('Tidak ada perubahan.');return}
  btn.disabled=true;let n=0;
- try{for(const c of ch){btn.textContent='Menyimpan '+n+'/'+ch.length+'…';await push('product',{id:c.id,chp:c.chp,chm:c.chm,mku:c.mku,updated:Date.now()});const p=D.products.find(x=>x.id===c.id);if(p){p.chp=c.chp;p.chm=c.chm;p.mku=c.mku}n++}alert(n+' produk disimpan.');render()}
+ try{for(const c of ch){btn.textContent='Menyimpan '+n+'/'+ch.length+'…';await push('product',{id:c.id,name:(D.products.find(x=>x.id===c.id)||{}).name,chp:c.chp,chm:c.chm,mku:c.mku,updated:Date.now()});const p=D.products.find(x=>x.id===c.id);if(p){p.chp=c.chp;p.chm=c.chm;p.mku=c.mku}n++}alert(n+' produk disimpan.');render()}
  catch(e){btn.disabled=false;btn.textContent='Simpan perubahan';alert('Berhenti setelah '+n+' produk: '+e.message)}
 }
 
@@ -3174,7 +3175,7 @@ function stForm(id){
  dlg(`<h3>${id?'Ubah':'Tambah'} Akun Kasir</h3><div class="g2">${fld('st_name','Nama',s.name)}<div><label>Peran</label><select id="st_role">${Object.entries(STR).map(([k,t])=>`<option value="${k}" ${s.role===k?'selected':''}>${t}</option>`).join('')}</select></div>${fld('st_pin',id?'PIN baru (kosongkan bila tidak diubah)':'PIN (6 digit angka)','','password','','maxlength="6" inputmode="numeric" autocomplete="new-password"')}</div>
  <div class="acts2"><button class="btn pri" onclick="stSave('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="stDel('${esc(id)}',this)">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
-function stPush(l,btn){return safe(()=>push('staff',{id:'staff',list:l,sts:Date.now(),upd:Date.now()}),btn)}
+function stPush(l,btn){return safe(async()=>{try{await push('staff',{id:'staff',list:l,sts:Date.now(),upd:Date.now()})}catch(e){if(/tidak dikenal/i.test(String(e&&e.message)))throw new Error('Server toko ini belum mendukung Akun Kasir dari Backoffice. Kelola lewat kasir (Pengaturan, Staf).');throw e}},btn)}
 function stSave(id,btn){
  const name=v('st_name').trim(),role=v('st_role'),pin=v('st_pin').trim(),l=stList().map(x=>({...x}));
  if(!name){alert('Isi nama');return}
