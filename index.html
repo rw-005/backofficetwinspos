@@ -2616,6 +2616,7 @@ function akunNew(id,pre){
  <div><label>Jenis</label><select id="n_type" ${id||c.parent?'disabled':''} onchange="akunNewAuto()">${Object.keys(CTYPE).map(k=>`<option value="${k}" ${(c.type==='H'?'X':c.type==='L'?'LP':c.type)===k?'selected':''}>${CTYPE[k]}</option>`).join('')}</select></div>
  <div id="n_hppw" style="display:none"><label class="ck"><input id="n_hpp" type="checkbox" onchange="akunNewAuto()" ${c.type==='H'?'checked':''} ${id||c.parent?'disabled':''}> Termasuk HPP (harga pokok penjualan)</label></div>
  <div class="g2">${fld('n_code','Kode akun (kosongkan = otomatis)',c.code||'','text','otomatis')}${fld('n_name','Nama akun',c.name||'')}</div>
+ ${!id&&pre===''?`<div style="margin-top:6px"><label class="ck"><input id="n_subon" type="checkbox" onchange="document.getElementById('n_subw').style.display=this.checked?'':'none'"> Sekaligus buat sub akun</label></div><div id="n_subw" style="display:none"><label>Sub akun (satu nama per baris)</label><textarea id="n_subs" rows="5" style="width:100%;box-sizing:border-box" placeholder="mis.&#10;Mobil&#10;Motor&#10;Peralatan"></textarea><div class="mut" style="font-size:12.5px;margin-top:4px">Kode sub akun dibuat otomatis mengikuti kode induk.</div></div>`:''}
  <div class="hint" id="n_hint"></div>
  <div class="acts2"><button class="btn pri" onclick="akunNewSave('${esc(id||'')}',this)">Simpan</button>${id?`<button class="btn" style="color:var(--bad)" onclick="akunNewDel('${esc(id)}',this)">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
  akunNewAuto();
@@ -2635,7 +2636,18 @@ function akunNewSave(id,btn){
  let code=v('n_code').trim();if(!code)code=akunNextCode(type,par);
  if(Object.values(jBuild().meta).some(m=>m.id!==id&&String(m.code)===code)){alert('Kode akun '+code+' sudah dipakai.');return}
  if(id){const c=list.find(x=>x.id===id);if(c){c.code=code;c.name=name}}
- else list.push({id:'c_'+Date.now().toString(36)+Math.random().toString(36).slice(2,4),code,name,type,...(par?{parent:par}:{})});
+ else{
+  const pid='c_'+Date.now().toString(36)+Math.random().toString(36).slice(2,4);
+  list.push({id:pid,code,name,type,...(par?{parent:par}:{})});
+  const so=document.getElementById('n_subon');
+  if(!par&&so&&so.checked){
+   const names=[...new Set(v('n_subs').split('\n').map(x=>x.trim()).filter(Boolean))];
+   if(!names.length){alert('Isi minimal satu nama sub akun, atau hilangkan centang "Sekaligus buat sub akun".');return}
+   const used=new Set(Object.values(jBuild().meta).map(m=>String(m.code)));used.add(code);
+   const mm=/^(.*?)(\d+)$/.exec(code);let k=mm?+mm[2]+1:0;const w=mm?mm[2].length:0;
+   names.forEach((nm,i)=>{let c2;if(mm){while(used.has(mm[1]+String(k).padStart(w,'0')))k++;c2=mm[1]+String(k).padStart(w,'0');k++}else c2=code+'.'+(i+1);used.add(c2);list.push({id:pid+'s'+i,code:c2,name:nm,type,parent:pid})});
+  }
+ }
  safe(()=>push('akun',{...ak,custom:list}),btn);
 }
 function akunNewDel(id,btn){
