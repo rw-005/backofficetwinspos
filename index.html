@@ -3211,14 +3211,23 @@ async function bhApply(btn){
 /* ---------- Impor resep (template Excel) ---------- */
 const RS={rows:[],ok:[]};
 function rsTpl(){
- const pr=D.products.filter(p=>!p.bahan&&!(p.paket||[]).length).slice(0,2),bh=D.products.filter(p=>p.bahan).slice(0,3);
- const ex=pr.length&&bh.length?bh.map((b,i)=>[pr[Math.min(i>0?1:0,pr.length-1)].name,b.name,i+1]):[['Nasi Goreng','Beras',150],['Nasi Goreng','Telur',1],['Es Teh','Gula pasir',20]];
- bkSave('Template-Resep',[['Produk','Bahan Baku','Jumlah per 1 Produk'],...ex]);
+ const pr=D.products.filter(p=>!p.bahan&&!(p.paket||[]).length).sort((x,y)=>String(x.name).localeCompare(String(y.name))),bh=D.products.filter(p=>p.bahan).sort((x,y)=>String(x.name).localeCompare(String(y.name)));
+ const nm=id=>{const b=D.products.find(x=>x.id===id);return b?b.name:''};
+ const rows=[['Produk','Bahan Baku','Jumlah per 1 Produk']];
+ pr.forEach(p=>{const r=(p.recipe||[]).filter(x=>nm(x.id));if(r.length)r.forEach(x=>rows.push([p.name,nm(x.id),x.q]));else rows.push([p.name,'','']);});
+ if(rows.length===1)rows.push(['Nasi Goreng','Beras',150],['Nasi Goreng','Telur',1]);
+ const ref=[['Daftar Bahan Baku (salin namanya persis ke kolom Bahan Baku)','Satuan','HPP per satuan'],...bh.map(b=>[b.name,b.unit||'',b.cogs||0])];
+ if(window.XLSX){
+  const w1=XLSX.utils.aoa_to_sheet(rows);w1['!cols']=[{wch:30},{wch:26},{wch:20}];
+  const w2=XLSX.utils.aoa_to_sheet(ref);w2['!cols']=[{wch:44},{wch:10},{wch:14}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,'Resep');XLSX.utils.book_append_sheet(wb,w2,'Daftar Bahan Baku');XLSX.writeFile(wb,'Template-Resep-'+dk(Date.now())+'.xlsx');return;
+ }
+ csv('Template-Resep',rows);
 }
 function rsOpen(){
  RS.rows=[];RS.ok=[];
  dlg(`<h3>Impor Resep</h3>
- <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template. 2. Hapus baris contoh. Satu baris = satu bahan di satu produk (produk yang sama diulang di beberapa baris). 3. Simpan (.xlsx atau CSV), lalu unggah.<br>Nama <b>Produk</b> dan <b>Bahan Baku</b> harus sama dengan yang sudah ada di daftar. Impor bahan baku dan produk dulu kalau belum ada. <b>Jumlah</b> memakai satuan bahan (mis. gram) untuk 1 produk. Resep lama pada produk yang sama akan diganti. Resep varian dan topping diatur lewat Ubah produk.</div>
+ <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template: semua produkmu sudah terisi di kolom Produk, resep yang sudah ada ikut terisi, dan daftar bahan bakumu ada di sheet kedua. 2. Isi Bahan Baku dan Jumlah. Satu baris = satu bahan di satu produk (untuk bahan kedua, tambah baris baru dengan nama produk yang sama). Produk yang dibiarkan kosong dilewati. 3. Simpan (.xlsx atau CSV), lalu unggah.<br>Nama <b>Produk</b> dan <b>Bahan Baku</b> harus sama dengan yang sudah ada di daftar. Impor bahan baku dan produk dulu kalau belum ada. <b>Jumlah</b> memakai satuan bahan (mis. gram) untuk 1 produk. Resep lama pada produk yang sama akan diganti. Resep varian dan topping diatur lewat Ubah produk.</div>
  <div class="acts2" style="margin-top:10px"><button class="btn" onclick="rsTpl()">${ic('dl',16)} Unduh template resep</button></div>
  <label>Unggah file Excel / CSV</label><input type="file" id="rs_file" accept=".xlsx,.xls,.csv,.txt" onchange="rsRead(this.files[0])">
  ${chk('rs_off','Matikan hitung stok produk, supaya bahan terpotong otomatis saat produk terjual di kasir',true)}
@@ -3235,7 +3244,7 @@ function rsRead(f){
   const c={p:ix('produk'),b:ix('bahan'),q:ix('jumlah')};
   if(c.p<0||c.b<0||c.q<0){el.innerHTML='<div class="mut" style="color:var(--bad)">Kolom Produk, Bahan Baku, dan Jumlah tidak lengkap. Pakai template dari tombol di atas.</div>';return}
   const g=(r,k)=>String(r[k]==null?'':r[k]).trim();
-  RS.rows=rows.slice(1).map(r=>({p:g(r,c.p),b:g(r,c.b),q:bkNum(g(r,c.q))})).filter(r=>r.p||r.b);
+  RS.rows=rows.slice(1).map(r=>({p:g(r,c.p),b:g(r,c.b),q:bkNum(g(r,c.q))})).filter(r=>(r.p||r.b)&&(r.b||r.q));
   rsPrev();
  };
  rd.onload=e=>{try{
