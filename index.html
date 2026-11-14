@@ -419,7 +419,7 @@ const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['
  pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mbayar:['Biaya & Metode Bayar','Tambah metode bayar, potongan MDR, dan potongan platform online'],mstaf:['Akun Kasir','Akun login kasir: nama, peran, dan PIN. Sama dengan menu Staf di kasir'],jasa:['Order Jasa','Order layanan dari kasir beserta status pengerjaan dan pembayarannya'],mkat:['Kategori','Urutan, nama, dan daftar kategori produk'],mpaket:['Paket','Jual beberapa item sekaligus dengan satu harga; stok dan HPP mengikuti isinya'],monline:['Harga Online','Harga atau markup tiap produk untuk ShopeeFood, GrabFood, dan GoFood'],aset:['Aset & Biaya di Muka','Aset tetap dengan penyusutan otomatis, serta sewa dan biaya yang dibayar di muka'],lappajak:['Laporan Pajak','Pajak dan service charge yang dipungut, sudah disetor, dan belum disetor'],lapstok:['Laporan Persediaan','Nilai stok barang jadi, bahan baku, dan setengah jadi, dicocokkan dengan pembukuan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mexp:['Expired','Batch yang sudah dan akan kedaluwarsa'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
 if(OWNER){
  const _no=()=>{alert('Aplikasi owner hanya untuk melihat laporan. Unduh, cetak, dan ubah data dinonaktifkan.')};
- csv=_no;bkSave=_no;window.print=_no;
+ csv=_no;csvRaw=_no;bkSave=_no;xlsSave=_no;window.print=_no;
  push=pushPost=pushQuiet=async()=>{throw new Error('Aplikasi owner hanya untuk melihat laporan')};
  const st=document.createElement('style');st.textContent='@media print{body{display:none!important}}';document.head.appendChild(st);
  const clean=()=>document.querySelectorAll('button,a.btn').forEach(b=>{const o=(b.getAttribute('onclick')||'');if(/csv|export|print|unduh|tpl|\bdownload/i.test(o)||/^\s*(unduh|cetak|ekspor|export)\b/i.test(b.textContent))b.remove()});
@@ -597,10 +597,82 @@ function shiftCalc(sh){
 }
 function csv(name,rows){
  if(rows.length<2){alert('Tidak ada data untuk diekspor');return}
+ const n=rows.reduce((m,r)=>Math.max(m,r.length),0),hd=rows[0],MONEY=/rp|nilai|total|harga|hpp|laba|saldo|debit|kredit|penjualan|modal|diskon|pajak|service|bayar|sisa|komisi|gaji|tunjangan|bonus|potongan|masuk|keluar|bersih|refund|nominal|ongkir|ppn|selisih|admin|mdr|omzet|tunai|dp\b|pembelian|dipungut|disetor|retur|hutang|piutang/i;
+ const mo=/-(\d{4}-\d{2})$/.exec(name),base=name.replace(/-(\d{4}-\d{2})$/,'');
+ const noPer=/^(Produk|Daftar-Akun|Laporan-Persediaan|Expired|Pemakaian|Template)/.test(base);
+ const f=t=>{const x=new Date(t);return p2(x.getDate())+'/'+p2(x.getMonth()+1)+'/'+x.getFullYear()};
+ const[a,b]=range(),per=mo?'PERIODE '+mo[1].split('-').reverse().join('/'):noPer?'PER '+f(Date.now()):(a===0&&!isFinite(b))?'SEMUA DATA':xlsPer({a:a,b:b});
+ const H=xlsHead(base.replace(/-/g,' ').toUpperCase(),per,n),R=H.rows,w=Array(n).fill(10);
+ const txt=v=>v==null?'':String(v);
+ rows.forEach((r,ri)=>{
+  const c=[];for(let i=0;i<n;i++){const v=r[i];
+   if(ri===0){c.push({v:txt(v),s:i&&typeof rows[1][i]==='number'?4:3})}
+   else if(typeof v==='number'&&isFinite(v)){const h=txt(hd[i]);c.push({v:v,s:/%/.test(h)?22:MONEY.test(h)?16:Number.isInteger(v)?20:21})}
+   else c.push({v:txt(v),s:19});
+   w[i]=Math.max(w[i],Math.min(48,txt(v).length+3))}
+  R.push(ri===0?{c:c,h:22}:{c:c});
+ });
+ xlsSave(name,{sheet:base.replace(/[\[\]:*?\/\\]/g,' '),cols:w,rows:R,merges:H.merges});
+}
+function csvRaw(name,rows){
+ if(rows.length<2){alert('Tidak ada data untuk diekspor');return}
  const q=v=>{v=v==null?'':String(v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
  const blob=new Blob(['﻿sep=;\r\n'+rows.map(r=>r.map(q).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name+'-'+dk(Date.now())+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},600);
 }
+/* ---------- Penulis Excel (.xlsx) berformat: judul, border, warna, format Rp ---------- */
+function xlsSave(name,o){
+ const esc2=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'),col=i=>String.fromCharCode(65+i);
+ const ncol=o.cols.length;
+ const sd=o.rows.map((r,ri)=>`<row r="${ri+1}"${r.h?` ht="${r.h}" customHeight="1"`:''}>${r.c.map((c,ci)=>{
+  if(c==null)c={v:'',s:r.s||0};else if(typeof c!=='object')c={v:c,s:r.s||0};
+  const ref=col(ci)+(ri+1),s=c.s==null?(r.s||0):c.s;
+  if(typeof c.v==='number'&&isFinite(c.v))return`<c r="${ref}" s="${s}"><v>${c.v}</v></c>`;
+  if(c.v===''||c.v==null)return`<c r="${ref}" s="${s}"/>`;
+  return`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc2(c.v)}</t></is></c>`}).join('')}</row>`).join('');
+ const mg=(o.merges||[]).map(m=>`<mergeCell ref="${m}"/>`).join('');
+ const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:${col(ncol-1)}${o.rows.length}"/><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${o.cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData>${mg?`<mergeCells count="${(o.merges||[]).length}">${mg}</mergeCells>`:''}<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+ const th='<border><left/><right/><top style="thin"><color rgb="FF7F7F7F"/></top><bottom style="thin"><color rgb="FF7F7F7F"/></bottom><diagonal/></border>';
+ const ACC='_(&quot;Rp&quot;* #,##0_);_(&quot;Rp&quot;* \\(#,##0\\);_(&quot;Rp&quot;* &quot;-&quot;_);_(@_)';
+ /* style index: 0 normal,1 judul,2 subjudul,3 header,4 header kanan,5 seksi,6 baris,7 baris angka,8 baris %,9 anak,10 total,11 total angka,12 total %,13 grand,14 grand angka,15 grand %,16 angka biasa,17 anak angka,18 teks tengah */
+ const X=(f,fl,b,al,nf)=>`<xf numFmtId="${nf||0}" fontId="${f}" fillId="${fl}" borderId="${b}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment ${al||'vertical="center"'}/></xf>`;
+ const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="${ACC}"/><numFmt numFmtId="165" formatCode="0.00%"/></numFmts><fonts count="5"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="16"/><name val="Calibri"/></font><font><sz val="11"/><color rgb="FF595959"/><name val="Calibri"/></font><font><b/><sz val="12"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE7E6E6"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9E2F3"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="5"><border><left/><right/><top/><bottom/><diagonal/></border>${th}<border><left/><right/><top style="thin"><color rgb="FF7F7F7F"/></top><bottom/><diagonal/></border><border><left/><right/><top style="thin"><color rgb="FF7F7F7F"/></top><bottom style="double"><color rgb="FF7F7F7F"/></bottom><diagonal/></border><border><left/><right/><top/><bottom style="hair"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="23">${[
+  X(0,0,0),X(2,0,0,'horizontal="center" vertical="center"'),X(3,0,0,'horizontal="center" vertical="center"'),
+  X(4,2,1,'horizontal="center" vertical="center"'),X(4,2,1,'horizontal="center" vertical="center"'),X(1,0,0),
+  X(0,0,4,"horizontal=\"left\" indent=\"1\" vertical=\"center\""),X(0,0,4,'vertical="center"',164),X(0,0,4,'horizontal="right" vertical="center"',165),
+  X(0,0,4,"horizontal=\"left\" indent=\"3\" vertical=\"center\""),X(1,0,2),X(1,0,2,'vertical="center"',164),X(1,0,2,'horizontal="right" vertical="center"',165),
+  X(4,3,3),X(4,3,3,'vertical="center"',164),X(4,3,3,'horizontal="right" vertical="center"',165),
+  X(0,0,4,'vertical="center"',164),X(0,0,4,'vertical="center"',164),X(0,0,4,'horizontal="center" vertical="center"'),X(0,0,4,'vertical="center"'),X(0,0,4,'vertical="center"',3),X(0,0,4,'vertical="center"',4),X(0,0,4,'vertical="center"',2)].join('')}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+ const F={'[Content_Types].xml':'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>',
+  '_rels/.rels':'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
+  'xl/workbook.xml':`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${esc2(o.sheet||'Laporan').slice(0,31)}" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+  'xl/_rels/workbook.xml.rels':'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
+  'xl/styles.xml':styles,'xl/worksheets/sheet1.xml':sheet};
+ const te=new TextEncoder(),T=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;T[n]=c>>>0}
+ const crc=b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=T[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0};
+ const parts=[],cen=[];let off=0;
+ const u16=v=>[v&255,(v>>8)&255],u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255];
+ Object.keys(F).forEach(k=>{const nm=te.encode(k),d=te.encode(F[k]),c=crc(d);
+  const lh=new Uint8Array([0x50,0x4b,3,4,...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(c),...u32(d.length),...u32(d.length),...u16(nm.length),...u16(0)]);
+  parts.push(lh,nm,d);
+  cen.push(new Uint8Array([0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(c),...u32(d.length),...u32(d.length),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nm);
+  off+=lh.length+nm.length+d.length});
+ const cl=cen.reduce((a,b)=>a+b.length,0),n=Object.keys(F).length;
+ const end=new Uint8Array([0x50,0x4b,5,6,...u16(0),...u16(0),...u16(n),...u16(n),...u32(cl),...u32(off),...u16(0)]);
+ const blob=new Blob([...parts,...cen,end],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name+'-'+dk(Date.now())+'.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},600);
+}
+function xlsPer(d){
+ const f=t=>{const x=new Date(t);return p2(x.getDate())+'/'+p2(x.getMonth()+1)+'/'+x.getFullYear()};
+ if(!d.a&&!isFinite(d.b))return'SEMUA DATA';
+ return'PERIODE '+(d.a?f(d.a):'awal')+' - '+(isFinite(d.b)?f(d.b-864e5):f(Date.now()))}
+function xlsAs(d){const x=new Date(isFinite(d.end)?Math.min(d.end-1,Date.now()):Date.now());return'PER '+p2(x.getDate())+'/'+p2(x.getMonth()+1)+'/'+x.getFullYear()}
+function xlsHead(judul,per,n){
+ const nm=((D.outlet&&D.outlet.name)||cfg.nm||'').toUpperCase(),pad=k=>Array(n-1).fill(null);
+ const rows=[{c:[{v:judul,s:1},...pad()],h:26},{c:[{v:nm||' ',s:2},...pad()]},{c:[{v:per,s:2},...pad()]},{c:Array(n).fill(null)}];
+ return{rows,merges:[0,1,2].map(i=>'A'+(i+1)+':'+String.fromCharCode(64+n)+(i+1))};
+}
+
 let _cg=0;
 function cfmt(v){const a=Math.abs(v),s=v<0?'-':'';if(a>=1e9)return s+(a/1e9).toFixed(1).replace(/\.0$/,'')+' M';if(a>=1e6)return s+(a/1e6).toFixed(1).replace(/\.0$/,'')+' jt';if(a>=1e3)return s+Math.round(a/1e3)+' rb';return s+Math.round(a)}
 /* grafik modern (SVG): type 'bar' (batang membulat) atau 'area' (garis mulus + area) */
@@ -780,7 +852,7 @@ const EXQ={q:'',f:''};
 function vMExp(){
  const r=expRows(),W=90,ex=r.filter(x=>x.d<0),wa=r.filter(x=>x.d>=0&&x.d<=W);
  return`<div class="kg"><div class="kc"><small>Sudah expired</small><b style="color:var(--${ex.length?'bad':'ok'})">${ex.length}</b><small>Nilai modal ${rp(Math.round(sum(ex,x=>x.val)))}</small></div><div class="kc"><small>Akan expired (${W} hari)</small><b>${wa.length}</b><small>Nilai modal ${rp(Math.round(sum(wa,x=>x.val)))}</small></div><div class="kc"><small>Total batch aktif</small><b>${r.length}</b></div></div>
- <div class="card"><div class="tool"><input placeholder="Cari produk atau batch…" value="${esc(EXQ.q)}" oninput="EXQ.q=this.value;exRows()"><select onchange="EXQ.f=this.value;exRows()"><option value="">Semua status</option><option value="exp" ${EXQ.f==='exp'?'selected':''}>Sudah expired</option><option value="warn" ${EXQ.f==='warn'?'selected':''}>Akan expired</option></select><button class="btn" onclick="exportExp()">${ic('dl',16)} CSV</button></div><div class="mut" id="exc" style="margin-bottom:8px"></div><div class="tw" id="ext"></div></div>
+ <div class="card"><div class="tool"><input placeholder="Cari produk atau batch…" value="${esc(EXQ.q)}" oninput="EXQ.q=this.value;exRows()"><select onchange="EXQ.f=this.value;exRows()"><option value="">Semua status</option><option value="exp" ${EXQ.f==='exp'?'selected':''}>Sudah expired</option><option value="warn" ${EXQ.f==='warn'?'selected':''}>Akan expired</option></select><button class="btn" onclick="exportExp()">${ic('dl',16)} Excel</button></div><div class="mut" id="exc" style="margin-bottom:8px"></div><div class="tw" id="ext"></div></div>
  <div class="hint" style="margin-top:8px">Barang expired dibuang dari kasir (Produk &gt; Expired). Tanggal expired dicatat saat stok masuk di kasir atau di Atur Stok.</div>`;
 }
 function exList(){const q=EXQ.q.trim().toLowerCase();return expRows().filter(x=>(!q||(x.p.name+' '+(x.b.no||'')).toLowerCase().includes(q))&&(!EXQ.f||(EXQ.f==='exp'?x.d<0:x.d>=0&&x.d<=90)))}
@@ -952,7 +1024,7 @@ function vDetail(d){
  <select onchange="DT.kasir=this.value;dtRender()"><option value="">Semua kasir</option>${ks.map(k=>`<option value="${esc(k)}" ${DT.kasir===k?'selected':''}>${esc(k)}</option>`).join('')}</select>
  <select onchange="DT.status=this.value;dtRender()"><option value="">Semua status</option><option value="ok" ${DT.status==='ok'?'selected':''}>Selesai</option><option value="refund" ${DT.status==='refund'?'selected':''}>Ada refund</option></select>
  <button class="btn ${DT.mode==='nota'?'on':''}" id="dtm1" onclick="dtMode('nota')">Per Nota</button><button class="btn ${DT.mode==='item'?'on':''}" id="dtm2" onclick="dtMode('item')">Per Item</button>
- <button class="btn" onclick="exportDetail()">${ic('dl',16)} CSV</button></div><div class="mut" id="dtc" style="margin-bottom:8px"></div><div class="tw" id="dtt"></div></div>`;
+ <button class="btn" onclick="exportDetail()">${ic('dl',16)} Excel</button></div><div class="mut" id="dtc" style="margin-bottom:8px"></div><div class="tw" id="dtt"></div></div>`;
 }
 function dtMode(m){DT.mode=m;$('#dtm1').classList.toggle('on',m==='nota');$('#dtm2').classList.toggle('on',m==='item');dtRender()}
 function dtFilter(){
@@ -996,7 +1068,7 @@ function vProduk(d){
  const cats=[...new Set(Object.values(d.prod).map(o=>o.cat))].sort();
  return`<div class="card"><div class="tool"><input placeholder="Cari produk…" value="${esc(PP.q)}" oninput="PP.q=this.value;ppRender()">
  <select onchange="PP.cat=this.value;ppRender()"><option value="">Semua kategori</option>${cats.map(c=>`<option value="${esc(c)}" ${PP.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
- <button class="btn" onclick="exportProduk()">${ic('dl',16)} CSV</button></div><div class="mut" id="ppc" style="margin-bottom:8px"></div><div class="tw" id="ppt"></div></div>`;
+ <button class="btn" onclick="exportProduk()">${ic('dl',16)} Excel</button></div><div class="mut" id="ppc" style="margin-bottom:8px"></div><div class="tw" id="ppt"></div></div>`;
 }
 function ppList(){
  const q=PP.q.toLowerCase(),tot=sum(Object.values(CUR.prod),o=>o.rev)||1;
@@ -1024,7 +1096,7 @@ function vKasir(d){
  const l=Object.entries(d.kas).sort((a,b)=>b[1].total-a[1].total),mx=l.length&&l[0][1].total>0?l[0][1].total:1;
  const T=(f)=>sum(l,x=>f(x[1]));
  return`<div class="kg"><div class="kc"><small>Jumlah kasir aktif</small><b>${l.filter(x=>x[1].n>0).length}</b></div><div class="kc"><small>Total penjualan</small><b>${rp(T(o=>o.total))}</b></div><div class="kc"><small>Total refund</small><b>${rp(T(o=>o.ref))}</b></div><div class="kc"><small>Penjualan bersih</small><b>${rp(T(o=>o.total-o.ref))}</b></div></div>
- <div class="card"><div class="ch"><div><h4>Penjualan per Kasir</h4><p>${esc(perLabel())} · klik baris untuk melihat produk yang dijual kasir tersebut</p></div><button class="btn" onclick="exportKasir()">${ic('dl',16)} CSV</button></div><div class="tw">${l.length?`<table><tr><th>Kasir</th><th class="r">Nota</th><th class="r">Item</th><th class="r">Penjualan</th><th class="r">Rata-rata/nota</th><th class="r">Tunai</th><th class="r">Non-tunai</th><th class="r">Refund</th><th class="r">Bersih</th><th>Jam kerja</th><th class="r">Selisih kas</th></tr>${l.map(([n,o])=>`<tr class="cl" data-n="${esc(n)}" onclick="goKasir(this.dataset.n)"><td><b>${esc(n)}</b></td><td class="r">${o.n}</td><td class="r">${fq(o.items)}</td><td class="r"><b>${rp(o.total)}</b></td><td class="r">${rp(o.n?o.total/o.n:0)}</td><td class="r">${rp(o.tunai)}</td><td class="r">${rp(o.non)}</td><td class="r">${rp(o.ref)}</td><td class="r"><b>${rp(o.total-o.ref)}</b></td><td>${dur(o.jam)}</td><td class="r" style="color:var(--${selClr(o.sel)})">${selTxt(o.sel)}</td></tr>`).join('')}<tr class="ft"><td>Total</td><td class="r">${T(o=>o.n)}</td><td class="r">${fq(T(o=>o.items))}</td><td class="r">${rp(T(o=>o.total))}</td><td></td><td class="r">${rp(T(o=>o.tunai))}</td><td class="r">${rp(T(o=>o.non))}</td><td class="r">${rp(T(o=>o.ref))}</td><td class="r">${rp(T(o=>o.total-o.ref))}</td><td></td><td></td></tr></table>`:noData}</div></div>
+ <div class="card"><div class="ch"><div><h4>Penjualan per Kasir</h4><p>${esc(perLabel())} · klik baris untuk melihat produk yang dijual kasir tersebut</p></div><button class="btn" onclick="exportKasir()">${ic('dl',16)} Excel</button></div><div class="tw">${l.length?`<table><tr><th>Kasir</th><th class="r">Nota</th><th class="r">Item</th><th class="r">Penjualan</th><th class="r">Rata-rata/nota</th><th class="r">Tunai</th><th class="r">Non-tunai</th><th class="r">Refund</th><th class="r">Bersih</th><th>Jam kerja</th><th class="r">Selisih kas</th></tr>${l.map(([n,o])=>`<tr class="cl" data-n="${esc(n)}" onclick="goKasir(this.dataset.n)"><td><b>${esc(n)}</b></td><td class="r">${o.n}</td><td class="r">${fq(o.items)}</td><td class="r"><b>${rp(o.total)}</b></td><td class="r">${rp(o.n?o.total/o.n:0)}</td><td class="r">${rp(o.tunai)}</td><td class="r">${rp(o.non)}</td><td class="r">${rp(o.ref)}</td><td class="r"><b>${rp(o.total-o.ref)}</b></td><td>${dur(o.jam)}</td><td class="r" style="color:var(--${selClr(o.sel)})">${selTxt(o.sel)}</td></tr>`).join('')}<tr class="ft"><td>Total</td><td class="r">${T(o=>o.n)}</td><td class="r">${fq(T(o=>o.items))}</td><td class="r">${rp(T(o=>o.total))}</td><td></td><td class="r">${rp(T(o=>o.tunai))}</td><td class="r">${rp(T(o=>o.non))}</td><td class="r">${rp(T(o=>o.ref))}</td><td class="r">${rp(T(o=>o.total-o.ref))}</td><td></td><td></td></tr></table>`:noData}</div></div>
  <div class="card"><h4>Perbandingan Penjualan</h4><p>Porsi tiap kasir</p>${l.length?l.map(([n,o],i)=>`<div class="row"><div class="rk">${i+1}</div><div class="grow"><b>${esc(n)}</b><div class="bar"><i style="width:${Math.max(3,Math.round(o.total/mx*100))}%"></i></div></div><div class="val">${rp(o.total)}<small>${o.n} nota</small></div></div>`).join(''):noData}</div>`;
 }
 function goKasir(n){PK.k=n;go('pkasir')}
@@ -1033,7 +1105,7 @@ function exportKasir(){csv('Penjualan-per-Kasir',[['Kasir','Nota','Item','Penjua
 /* ---------- Produk per Kasir ---------- */
 function vPKasir(d){
  const ks=Object.keys(d.kprod).sort(),sel=PK.k&&d.kprod[PK.k]?[PK.k]:ks;
- return`<div class="card"><div class="tool"><select onchange="PK.k=this.value;render()"><option value="">Semua kasir</option>${ks.map(k=>`<option value="${esc(k)}" ${PK.k===k?'selected':''}>${esc(k)}</option>`).join('')}</select><button class="btn" onclick="exportPKasir()">${ic('dl',16)} CSV</button></div><div class="mut">${esc(perLabel())} · jumlah dihitung setelah refund</div></div>`
+ return`<div class="card"><div class="tool"><select onchange="PK.k=this.value;render()"><option value="">Semua kasir</option>${ks.map(k=>`<option value="${esc(k)}" ${PK.k===k?'selected':''}>${esc(k)}</option>`).join('')}</select><button class="btn" onclick="exportPKasir()">${ic('dl',16)} Excel</button></div><div class="mut">${esc(perLabel())} · jumlah dihitung setelah refund</div></div>`
  +(sel.length?sel.map(k=>{
   const l=Object.entries(d.kprod[k]).sort((a,b)=>b[1].rev-a[1].rev),tq=sum(l,x=>x[1].q),tr=sum(l,x=>x[1].rev),tp=sum(l,x=>x[1].profit);
   return`<div class="card"><div class="ch"><div><h4>${esc(k)}</h4><p>${l.length} jenis produk · ${fq(tq)} item · penjualan ${rp(tr)} · laba kotor ${rp(tp)}</p></div></div><div class="tw"><table><tr><th>#</th><th>Produk</th><th>Kategori</th><th class="r">Terjual</th><th class="r">Penjualan</th><th class="r">Laba kotor</th><th class="r">Porsi</th></tr>${l.map(([n,o],i)=>`<tr><td>${i+1}</td><td><b>${esc(n)}</b></td><td>${esc(o.cat)}</td><td class="r">${fq(o.q)} ${esc(o.unit)}</td><td class="r"><b>${rp(o.rev)}</b></td><td class="r">${rp(o.profit)}</td><td class="r">${pct(tr?o.rev/tr*100:0)}</td></tr>`).join('')}</table></div></div>`}).join(''):`<div class="card">${noData}</div>`);
@@ -1047,7 +1119,7 @@ function exportPKasir(){
 function vShift(d){
  const rows=d.sh.map(s=>({s,c:shiftCalc(s)})),done=rows.filter(x=>x.s.closeTs);
  return`<div class="kg"><div class="kc"><small>Jumlah shift</small><b>${rows.length}</b></div><div class="kc"><small>Sedang berjalan</small><b>${rows.length-done.length}</b></div><div class="kc"><small>Total penjualan shift</small><b>${rp(sum(rows,x=>x.c.sales))}</b></div><div class="kc"><small>Total selisih kas</small><b style="color:var(--${selClr(sum(done,x=>x.s.diff||0))})">${selTxt(sum(done,x=>x.s.diff||0))}</b></div></div>
- <div class="card"><div class="ch"><div><h4>Daftar Shift</h4><p>${esc(perLabel())} · klik baris untuk rincian shift</p></div><button class="btn" onclick="exportShift()">${ic('dl',16)} CSV</button></div><div class="tw">${rows.length?`<table><tr><th>Staf</th><th>Masuk</th><th>Pulang</th><th>Durasi</th><th class="r">Nota</th><th class="r">Penjualan</th><th class="r">Modal</th><th class="r">Seharusnya</th><th class="r">Fisik</th><th class="r">Selisih</th></tr>${rows.map(({s,c})=>`<tr class="cl" onclick="shiftDetail('${s.id}')"><td><b>${esc(s.name)}</b></td><td>${fmtT(s.openTs)}</td><td>${s.closeTs?fmtT(s.closeTs):'<span class="badge g">Berjalan</span>'}</td><td>${dur((s.closeTs||Date.now())-s.openTs)}</td><td class="r">${c.tx.length}</td><td class="r"><b>${rp(c.sales)}</b></td><td class="r">${rp(s.modal)}</td><td class="r">${rp(s.closeTs?s.expected:c.expected)}</td><td class="r">${s.closeTs?rp(s.counted):'-'}</td><td class="r" style="color:var(--${selClr(s.diff||0)})">${s.closeTs?selTxt(s.diff||0):'-'}</td></tr>`).join('')}</table>`:noData}</div></div>`;
+ <div class="card"><div class="ch"><div><h4>Daftar Shift</h4><p>${esc(perLabel())} · klik baris untuk rincian shift</p></div><button class="btn" onclick="exportShift()">${ic('dl',16)} Excel</button></div><div class="tw">${rows.length?`<table><tr><th>Staf</th><th>Masuk</th><th>Pulang</th><th>Durasi</th><th class="r">Nota</th><th class="r">Penjualan</th><th class="r">Modal</th><th class="r">Seharusnya</th><th class="r">Fisik</th><th class="r">Selisih</th></tr>${rows.map(({s,c})=>`<tr class="cl" onclick="shiftDetail('${s.id}')"><td><b>${esc(s.name)}</b></td><td>${fmtT(s.openTs)}</td><td>${s.closeTs?fmtT(s.closeTs):'<span class="badge g">Berjalan</span>'}</td><td>${dur((s.closeTs||Date.now())-s.openTs)}</td><td class="r">${c.tx.length}</td><td class="r"><b>${rp(c.sales)}</b></td><td class="r">${rp(s.modal)}</td><td class="r">${rp(s.closeTs?s.expected:c.expected)}</td><td class="r">${s.closeTs?rp(s.counted):'-'}</td><td class="r" style="color:var(--${selClr(s.diff||0)})">${s.closeTs?selTxt(s.diff||0):'-'}</td></tr>`).join('')}</table>`:noData}</div></div>`;
 }
 function exportShift(){csv('Laporan-Shift',[['Staf','Masuk','Pulang','Durasi (menit)','Nota','Penjualan','Modal Awal','Kas Seharusnya','Uang Fisik','Selisih'],...CUR.sh.map(s=>{const c=shiftCalc(s);return[s.name,fmtDT(s.openTs),s.closeTs?fmtDT(s.closeTs):'Berjalan',Math.round(((s.closeTs||Date.now())-s.openTs)/60000),c.tx.length,c.sales,s.modal,s.closeTs?s.expected:c.expected,s.closeTs?s.counted:'',s.closeTs?s.diff:'']})])}
 function shiftDetail(id){
@@ -1130,7 +1202,7 @@ function vArus(){
  return`${bk.length?'':'<div class="note">Belum ada rekening. Klik <b>Rekening & Saldo Awal</b> untuk membuat akun, misalnya <b>Kas Tunai</b>, <b>BCA</b>, atau <b>QRIS/E-Wallet</b>, lalu isi saldo awalnya.</div>'}
  <div class="card"><div class="tool"><select onchange="AK.acc=this.value;render()"><option value="">Semua rekening</option><option value="g:tunai" ${sel==='g:tunai'?'selected':''}>Laci Kas (tunai)</option><option value="g:non" ${sel==='g:non'?'selected':''}>Rekening (QRIS, debit, transfer, e-wallet)</option>${accs.map(s=>`<option value="${s.id}" ${sel===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
  <button class="btn pri" onclick="cfForm('in')">${ic('plus',16)} Dana Masuk</button><button class="btn pri" onclick="cfForm('out')">${ic('plus',16)} Pengeluaran</button><button class="btn" onclick="cfForm('tf')">Transfer / Pencairan / Setoran</button>
- <button class="btn" onclick="rkDlg()">Rekening & Saldo Awal</button><button class="btn" onclick="mapDlg()">Atur Penjualan → Rekening</button><button class="btn" onclick="exportArus()">${ic('dl',16)} CSV</button></div></div>
+ <button class="btn" onclick="rkDlg()">Rekening & Saldo Awal</button><button class="btn" onclick="mapDlg()">Atur Penjualan → Rekening</button><button class="btn" onclick="exportArus()">${ic('dl',16)} Excel</button></div></div>
  <div class="kg"><div class="kc"><small>Saldo awal periode</small><b>${rp(sum(sc,s=>s.start))}</b></div><div class="kc"><small>Dana masuk</small><b style="color:var(--ok)">${rp(tin)}</b></div><div class="kc"><small>Dana keluar</small><b style="color:var(--bad)">${rp(tout)}</b></div><div class="kc"><small>Saldo akhir</small><b>${rp(sum(sc,s=>s.bal))}</b></div>${accs.some(s=>s.type==='penampung')?`<div class="kc"><small>Belum cair (penampung)</small><b>${rp(sum(accs.filter(s=>s.type==='penampung'),s=>s.bal))}</b></div>`:''}</div>
  <div class="card"><h4>Saldo per Hari</h4><p>${esc(perLabel())}</p>${saldoChart(pts)}</div>
  <div class="card"><h4>Saldo per Rekening</h4><p>${esc(perLabel())} · klik baris untuk memfilter · transfer antar rekening ikut dihitung per rekening</p><div class="tw">${accs.length?`<table><tr><th>Rekening</th><th>Jenis</th><th class="r">Saldo awal</th><th class="r">Masuk</th><th class="r">Keluar</th><th class="r">Saldo akhir</th></tr>${accs.map(s=>`<tr class="cl" onclick="AK.acc='${s.id}';render()"><td><b>${esc(s.name)}</b></td><td>${BT[s.type]||'-'}</td><td class="r">${rp(s.start)}</td><td class="r" style="color:var(--ok)">${rp(s.inn)}</td><td class="r" style="color:var(--bad)">${rp(s.out)}</td><td class="r"><b>${rp(s.bal)}</b></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada rekening</div>'}</div></div>
@@ -1216,7 +1288,7 @@ function vCash(d){
  outs.forEach(x=>{const c=x.cat||'Lainnya',o=g[c]||(g[c]={t:0,n:0,s:{}}),k=x.sub||'(tanpa item)';o.t+=+x.amount||0;o.n++;const q=o.s[k]||(o.s[k]={t:0,n:0});q.t+=+x.amount||0;q.n++});
  const cats=Object.entries(g).sort((a,b)=>b[1].t-a[1].t);
  return`<div class="kg"><div class="kc"><small>Pengeluaran</small><b style="color:var(--bad)">${rp(d.cout)}</b></div><div class="kc"><small>Uang masuk lain</small><b style="color:var(--ok)">${rp(d.cin)}</b></div>${hutKpi()}</div>
- <div class="two"><div class="card"><div class="ch"><div><h4>Pengeluaran per Kategori dan Item</h4><p>${esc(perLabel())} · item diisi kasir saat mencatat pengeluaran</p></div><button class="btn" onclick="cashItemCsv()">${ic('dl',16)} CSV</button></div>${cats.length?`<div class="tw"><table><tr><th>Kategori / item</th><th class="r">Kali</th><th class="r">Total</th></tr>${cats.map(([k,o])=>`<tr class="ft"><td><b>${esc(k)}</b></td><td class="r">${o.n}</td><td class="r"><b>${rp(o.t)}</b></td></tr>${Object.entries(o.s).sort((a,b)=>b[1].t-a[1].t).map(([n,q])=>`<tr><td style="padding-left:24px">${esc(n)}</td><td class="r">${q.n}</td><td class="r">${rp(q.t)}</td></tr>`).join('')}`).join('')}</table></div>`:'<div class="empty">Belum ada pengeluaran</div>'}</div>
+ <div class="two"><div class="card"><div class="ch"><div><h4>Pengeluaran per Kategori dan Item</h4><p>${esc(perLabel())} · item diisi kasir saat mencatat pengeluaran</p></div><button class="btn" onclick="cashItemCsv()">${ic('dl',16)} Excel</button></div>${cats.length?`<div class="tw"><table><tr><th>Kategori / item</th><th class="r">Kali</th><th class="r">Total</th></tr>${cats.map(([k,o])=>`<tr class="ft"><td><b>${esc(k)}</b></td><td class="r">${o.n}</td><td class="r"><b>${rp(o.t)}</b></td></tr>${Object.entries(o.s).sort((a,b)=>b[1].t-a[1].t).map(([n,q])=>`<tr><td style="padding-left:24px">${esc(n)}</td><td class="r">${q.n}</td><td class="r">${rp(q.t)}</td></tr>`).join('')}`).join('')}</table></div>`:'<div class="empty">Belum ada pengeluaran</div>'}</div>
  <div class="card"><h4>Catatan Kas</h4><p>Pengeluaran dan uang masuk, lengkap dengan rekening yang berubah. Belanja bahan dari pemasok dicatat lewat Faktur Pembelian, bukan di sini.</p><div class="tw">${d.cs.length?`<table><tr><th>Waktu</th><th>Kategori / item</th><th>Rekening</th><th>Catatan</th><th class="r">Nominal</th></tr>${d.cs.slice(0,200).map(x=>`<tr><td>${fmtT(x.ts)}</td><td>${esc(x.cat)}${x.sub?' › '+esc(x.sub):''}${x.src==='luar'?' <span class="badge k">luar laci</span>':''}</td><td>${esc(cashAcc(x))}</td><td>${esc(x.note||'—')}</td><td class="r" style="color:var(--${x.type==='out'?'bad':'ok'})">${x.type==='out'?'−':'+'}${rp(x.amount)}</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada catatan</div>'}</div></div></div>`;
 }
 
@@ -1231,7 +1303,7 @@ function opDrill(cat,sub){
  const title=esc(cat)+(sub===null?'':' › '+esc(sub||'(tanpa item)'));
  dlg(`<h3>${title}</h3><div class="mut" style="margin-bottom:10px">Riwayat pengeluaran · ${esc(perLabel())} · ${l.length} catatan</div>
  <div class="tw">${l.length?`<table><tr><th>Waktu</th><th>Item</th><th>Rekening</th><th>Dicatat oleh</th><th>Catatan</th><th class="r">Nominal</th><th class="r">Total berjalan</th></tr>${l.map(x=>{s+=+x.amount||0;return`<tr><td>${fmtT(x.ts)}</td><td>${esc(x.sub||'—')}</td><td>${esc(cashAcc(x))}${x.src==='luar'?' <span class="badge k">luar laci</span>':''}</td><td>${esc(x.by||'—')}</td><td>${esc(x.note||'—')}</td><td class="r">${rp(x.amount)}</td><td class="r">${rp(s)}</td></tr>`}).join('')}<tr class="ft"><td colspan="5">Total</td><td class="r">${rp(s)}</td><td></td></tr></table>`:'<div class="empty">Tidak ada catatan</div>'}</div>
- <div class="acts2"><button class="btn" onclick="opCsv()">${ic('dl',16)} CSV</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
+ <div class="acts2"><button class="btn" onclick="opCsv()">${ic('dl',16)} Excel</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
 }
 function opCsv(){
  const[cat,sub]=window._opd||[];
@@ -1280,7 +1352,7 @@ function rsd(enc){
  let run=0;const sg=v=>(v<0?'−':'')+rp(Math.abs(v));
  dlg(`<h3>${esc(title)}</h3><div class="mut" style="margin-bottom:10px">Riwayat · ${esc(perLabel())} · ${l.length} baris. Angka di baris sama dengan yang dijumlahkan di laporan.</div>
  <div class="tw">${l.length?`<table><tr><th>Waktu</th><th>Nota / rekening</th><th>Keterangan</th><th class="r">Nilai</th><th class="r">Total berjalan</th></tr>${l.map(x=>{run+=x.v;return`<tr ${x.id?`class="cl" onclick="txDetail('${x.id}')"`:''}><td>${fmtT(x.ts)}</td><td>${esc(x.ref||'—')}</td><td>${esc(x.desc||'')}</td><td class="r">${sg(x.v)}</td><td class="r">${sg(run)}</td></tr>`}).join('')}<tr class="ft"><td colspan="3">Total</td><td class="r">${sg(run)}</td><td></td></tr></table>`:'<div class="empty">Tidak ada catatan pada periode ini</div>'}</div>
- <div class="acts2"><button class="btn" onclick="rsdCsv()">${ic('dl',16)} CSV</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
+ <div class="acts2"><button class="btn" onclick="rsdCsv()">${ic('dl',16)} Excel</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
 }
 function rsdCsv(){const k=window._rsdk||'';csv('Riwayat-'+(RSD_T[k]||k),[['Waktu','Nota / rekening','Keterangan','Nilai'],...rsData(k).map(x=>[fmtT(x.ts),x.ref||'',x.desc||'',x.v])])}
 function cashItemCsv(){
@@ -1385,7 +1457,7 @@ function vLapPajak(){
  const [a,b]=range(),sj=jSums(a,isFinite(b)?b:Date.now()+1),jual=(sj.jual?sj.jual.cr-sj.jual.dr:0),pct=jual>0?(d.cr-d.dr)/jual*100:0;
  const chips=`<div class="chips" style="margin-bottom:12px">${[['pajak','Pajak'],['svc','Service Charge']].map(([k,l])=>`<button class="chip ${LPJ.k===k?'on':''}" onclick="LPJ.k='${k}';render()">${l}</button>`).join('')}</div>`;
  const kpi=`<div class="kg"><div class="kc"><small>Saldo awal periode</small><b>${rp(d.B.open)}</b></div><div class="kc"><small>${nm} dipungut</small><b>${rp(d.cr)}</b></div><div class="kc"><small>Disetor / dikurangi (retur)</small><b>${rp(d.dr)}</b></div><div class="kc"><small>Belum disetor (saldo akhir)</small><b style="color:var(--${d.B.close>0?'warn,#b45309':'ok'})">${rp(d.B.close)}</b></div></div>`;
- const tool=`<div class="tool"><select onchange="LPJ.g=this.value;render()"><option value="hari" ${LPJ.g==='hari'?'selected':''}>Per hari</option><option value="bulan" ${LPJ.g==='bulan'?'selected':''}>Per bulan</option></select><span class="mut" style="font-size:12.5px">Penjualan periode ini ${rp(jual)}${jual>0?' · '+nm+' efektif '+pct.toFixed(1)+'%':''}</span><span style="margin-left:auto"><button class="btn" onclick="lpCsv()">${ic('dl',16)} CSV</button></span></div>`;
+ const tool=`<div class="tool"><select onchange="LPJ.g=this.value;render()"><option value="hari" ${LPJ.g==='hari'?'selected':''}>Per hari</option><option value="bulan" ${LPJ.g==='bulan'?'selected':''}>Per bulan</option></select><span class="mut" style="font-size:12.5px">Penjualan periode ini ${rp(jual)}${jual>0?' · '+nm+' efektif '+pct.toFixed(1)+'%':''}</span><span style="margin-left:auto"><button class="btn" onclick="lpCsv()">${ic('dl',16)} Excel</button></span></div>`;
  let bal=d.B.open;
  const tb=d.rows.length?`<table><tr><th>${LPJ.g==='bulan'?'Bulan':'Tanggal'}</th><th class="r">Dipungut</th><th class="r">Disetor / retur</th><th class="r">Belum disetor</th></tr>${d.rows.map(r=>{bal+=r.cr-r.dr;return`<tr><td>${r.k}</td><td class="r">${r.cr?rp(r.cr):''}</td><td class="r">${r.dr?rp(r.dr):''}</td><td class="r"><b>${rp(bal)}</b></td></tr>`}).join('')}<tr><td><b>Total</b></td><td class="r"><b>${rp(d.cr)}</b></td><td class="r"><b>${rp(d.dr)}</b></td><td class="r"><b>${rp(d.B.close)}</b></td></tr></table>`:'<div class="empty">Belum ada '+nm.toLowerCase()+' pada periode ini.</div>';
  const hint=`<div class="hint">${nm} yang dipungut dari pelanggan adalah <b>kewajiban</b>, bukan pendapatan. Saat disetor, catat lewat Pengeluaran (Pembayaran pajak) supaya saldo "belum disetor" turun.${id==='pajak'?' Pajak yang sudah termasuk di harga (inklusif) tidak dipisah di sini.':''}</div>`;
@@ -1411,7 +1483,7 @@ function vLapStok(){
  const kpi=`<div class="kg"><div class="kc"><small>Total nilai persediaan</small><b>${rp(fis)}</b></div><div class="kc"><small>Barang jadi</small><b>${rp(tot('jadi'))}</b></div><div class="kc"><small>Bahan baku</small><b>${rp(tot('mentah'))}</b></div><div class="kc"><small>Setengah jadi</small><b>${rp(tot('semi'))}</b></div></div>`;
  const rec=`<div class="card" style="margin-bottom:12px"><div class="tw"><table><tr><th>Rekonsiliasi dengan pembukuan</th><th class="r">Nilai</th></tr><tr><td>Nilai stok fisik (stok × HPP)</td><td class="r">${rp(fis)}</td></tr><tr><td>Saldo Persediaan di jurnal (1-3000)</td><td class="r">${rp(led)}</td></tr><tr><td><b>Selisih</b> ${Math.abs(df)>1?'<span class="mut">— dicatat sebagai penyesuaian di Neraca. Isi nilai persediaan awal atau catat pembelian agar selisih mengecil.</span>':'<span class="badge g">Sama</span>'}</td><td class="r"><b style="color:var(--${Math.abs(df)>1?'bad':'ok'})">${rp(df)}</b></td></tr></table></div></div>`;
  const warn=(minus?`<div class="hint">${minus} item punya stok minus. Lakukan koreksi/opname di Produk &amp; Stok.</div>`:'')+(notrack?`<div class="hint">${notrack} produk tidak melacak stok, jadi tidak ikut dihitung.</div>`:'');
- const tool=`<div class="tool"><input placeholder="Cari nama atau kategori…" value="${esc(LS.q)}" oninput="LS.q=this.value;lsRows()">${chk('ls_nol','Sembunyikan stok 0',LS.nol,"LS.nol=this.checked;lsRows()")}<span style="margin-left:auto"><button class="btn" onclick="lsCsv()">${ic('dl',16)} CSV</button></span></div>`;
+ const tool=`<div class="tool"><input placeholder="Cari nama atau kategori…" value="${esc(LS.q)}" oninput="LS.q=this.value;lsRows()">${chk('ls_nol','Sembunyikan stok 0',LS.nol,"LS.nol=this.checked;lsRows()")}<span style="margin-left:auto"><button class="btn" onclick="lsCsv()">${ic('dl',16)} Excel</button></span></div>`;
  return chips+kpi+rec+warn+`<div class="card">${tool}<div class="tw" id="lst">${lsTable()}</div></div>`;
 }
 function lsTable(){
@@ -1440,8 +1512,8 @@ function vMProduk(){
  const catSel=`<select onchange="PM.cat=this.value;mpRows()"><option value="">Semua kategori</option>${cats.map(c=>`<option value="${esc(c)}" ${PM.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`;
  const lowBtn=`<button class="btn ${PM.low?'on':''}" onclick="PM.low=!PM.low;render()">Stok menipis</button>`;
  const tool=isR?`<div class="tool">${search}<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="rsOpen()">${ic('plus',16)} Impor Resep</button><button class="btn pri" onclick="prodnForm()">${ic('plus',16)} Catat Produksi</button></span></div>`
-  :isB?`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" id="psbtn" style="display:${Object.keys(PSEL).length?'':'none'};color:var(--bad)" onclick="psDelOpen()">Hapus terpilih (${Object.keys(PSEL).length})</button><button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="bhOpen()">${ic('plus',16)} Impor Bahan Baku</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm('',true)">${ic('plus',16)} Tambah Bahan Baku</button></div>`
-  :`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" id="psbtn" style="display:${Object.keys(PSEL).length?'':'none'};color:var(--bad)" onclick="psDelOpen()">Hapus terpilih (${Object.keys(PSEL).length})</button><button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="ipOpen()">${ic('plus',16)} Impor Produk</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>`;
+  :isB?`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" id="psbtn" style="display:${Object.keys(PSEL).length?'':'none'};color:var(--bad)" onclick="psDelOpen()">Hapus terpilih (${Object.keys(PSEL).length})</button><button class="btn" onclick="exportMProduk()">${ic('dl',16)} Excel</button><button class="btn" onclick="bhOpen()">${ic('plus',16)} Impor Bahan Baku</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm('',true)">${ic('plus',16)} Tambah Bahan Baku</button></div>`
+  :`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" id="psbtn" style="display:${Object.keys(PSEL).length?'':'none'};color:var(--bad)" onclick="psDelOpen()">Hapus terpilih (${Object.keys(PSEL).length})</button><button class="btn" onclick="exportMProduk()">${ic('dl',16)} Excel</button><button class="btn" onclick="ipOpen()">${ic('plus',16)} Impor Produk</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>`;
  return tabs+kpi+`<div class="card">${tool}<div class="tw" id="mpt">${mpBody()}</div></div>`+(isR?pkCard():'');
 }
 function mpBody(){return PM.k==='resep'?mpTableR():PM.k==='bahan'?mpTableB(mpFiltered()):mpTable(mpFiltered())}
@@ -1464,7 +1536,7 @@ function pkRows(){
 }
 function pkCard(){
  const l=pkRows();
- return`<div class="card" style="margin-top:14px"><div class="ch"><div><h4>Pemakaian Bahan Baku</h4><p>Terpakai dari penjualan produk beresep (tanpa hitung stok) dan dari catatan produksi. Nilai memakai HPP bahan saat ini.</p></div><span style="display:flex;gap:8px"><select onchange="PM.pk=this.value;render()">${[[7,'7 hari terakhir'],[30,'30 hari terakhir'],[90,'90 hari terakhir']].map(([k,t])=>`<option value="${k}" ${(+PM.pk||30)===k?'selected':''}>${t}</option>`).join('')}</select><button class="btn" onclick="pkCsv()">${ic('dl',16)} CSV</button></span></div>
+ return`<div class="card" style="margin-top:14px"><div class="ch"><div><h4>Pemakaian Bahan Baku</h4><p>Terpakai dari penjualan produk beresep (tanpa hitung stok) dan dari catatan produksi. Nilai memakai HPP bahan saat ini.</p></div><span style="display:flex;gap:8px"><select onchange="PM.pk=this.value;render()">${[[7,'7 hari terakhir'],[30,'30 hari terakhir'],[90,'90 hari terakhir']].map(([k,t])=>`<option value="${k}" ${(+PM.pk||30)===k?'selected':''}>${t}</option>`).join('')}</select><button class="btn" onclick="pkCsv()">${ic('dl',16)} Excel</button></span></div>
  <div class="tw">${l.length?`<table><tr><th>Bahan</th><th class="r">Dari penjualan</th><th class="r">Dari produksi</th><th class="r">Total</th><th class="r">Nilai (HPP)</th></tr>${l.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="r">${x.sale?fq(x.sale)+' '+esc(x.unit):'-'}</td><td class="r">${x.prod?fq(x.prod)+' '+esc(x.unit):'-'}</td><td class="r">${fq(x.q)} ${esc(x.unit)}</td><td class="r">${rp(x.val)}</td></tr>`).join('')}<tr><td><b>Total</b></td><td></td><td></td><td></td><td class="r"><b>${rp(sum(l,x=>x.val))}</b></td></tr></table>`:'<div class="empty">Belum ada pemakaian bahan pada rentang ini.</div>'}</div></div>`;
 }
 function pkCsv(){csv('Pemakaian-Bahan',[['Bahan','Satuan','Dari penjualan','Dari produksi','Total','Nilai HPP'],...pkRows().map(x=>[x.name,x.unit,x.sale,x.prod,x.q,x.val])])}
@@ -1665,7 +1737,7 @@ function bkSave(name,rows){
   const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:14},{wch:12},{wch:30},{wch:14},{wch:8},{wch:14},{wch:10},{wch:20},{wch:24}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Stok');XLSX.writeFile(wb,name+'-'+dk(Date.now())+'.xlsx');return;
  }
- csv(name,rows);
+ csvRaw(name,rows);
 }
 function bkNum(s){s=String(s==null?'':s).replace(/rp/ig,'').replace(/\s/g,'');if(!s)return null;if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(',','.');const n=parseFloat(s);return isNaN(n)?NaN:n}
 function bkCsv(txt){
@@ -1787,7 +1859,7 @@ function vMStok(){
  return`<div class="kg"><div class="kc"><small>Jumlah catatan</small><b>${l.length}</b></div><div class="kc"><small>Total stok masuk (tampil)</small><b>${fq(inn)}</b></div></div>
  <div class="card"><div class="tool"><input placeholder="Cari produk, catatan, petugas…" value="${esc(SL.q)}" oninput="SL.q=this.value;slRows()">
  <select onchange="SL.type=this.value;slRows()"><option value="">Semua jenis</option><option value="add" ${SL.type==='add'?'selected':''}>Stok masuk</option><option value="set" ${SL.type==='set'?'selected':''}>Koreksi</option><option value="init" ${SL.type==='init'?'selected':''}>Stok awal</option><option value="sale" ${SL.type==='sale'?'selected':''}>Terjual</option><option value="refund" ${SL.type==='refund'?'selected':''}>Refund</option><option value="adj" ${SL.type==='adj'?'selected':''}>Koreksi kasir</option><option value="out" ${SL.type==='out'?'selected':''}>Keluar (faktur)</option></select>
- <button class="btn" onclick="exportStok()">${ic('dl',16)} CSV</button></div><div class="mut" id="slc" style="margin-bottom:8px"></div><div class="tw" id="slt"></div></div>`;
+ <button class="btn" onclick="exportStok()">${ic('dl',16)} Excel</button></div><div class="mut" id="slc" style="margin-bottom:8px"></div><div class="tw" id="slt"></div></div>`;
 }
 function slRows(){
  const c=$('#slc'),t=$('#slt');if(!c||!t)return;const l=slList();
@@ -1905,7 +1977,7 @@ function vLapPen(d){
  const tabs=[['metode','Metode Pembayaran'],['platform','Platform Online'],['kategori','Kategori'],['varian','Varian'],['topping','Topping']];
  const body={metode:lpMetode,platform:lpPlatform,kategori:lpKategori,varian:lpVarian,topping:lpTopping}[LP.t](d);
  return`<div class="chips">${tabs.map(([k,l])=>`<button class="chip ${LP.t===k?'on':''}" onclick="lpSet('t','${k}')">${l}</button>`).join('')}</div>
- <div class="tool"><select onchange="lpSet('kasir',this.value)"><option value="">Semua kasir</option>${kasirs.map(k=>`<option value="${esc(k)}" ${LP.kasir===k?'selected':''}>${esc(k)}</option>`).join('')}</select><button class="btn" onclick="lpExport()">${ic('dl',16)} CSV</button></div>`+body;
+ <div class="tool"><select onchange="lpSet('kasir',this.value)"><option value="">Semua kasir</option>${kasirs.map(k=>`<option value="${esc(k)}" ${LP.kasir===k?'selected':''}>${esc(k)}</option>`).join('')}</select><button class="btn" onclick="lpExport()">${ic('dl',16)} Excel</button></div>`+body;
 }
 /* -- platform online: kotor, potongan, bersih -- */
 function lpPlatData(d){
@@ -2049,7 +2121,7 @@ function vPesanan(){
  return`<div class="kg"><div class="kc hero"><small>DP diterima, belum jadi penjualan</small><b>${rp(dpOpen)}</b><div style="margin-top:6px;opacity:.9">${op.length} pesanan menunggu</div></div>
  <div class="kc"><small>Sisa tagihan pesanan</small><b>${rp(sisa)}</b></div>
  <div class="kc"><small>Lewat tanggal ambil</small><b style="color:var(--${late.length?'bad':'ok'})">${late.length}</b></div></div>
- <div class="card"><div class="tool"><b>Daftar Pesanan</b><span class="mut">&nbsp;yang menunggu + yang selesai atau batal pada ${esc(perLabel())}</span><span style="margin-left:auto"><button class="btn" onclick="psCsv()">${ic('dl',16)} CSV</button></span></div>
+ <div class="card"><div class="tool"><b>Daftar Pesanan</b><span class="mut">&nbsp;yang menunggu + yang selesai atau batal pada ${esc(perLabel())}</span><span style="margin-left:auto"><button class="btn" onclick="psCsv()">${ic('dl',16)} Excel</button></span></div>
  <div class="tw">${l.length?`<table><tr><th>No</th><th>Pelanggan</th><th>Ambil</th><th>Item</th><th class="r">Total</th><th class="r">DP</th><th class="r">Sisa</th><th>Status</th></tr>${l.map(q=>{const st=PSB[q.status]||['-',''],dp=psDpB(q);return`<tr class="cl" onclick="psView('${esc(q.id)}')"><td>${esc(q.no)}</td><td><b>${esc(q.name)}</b></td><td>${q.pickup?dk(new Date(q.pickup+'T00:00').getTime()):'-'}</td><td>${(q.items||[]).slice(0,2).map(i=>esc(i.name)+' ×'+fq(i.qty)).join(', ')}${(q.items||[]).length>2?'…':''}</td><td class="r">${rp(q.total)}</td><td class="r">${rp(dp)}</td><td class="r">${q.status==='open'?rp(Math.max(0,q.total-dp)):'-'}</td><td><span class="badge ${st[1]}">${st[0]}</span></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada pesanan. Pesanan dengan DP dibuat dari aplikasi kasir.</div>'}</div></div>
  <div class="hint" style="margin-top:8px">DP dicatat sebagai uang masuk saat diterima dan sebagai kewajiban (Uang Muka Pelanggan). Penjualan tercatat saat pesanan dilunasi, dan DP otomatis menjadi bagian pembayarannya.</div>`;
 }
@@ -2248,7 +2320,7 @@ function vKomisi(){
  <div class="kg"><div class="kc"><small>Total komisi · ${esc(ymLabel(CM.m))}</small><b>${rp(totC)}</b></div><div class="kc"><small>Penjualan bersih bulan ini</small><b>${rp(ca.tot)}</b></div><div class="kc"><small>Penjualan tanpa pelayan</small><b>${rp(ca.un)}</b><small>tidak dapat komisi</small></div><div class="kc"><small>Penerima komisi</small><b>${L.filter(r=>r.c>0).length}</b></div></div>
  <div class="card"><div class="ch"><div><h4>Aturan Komisi</h4><p>${esc(ruleTxt(c))}</p></div><button class="btn pri" onclick="commForm()">Atur Komisi</button></div>
  <div class="hint">Penjualan satu nota dibagi rata ke semua orang yang tercatat di “Dilayani oleh”. Dasar hitung: penjualan bersih setelah diskon dan refund, di luar pajak dan service.${c.fallback?' Nota tanpa pelayan dihitung ke kasirnya.':''}</div></div>
- <div class="card"><div class="ch"><div><h4>Komisi per Karyawan</h4><p>Klik baris untuk melihat nota yang dilayani</p></div><button class="btn" onclick="commExport()">${ic('dl',16)} CSV</button></div><div class="tw">${L.length?`<table><tr><th>Karyawan</th><th class="r">Nota dilayani</th><th class="r">Penjualan (bagian)</th><th class="r">Tarif efektif</th><th class="r">Komisi</th><th>Tingkat</th></tr>${L.map(r=>`<tr class="cl" onclick="commDetail('${r.key.replace(/'/g,'')}')"><td><b>${esc(r.name)}</b>${!r.e?' <span class="badge k">tidak terdaftar</span>':r.e.comm===false?' <span class="badge">tanpa komisi</span>':''}${r.e&&r.e.role?'<br><small class="mut">'+esc(r.e.role)+'</small>':''}</td><td class="r">${r.n}</td><td class="r">${rp(r.sales)}</td><td class="r">${r.elig&&c.active?pct(r.rate):'-'}</td><td class="r"><b>${rp(r.c)}</b></td><td><small class="mut">${r.elig?esc(nextTier(c.basis==='team'?ca.team:r.sales,c)):''}</small></td></tr>`).join('')}<tr class="ft"><td>Total</td><td class="r">${sum(L,r=>r.n)}</td><td class="r">${rp(sum(L,r=>r.sales))}</td><td></td><td class="r">${rp(totC)}</td><td></td></tr></table>`:'<div class="empty">Belum ada penjualan atau karyawan</div>'}</div></div>`;
+ <div class="card"><div class="ch"><div><h4>Komisi per Karyawan</h4><p>Klik baris untuk melihat nota yang dilayani</p></div><button class="btn" onclick="commExport()">${ic('dl',16)} Excel</button></div><div class="tw">${L.length?`<table><tr><th>Karyawan</th><th class="r">Nota dilayani</th><th class="r">Penjualan (bagian)</th><th class="r">Tarif efektif</th><th class="r">Komisi</th><th>Tingkat</th></tr>${L.map(r=>`<tr class="cl" onclick="commDetail('${r.key.replace(/'/g,'')}')"><td><b>${esc(r.name)}</b>${!r.e?' <span class="badge k">tidak terdaftar</span>':r.e.comm===false?' <span class="badge">tanpa komisi</span>':''}${r.e&&r.e.role?'<br><small class="mut">'+esc(r.e.role)+'</small>':''}</td><td class="r">${r.n}</td><td class="r">${rp(r.sales)}</td><td class="r">${r.elig&&c.active?pct(r.rate):'-'}</td><td class="r"><b>${rp(r.c)}</b></td><td><small class="mut">${r.elig?esc(nextTier(c.basis==='team'?ca.team:r.sales,c)):''}</small></td></tr>`).join('')}<tr class="ft"><td>Total</td><td class="r">${sum(L,r=>r.n)}</td><td class="r">${rp(sum(L,r=>r.sales))}</td><td></td><td class="r">${rp(totC)}</td><td></td></tr></table>`:'<div class="empty">Belum ada penjualan atau karyawan</div>'}</div></div>`;
 }
 function commDetail(key){
  const r=Object.values(window._ca.rows).find(x=>x.key.replace(/'/g,'')===key);if(!r)return;
@@ -2304,7 +2376,7 @@ function vGaji(){
  const tot=sum(L,x=>x.c.total),paid=sum(L.filter(x=>x.c.paid),x=>x.c.total);
  return`${monthBar(GJ,'setGJ')}
  <div class="kg"><div class="kc"><small>Total gaji · ${esc(ymLabel(GJ.m))}</small><b>${rp(tot)}</b></div><div class="kc"><small>Total komisi</small><b>${rp(sum(L,x=>x.c.comm))}</b></div><div class="kc"><small>Sudah dibayar</small><b style="color:var(--ok)">${rp(paid)}</b></div><div class="kc"><small>Belum dibayar</small><b style="color:var(--${tot-paid>0?'bad':'ok'})">${rp(tot-paid)}</b></div></div>
- <div class="card"><div class="ch"><div><h4>Gaji Karyawan</h4><p>Gaji pokok + tunjangan + komisi + bonus − potongan. Tekan “Bayar” untuk mengunci angka bulan ini.</p></div><button class="btn" onclick="gjExport()">${ic('dl',16)} CSV</button></div><div class="tw">${L.length?`<table><tr><th>Karyawan</th><th class="r">Hari</th><th class="r">Gaji pokok</th><th class="r">Tunjangan</th><th class="r">Komisi</th><th class="r">Bonus</th><th class="r">Potongan</th><th class="r">Total</th><th>Status</th><th></th></tr>${L.map(({e,c})=>`<tr><td><b>${esc(e.name)}</b>${e.role?'<br><small class="mut">'+esc(e.role)+'</small>':''}</td><td class="r">${c.days===''?'-':c.days}</td><td class="r">${rp(c.base)}</td><td class="r">${rp(c.allow)}</td><td class="r">${rp(c.comm)}</td><td class="r">${rp(c.bonus)}</td><td class="r">${c.ded?'−'+rp(c.ded):'-'}</td><td class="r"><b>${rp(c.total)}</b></td><td>${c.paid?'<span class="badge g">Dibayar</span>':'<span class="badge k">Belum</span>'}</td><td style="text-align:right;white-space:nowrap">${c.paid?`<button class="btn sm" onclick="payUnpaid('${e.id}')">Batalkan</button> `:`<button class="btn sm" onclick="payEdit('${e.id}')">Ubah</button> <button class="btn sm pri" onclick="payPaid('${e.id}')">Bayar</button> `}<button class="btn sm" onclick="paySlip('${e.id}')">Slip</button></td></tr>`).join('')}<tr class="ft"><td>Total</td><td></td><td class="r">${rp(sum(L,x=>x.c.base))}</td><td class="r">${rp(sum(L,x=>x.c.allow))}</td><td class="r">${rp(sum(L,x=>x.c.comm))}</td><td class="r">${rp(sum(L,x=>x.c.bonus))}</td><td class="r">${rp(sum(L,x=>x.c.ded))}</td><td class="r">${rp(tot)}</td><td colspan="2"></td></tr></table>`:'<div class="empty">Belum ada karyawan. Tambahkan di menu Data Karyawan.</div>'}</div></div>
+ <div class="card"><div class="ch"><div><h4>Gaji Karyawan</h4><p>Gaji pokok + tunjangan + komisi + bonus − potongan. Tekan “Bayar” untuk mengunci angka bulan ini.</p></div><button class="btn" onclick="gjExport()">${ic('dl',16)} Excel</button></div><div class="tw">${L.length?`<table><tr><th>Karyawan</th><th class="r">Hari</th><th class="r">Gaji pokok</th><th class="r">Tunjangan</th><th class="r">Komisi</th><th class="r">Bonus</th><th class="r">Potongan</th><th class="r">Total</th><th>Status</th><th></th></tr>${L.map(({e,c})=>`<tr><td><b>${esc(e.name)}</b>${e.role?'<br><small class="mut">'+esc(e.role)+'</small>':''}</td><td class="r">${c.days===''?'-':c.days}</td><td class="r">${rp(c.base)}</td><td class="r">${rp(c.allow)}</td><td class="r">${rp(c.comm)}</td><td class="r">${rp(c.bonus)}</td><td class="r">${c.ded?'−'+rp(c.ded):'-'}</td><td class="r"><b>${rp(c.total)}</b></td><td>${c.paid?'<span class="badge g">Dibayar</span>':'<span class="badge k">Belum</span>'}</td><td style="text-align:right;white-space:nowrap">${c.paid?`<button class="btn sm" onclick="payUnpaid('${e.id}')">Batalkan</button> `:`<button class="btn sm" onclick="payEdit('${e.id}')">Ubah</button> <button class="btn sm pri" onclick="payPaid('${e.id}')">Bayar</button> `}<button class="btn sm" onclick="paySlip('${e.id}')">Slip</button></td></tr>`).join('')}<tr class="ft"><td>Total</td><td></td><td class="r">${rp(sum(L,x=>x.c.base))}</td><td class="r">${rp(sum(L,x=>x.c.allow))}</td><td class="r">${rp(sum(L,x=>x.c.comm))}</td><td class="r">${rp(sum(L,x=>x.c.bonus))}</td><td class="r">${rp(sum(L,x=>x.c.ded))}</td><td class="r">${rp(tot)}</td><td colspan="2"></td></tr></table>`:'<div class="empty">Belum ada karyawan. Tambahkan di menu Data Karyawan.</div>'}</div></div>
  <div class="note">Gaji harian dihitung dari jumlah hari karyawan membuka shift di kasir (nama staf kasir harus sama dengan nama karyawan); jumlah hari bisa diubah manual lewat “Ubah”. Gaji yang sudah ditandai “Dibayar” otomatis masuk ke Arus Kas (sebagai Gaji dan Komisi) dan ke Ringkasan Penjualan sebagai biaya operasional, pada tanggal pembayarannya. Jangan catat lagi manual agar tidak dobel.</div>`;
 }
 function gjExport(){csv('Gaji-'+GJ.m,[['Karyawan','Jabatan','Hari','Gaji Pokok','Tunjangan','Komisi','Bonus','Potongan','Total','Status'],...(window._gj||[]).map(({e,c})=>[e.name,e.role||'',c.days,c.base,c.allow,c.comm,c.bonus,c.ded,c.total,c.paid?'Dibayar':'Belum'])])}
@@ -2404,7 +2476,7 @@ function supStats(id,a,b){
 function vPemasok(){
  const[a,b]=range(),l=[...SUP()].sort((x,y)=>((y.active!==false)-(x.active!==false))||String(x.name).localeCompare(String(y.name))),R=l.map(s=>({s,...supStats(s.id,a,b)}));
  return`<div class="kg"><div class="kc"><small>Pemasok aktif</small><b>${l.filter(s=>s.active!==false).length}</b><small>dari ${l.length} terdaftar</small></div><div class="kc"><small>Total pembelian · ${esc(perLabel())}</small><b>${rp(sum(R,r=>r.total))}</b><small>${sum(R,r=>r.n)} faktur</small></div><div class="kc"><small>Hutang berjalan (semua periode)</small><b style="color:var(--${sum(R,r=>r.left)>0?'bad':'ok'})">${rp(sum(R,r=>r.left))}</b></div></div>
- <div class="card"><div class="ch"><div><h4>Daftar Pemasok</h4><p>Klik baris untuk laporan pembelian dari pemasok itu</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="supExport()">${ic('dl',16)} CSV</button><button class="btn pri" onclick="supForm()">${ic('plus',16)} Tambah Pemasok</button></div></div><div class="tw">${l.length?`<table><tr><th>Pemasok</th><th>Telepon</th><th class="r">Faktur</th><th class="r">Total pembelian</th><th class="r">Dibayar</th><th class="r">Hutang</th><th>Status</th><th></th></tr>${R.map(r=>`<tr class="cl" onclick="supDetail('${r.s.id}')"><td><b>${esc(r.s.name)}</b>${r.s.address?'<br><small class="mut">'+esc(r.s.address)+'</small>':''}</td><td>${esc(r.s.phone||'-')}</td><td class="r">${r.n}</td><td class="r">${rp(r.total)}</td><td class="r">${rp(r.paid)}</td><td class="r"><b style="color:var(--${r.left>0?'bad':'ok'})">${rp(r.left)}</b></td><td>${r.s.active!==false?'<span class="badge g">Aktif</span>':'<span class="badge v">Nonaktif</span>'}</td><td style="text-align:right" onclick="event.stopPropagation()"><button class="btn sm" onclick="supForm('${r.s.id}')">Ubah</button></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada pemasok. Tekan “Tambah Pemasok”.</div>'}</div></div>`;
+ <div class="card"><div class="ch"><div><h4>Daftar Pemasok</h4><p>Klik baris untuk laporan pembelian dari pemasok itu</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="supExport()">${ic('dl',16)} Excel</button><button class="btn pri" onclick="supForm()">${ic('plus',16)} Tambah Pemasok</button></div></div><div class="tw">${l.length?`<table><tr><th>Pemasok</th><th>Telepon</th><th class="r">Faktur</th><th class="r">Total pembelian</th><th class="r">Dibayar</th><th class="r">Hutang</th><th>Status</th><th></th></tr>${R.map(r=>`<tr class="cl" onclick="supDetail('${r.s.id}')"><td><b>${esc(r.s.name)}</b>${r.s.address?'<br><small class="mut">'+esc(r.s.address)+'</small>':''}</td><td>${esc(r.s.phone||'-')}</td><td class="r">${r.n}</td><td class="r">${rp(r.total)}</td><td class="r">${rp(r.paid)}</td><td class="r"><b style="color:var(--${r.left>0?'bad':'ok'})">${rp(r.left)}</b></td><td>${r.s.active!==false?'<span class="badge g">Aktif</span>':'<span class="badge v">Nonaktif</span>'}</td><td style="text-align:right" onclick="event.stopPropagation()"><button class="btn sm" onclick="supForm('${r.s.id}')">Ubah</button></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada pemasok. Tekan “Tambah Pemasok”.</div>'}</div></div>`;
 }
 function supExport(){
  const[a,b]=range();
@@ -2443,7 +2515,7 @@ function purList(){
 function vFakturBeli(){
  const[a,b]=range(),all=PUR().filter(f=>f.ts>=a&&f.ts<b),l=purList();
  return`<div class="kg"><div class="kc"><small>Jumlah faktur · ${esc(perLabel())}</small><b>${all.length}</b></div><div class="kc"><small>Total pembelian</small><b>${rp(sum(all,purNet))}</b></div><div class="kc"><small>Sudah dibayar</small><b style="color:var(--ok)">${rp(sum(all,purPaid))}</b></div><div class="kc"><small>Belum dibayar</small><b style="color:var(--${sum(all,purLeft)>0?'bad':'ok'})">${rp(sum(all,purLeft))}</b></div></div>
- <div class="card"><div class="tool"><select onchange="FB.st=this.value;render()"><option value="">Semua status</option><option value="open" ${FB.st==='open'?'selected':''}>Masih ada hutang</option><option value="lunas" ${FB.st==='lunas'?'selected':''}>Lunas</option></select><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="purExport()">${ic('dl',16)} CSV</button><button class="btn pri" onclick="purForm()">${ic('plus',16)} Faktur Baru</button></span></div>
+ <div class="card"><div class="tool"><select onchange="FB.st=this.value;render()"><option value="">Semua status</option><option value="open" ${FB.st==='open'?'selected':''}>Masih ada hutang</option><option value="lunas" ${FB.st==='lunas'?'selected':''}>Lunas</option></select><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="purExport()">${ic('dl',16)} Excel</button><button class="btn pri" onclick="purForm()">${ic('plus',16)} Faktur Baru</button></span></div>
  <div class="tw">${l.length?`<table><tr><th>No. faktur</th><th>Tanggal</th><th>Pemasok</th><th class="r">Total</th><th class="r">Dibayar</th><th class="r">Sisa</th><th>Jatuh tempo</th><th>Status</th></tr>${l.map(f=>`<tr class="cl" onclick="purView('${f.id}')"><td><b>${esc(f.no)}</b></td><td>${dk(f.ts)}</td><td>${esc(f.supplierName||'-')}</td><td class="r">${rp(f.total)}</td><td class="r">${rp(purPaid(f))}</td><td class="r"><b>${rp(purLeft(f))}</b></td><td>${f.due?dk(f.due):'-'}${f.due&&purLeft(f)>0&&f.due<Date.now()?' <span class="badge v">lewat</span>':''}</td><td><span class="badge ${PST[purSt(f)][1]}">${PST[purSt(f)][0]}</span></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada faktur pada periode ini.</div>'}</div></div>`;
 }
 function purExport(){
@@ -2744,7 +2816,7 @@ function jCheck(){const J=jBuild();let bad=0;J.ents.forEach(e=>{if(Math.abs(sum(
 function vCoa(){
  const s=jSums(0,asOf()),l=aSorted(),kids=id=>l.filter(m=>m.parent===id),tot=id=>jSaldo(s,id)+sum(kids(id),k=>tot(k.id));
  const rows=[];l.filter(m=>!m.parent||!jBuild().meta[m.parent]).forEach(m=>{rows.push([m,0]);kids(m.id).forEach(k=>rows.push([k,1]))});
- return`${akNote()}<div class="card"><div class="tool"><span class="mut">Saldo per ${esc(asLbl(asOf()))}</span><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="coaCsv()">${ic('dl',16)} CSV</button><button class="btn pri" onclick="akunNew('','')">+ Akun Induk</button><button class="btn" onclick="plotOpen()">Plot Akun</button><button class="btn pri" onclick="akunSetup()">Atur Saldo Awal</button></span></div>
+ return`${akNote()}<div class="card"><div class="tool"><span class="mut">Saldo per ${esc(asLbl(asOf()))}</span><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="coaCsv()">${ic('dl',16)} Excel</button><button class="btn pri" onclick="akunNew('','')">+ Akun Induk</button><button class="btn" onclick="plotOpen()">Plot Akun</button><button class="btn pri" onclick="akunSetup()">Atur Saldo Awal</button></span></div>
  <div class="tw"><table><tr><th>Kode</th><th>Nama akun</th><th>Jenis</th><th class="r">Saldo</th><th></th></tr>${rows.map(([m,d])=>{const hk=kids(m.id).length;return`<tr class="cl" onclick="${m.custom?'akunNew':'akunEdit'}('${esc(m.id)}')"><td><b>${esc(m.code)}</b></td><td style="${d?'padding-left:26px':''}${hk?';font-weight:600':''}">${d?'↳ ':''}${esc(m.name)}</td><td>${m.hpp?'HPP':akKind(m)}</td><td class="r"${hk?' style="font-weight:600"':''}>${rp(hk?tot(m.id):jSaldo(s,m.id))}</td><td style="text-align:right">${!m.parent&&akunPar(m)?`<button class="btn sm" title="Tambah sub akun di bawah ${esc(m.name)}" onclick="event.stopPropagation();akunNew('','${esc(m.id)}')">+ Sub</button>`:''}</td></tr>`}).join('')}</table></div>
  <div class="hint" style="margin-top:8px">Akun rekening mengikuti menu Rekening, dan akun beban mengikuti kategori pengeluaran. Ketuk satu baris untuk mengubah. Pakai <b>+ Akun Induk</b> untuk membuat kelompok akun baru, atau <b>+ Sub</b> di tiap baris untuk menambah sub akunnya; kodenya otomatis mengikuti induknya.</div></div>`;
 }
@@ -2773,7 +2845,7 @@ function jEntries(){const[a,b]=range();return jBuild().ents.filter(e=>e.ts>=a&&e
 function vJurnal(){
  const J=jBuild(),l=jEntries(),srcs=[...new Set(J.ents.map(e=>e.src))],td=sum(l,e=>sum(e.lines,x=>x[1])),tc=sum(l,e=>sum(e.lines,x=>x[2])),show=l.slice(-300).reverse(),bad=jCheck();
  return`${akNote()}<div class="kg"><div class="kc"><small>Jumlah jurnal · ${esc(perLabel())}</small><b>${l.length}</b></div><div class="kc"><small>Total debit</small><b>${rp(td)}</b></div><div class="kc"><small>Total kredit</small><b style="color:var(--${td===tc?'ok':'bad'})">${rp(tc)}</b><small>${td===tc&&!bad?'Seimbang':'Tidak seimbang'}</small></div></div>
- <div class="card"><div class="tool"><select onchange="JL.src=this.value;render()"><option value="">Semua sumber</option>${srcs.map(s=>`<option ${JL.src===s?'selected':''}>${esc(s)}</option>`).join('')}</select><span style="margin-left:auto"><button class="btn" onclick="jurnalCsv()">${ic('dl',16)} CSV</button></span></div>
+ <div class="card"><div class="tool"><select onchange="JL.src=this.value;render()"><option value="">Semua sumber</option>${srcs.map(s=>`<option ${JL.src===s?'selected':''}>${esc(s)}</option>`).join('')}</select><span style="margin-left:auto"><button class="btn" onclick="jurnalCsv()">${ic('dl',16)} Excel</button></span></div>
  <div class="tw">${show.length?`<table><tr><th>Tanggal</th><th>No. jurnal</th><th>Akun</th><th>Keterangan</th><th class="r">Debit</th><th class="r">Kredit</th></tr>${show.map(e=>e.lines.map((x,i)=>`<tr${i?'':' style="border-top:2px solid var(--line,#e5e7eb)"'}><td>${i?'':dk(e.ts)}</td><td>${i?'':'<b>'+e.no+'</b>'}</td><td style="${x[2]?'padding-left:26px':''}">${esc(J.meta[x[0]]?J.meta[x[0]].code+' '+J.meta[x[0]].name:x[0])}</td><td>${i?'':esc(e.desc)}</td><td class="r">${x[1]?rp(x[1]):''}</td><td class="r">${x[2]?rp(x[2]):''}</td></tr>`).join('')).join('')}</table>`:'<div class="empty">Belum ada jurnal pada periode ini.</div>'}</div>
  ${l.length>300?`<div class="hint">Menampilkan 300 jurnal terbaru dari ${l.length}. CSV berisi semuanya.</div>`:''}</div>`;
 }
@@ -2788,7 +2860,7 @@ function bukuRows(id){
 function vBuku(){
  const l=aSorted();if(!JL.acc||!jBuild().meta[JL.acc])JL.acc=(l.find(m=>m.type==='A')||l[0]).id;
  const B=bukuRows(JL.acc);
- return`${akNote()}<div class="card"><div class="tool"><select onchange="JL.acc=this.value;render()">${l.map(m=>`<option value="${esc(m.id)}" ${m.id===JL.acc?'selected':''}>${esc(m.code)} · ${esc(m.name)}</option>`).join('')}</select><span style="margin-left:auto"><button class="btn" onclick="bukuCsv()">${ic('dl',16)} CSV</button></span></div>
+ return`${akNote()}<div class="card"><div class="tool"><select onchange="JL.acc=this.value;render()">${l.map(m=>`<option value="${esc(m.id)}" ${m.id===JL.acc?'selected':''}>${esc(m.code)} · ${esc(m.name)}</option>`).join('')}</select><span style="margin-left:auto"><button class="btn" onclick="bukuCsv()">${ic('dl',16)} Excel</button></span></div>
  <div class="kg"><div class="kc"><small>Saldo awal periode</small><b>${rp(B.open)}</b></div><div class="kc"><small>Mutasi debit / kredit</small><b>${rp(sum(B.rows,r=>r.dr))} / ${rp(sum(B.rows,r=>r.cr))}</b></div><div class="kc"><small>Saldo akhir</small><b>${rp(B.close)}</b></div></div>
  <div class="tw">${B.rows.length?`<table><tr><th>Tanggal</th><th>No. jurnal</th><th>Keterangan</th><th class="r">Debit</th><th class="r">Kredit</th><th class="r">Saldo</th></tr>${B.rows.map(r=>`<tr><td>${dk(r.ts)}</td><td>${r.no}</td><td>${esc(r.desc)}</td><td class="r">${r.dr?rp(r.dr):''}</td><td class="r">${r.cr?rp(r.cr):''}</td><td class="r"><b>${rp(r.bal)}</b></td></tr>`).join('')}</table>`:'<div class="empty">Tidak ada mutasi pada periode ini.</div>'}</div></div>`;
 }
@@ -2800,7 +2872,7 @@ function lapData(){
 }
 function vLapKeu(){
  const T=[['ns','Neraca Saldo'],['lr','Laba Rugi'],['nr','Neraca']],d=lapData();
- return`${akNote()}<div class="card"><div class="tool">${T.map(t=>`<button class="btn ${JL.t===t[0]?'pri':''}" onclick="JL.t='${t[0]}';render()">${t[1]}</button>`).join('')}<span style="margin-left:auto"><button class="btn" onclick="lapCsv()">${ic('dl',16)} CSV</button></span></div>${JL.t==='lr'?lapLR(d):JL.t==='nr'?lapNR(d):lapNS(d)}</div>`;
+ return`${akNote()}<div class="card"><div class="tool">${T.map(t=>`<button class="btn ${JL.t===t[0]?'pri':''}" onclick="JL.t='${t[0]}';render()">${t[1]}</button>`).join('')}<span style="margin-left:auto"><button class="btn" onclick="lapCsv()">${ic('dl',16)} Excel</button></span></div>${JL.t==='lr'?lapLR(d):JL.t==='nr'?lapNR(d):lapNS(d)}</div>`;
 }
 function lapNS(d){
  const rows=d.l.map(m=>{const o=d.sA[m.id]||{dr:0,cr:0},n=o.dr-o.cr;return{m,dr:n>0?n:0,cr:n<0?-n:0}}).filter(r=>r.dr||r.cr),td=sum(rows,r=>r.dr),tc=sum(rows,r=>r.cr);
@@ -2847,10 +2919,49 @@ function lapNR(d){
  <div class="hint">${Math.abs(N.ta-N.tl-N.te)<=1?'Seimbang: aset sama dengan kewajiban ditambah ekuitas.':'Tidak seimbang. Selisih '+rp(N.ta-N.tl-N.te)+'.'}${N.adj?` Persediaan dicocokkan ke nilai stok fisik (stok × harga modal) hari ini; selisihnya ${rp(N.adj)} dicatat sebagai penyesuaian di ekuitas.`:''}</div>`;
 }
 function lapCsv(){
- const d=lapData();
- if(JL.t==='lr'){const L=lrData(d);csv('Laba-Rugi',[['Pos','Nilai'],...(L.sal.length>1?L.sal.map(r=>[(r.dp?'  ':'')+r.m.name,r.kids.length?r.sub:r.v]):[['Penjualan',L.jual]]),['Retur penjualan',L.ret],...(L.hr.length>1?L.hr.map(r=>[(r.dp?'  ':'')+r.m.name,-(r.kids.length?r.sub:r.v)]):[['HPP',-L.hpp]]),['Laba kotor',L.gp],['Pendapatan lain',L.lain],...L.beban.map(r=>[(r.dp?'  ':'')+r.m.name,-(r.kids.length?r.sub:r.v)]),['Total beban',-L.tb],['Laba bersih',L.net]])}
- else if(JL.t==='nr'){const N=nrData(d);csv('Neraca',[['Pos','Nilai'],...N.A.map(x=>[x.n,x.v]),['Total aset',N.ta],...N.Lb.map(x=>[x.n,x.v]),['Total kewajiban',N.tl],...N.Eq.map(x=>[x.n,x.v]),['Total ekuitas',N.te]])}
- else csv('Neraca-Saldo',[['Kode','Akun','Debit','Kredit'],...d.l.map(m=>{const o=d.sA[m.id]||{dr:0,cr:0},n=o.dr-o.cr;return[m.code,m.name,n>0?n:0,n<0?-n:0]}).filter(r=>r[2]||r[3])]);
+ const d=lapData(),per=xlsPer(d),nm=m=>(m.code?'['+m.code+'] ':'')+m.name;
+ if(JL.t==='lr'){
+  const L=lrData(d),inc=L.jual+L.ret,pc=v=>inc?v/inc:'',H=xlsHead('LAPORAN LABA RUGI',per,3),R=H.rows;
+  const sec=t=>R.push({c:[{v:t,s:5},null,null]}),ln=(t,v,k)=>R.push({c:[{v:t,s:k?9:6},{v:v,s:7},{v:pc(v),s:8}]}),tt=(t,v)=>R.push({c:[{v:t,s:10},{v:v,s:11},{v:pc(v),s:12}]}),gr=(t,v)=>R.push({c:[{v:t,s:13},{v:v,s:14},{v:pc(v),s:15}],h:20});
+  const lines=a=>a.forEach(r=>ln(nm(r.m),r.kids.length?r.sub:r.v,r.dp));
+  R.push({c:[{v:'Description',s:3},{v:'Total',s:4},{v:'% of Income',s:4}],h:22});
+  sec('Income');
+  if(L.sal.length>1)lines(L.sal);else ln('Penjualan',L.jual);
+  if(L.ret)ln('Retur Penjualan',L.ret);
+  tt('Total Income',inc);
+  sec('Cost of Goods Sold');
+  if(L.hr.length>1)lines(L.hr);else ln('Harga Pokok Penjualan',L.hpp);
+  tt('Total Cost of Goods Sold',L.hpp);
+  gr('GROSS PROFIT',L.gp);
+  sec('Expense');lines(L.beban);
+  tt('Total Expense',L.tb);
+  gr('NET OPERATING INCOME',L.gp-L.tb);
+  sec('Other Income');ln('Pendapatan Lain-Lain',L.lain);
+  tt('Total Other Income',L.lain);
+  gr('NET INCOME BEFORE SAVING',L.net);
+  return xlsSave('Laba-Rugi',{sheet:'Laba Rugi',cols:[48,22,14],rows:R,merges:H.merges});
+ }
+ if(JL.t==='nr'){
+  const N=nrData(d),H=xlsHead('NERACA',xlsAs(d),2),R=H.rows;
+  const sec=t=>R.push({c:[{v:t,s:5},null]}),ln=(t,v)=>R.push({c:[{v:t,s:9},{v:v,s:7}]}),tt=(t,v)=>R.push({c:[{v:t,s:10},{v:v,s:11}]}),gr=(t,v)=>R.push({c:[{v:t,s:13},{v:v,s:14}],h:20}),sb=t=>R.push({c:[{v:t,s:6},{v:'',s:7}]});
+  R.push({c:[{v:'Description',s:3},{v:'Total',s:4}],h:22});
+  sec('Aset');
+  [['lancar','Aset Lancar'],['tetap','Aset Tetap']].forEach(([k,t])=>{const l=N.A.filter(x=>x.sub===k);if(!l.length)return;sb(t);l.forEach(x=>ln(x.n,x.v));tt('Total '+t,sum(l,x=>x.v))});
+  gr('TOTAL ASET',N.ta);
+  sec('Kewajiban');
+  [['pendek','Kewajiban Jangka Pendek'],['panjang','Kewajiban Jangka Panjang']].forEach(([k,t])=>{const l=N.Lb.filter(x=>(x.sub||'pendek')===k);if(!l.length)return;sb(t);l.forEach(x=>ln(x.n,x.v));tt('Total '+t,sum(l,x=>x.v))});
+  gr('TOTAL KEWAJIBAN',N.tl);
+  sec('Ekuitas');N.Eq.forEach(x=>ln(x.n,x.v));
+  gr('TOTAL EKUITAS',N.te);
+  gr('KEWAJIBAN + EKUITAS',N.tl+N.te);
+  return xlsSave('Neraca',{sheet:'Neraca',cols:[52,22],rows:R,merges:H.merges});
+ }
+ const rows=d.l.map(m=>{const o=d.sA[m.id]||{dr:0,cr:0},n=o.dr-o.cr;return{m,dr:n>0?n:0,cr:n<0?-n:0}}).filter(r=>r.dr||r.cr);
+ const H=xlsHead('NERACA SALDO',xlsAs(d),4),R=H.rows;
+ R.push({c:[{v:'Kode',s:3},{v:'Akun',s:3},{v:'Debit',s:4},{v:'Kredit',s:4}],h:22});
+ rows.forEach(r=>R.push({c:[{v:r.m.code||'',s:18},{v:r.m.name,s:6},{v:r.dr||'',s:16},{v:r.cr||'',s:16}]}));
+ R.push({c:[{v:'',s:13},{v:'TOTAL',s:13},{v:sum(rows,r=>r.dr),s:14},{v:sum(rows,r=>r.cr),s:14}],h:20});
+ xlsSave('Neraca-Saldo',{sheet:'Neraca Saldo',cols:[12,44,22,22],rows:R,merges:H.merges});
 }
 
 /* ---------- Faktur Penjualan, piutang, dan penjualan per pelanggan ---------- */
@@ -2883,7 +2994,7 @@ function sinList(){const[a,b]=range();return SIN().filter(f=>f.ts>=a&&f.ts<b&&(!
 function vFakturJual(){
  const[a,b]=range(),all=SIN().filter(f=>f.ts>=a&&f.ts<b),l=sinList();
  return`<div class="kg"><div class="kc"><small>Jumlah faktur · ${esc(perLabel())}</small><b>${all.length}</b></div><div class="kc"><small>Total penjualan faktur</small><b>${rp(sum(all,f=>Math.max(0,(+f.total||0)-sinRet(f))))}</b></div><div class="kc"><small>Sudah diterima</small><b style="color:var(--ok)">${rp(sum(all,sinPaid))}</b></div><div class="kc"><small>Belum dibayar pelanggan</small><b style="color:var(--${sum(all,sinLeft)>0?'bad':'ok'})">${rp(sum(all,sinLeft))}</b></div></div>
- <div class="card"><div class="tool"><select onchange="FJ.st=this.value;render()"><option value="">Semua status</option><option value="open" ${FJ.st==='open'?'selected':''}>Masih ada piutang</option><option value="lunas" ${FJ.st==='lunas'?'selected':''}>Lunas</option></select><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="sinExport()">${ic('dl',16)} CSV</button><button class="btn pri" onclick="sinForm()">${ic('plus',16)} Faktur Baru</button></span></div>
+ <div class="card"><div class="tool"><select onchange="FJ.st=this.value;render()"><option value="">Semua status</option><option value="open" ${FJ.st==='open'?'selected':''}>Masih ada piutang</option><option value="lunas" ${FJ.st==='lunas'?'selected':''}>Lunas</option></select><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="sinExport()">${ic('dl',16)} Excel</button><button class="btn pri" onclick="sinForm()">${ic('plus',16)} Faktur Baru</button></span></div>
  <div class="tw">${l.length?`<table><tr><th>No. faktur</th><th>Tanggal</th><th>Pelanggan</th><th class="r">Total</th><th class="r">Diterima</th><th class="r">Sisa</th><th>Jatuh tempo</th><th>Status</th></tr>${l.map(f=>`<tr class="cl" onclick="sinView('${f.id}')"><td><b>${esc(f.no)}</b></td><td>${dk(f.ts)}</td><td>${esc(f.customerName||'-')}</td><td class="r">${rp(f.total)}</td><td class="r">${rp(sinPaid(f))}</td><td class="r"><b>${rp(sinLeft(f))}</b></td><td>${f.due?dk(f.due):'-'}${f.due&&sinLeft(f)>0&&f.due<Date.now()?' <span class="badge v">lewat</span>':''}</td><td><span class="badge ${SPST[sinSt(f)][1]}">${SPST[sinSt(f)][0]}</span></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada faktur penjualan pada periode ini.</div>'}</div></div>`;
 }
 function sinExport(){csv('Faktur-Penjualan',[['No Faktur','Tanggal','Pelanggan','Diskon','Ongkir','PPN','Total','Diterima','Sisa','Jatuh Tempo','Status'],...sinList().map(f=>[f.no,dk(f.ts),f.customerName||'',f.disc||0,f.ship||0,f.tax||0,f.total,sinPaid(f),sinLeft(f),f.due?dk(f.due):'',SPST[sinSt(f)][0]])])}
@@ -3019,7 +3130,7 @@ function piuCard(i){
  const r=(window._piu||[])[i];if(!r)return;const l=piuLedger(r),kb=kbData()[r.key];
  dlg(`<h3>Kartu Piutang · ${esc(r.name)}</h3><div class="mut" style="margin-bottom:8px">Saldo akhir <b>${rp(l.length?l[l.length-1].bal:0)}</b></div>
  <div class="tw"><table><tr><th>Tanggal</th><th>Keterangan</th><th class="r">Piutang +</th><th class="r">Terima −</th><th class="r">Saldo</th></tr>${l.map(x=>`<tr><td>${dk(x.ts)}</td><td>${esc(x.d)}</td><td class="r">${x.plus?rp(x.plus):''}</td><td class="r">${x.minus?rp(x.minus):''}</td><td class="r"><b>${rp(x.bal)}</b></td></tr>`).join('')}</table></div>
- <div class="acts2">${kb&&kb.left>0?`<button class="btn pri" onclick="kbPayForm(${i})">Terima Pembayaran Kasbon</button>`:''}<button class="btn" onclick="piuCardCsv(${i})">${ic('dl',16)} CSV</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
+ <div class="acts2">${kb&&kb.left>0?`<button class="btn pri" onclick="kbPayForm(${i})">Terima Pembayaran Kasbon</button>`:''}<button class="btn" onclick="piuCardCsv(${i})">${ic('dl',16)} Excel</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
 }
 function piuCardCsv(i){const r=window._piu[i];csv('Kartu-Piutang-'+r.name,[['Tanggal','Keterangan','Piutang +','Terima −','Saldo'],...piuLedger(r).map(x=>[dk(x.ts),x.d,x.plus,x.minus,x.bal])])}
 function kbPayForm(i){
@@ -3046,7 +3157,7 @@ function vPlgLap(){
  const rows=plgData(),tot=sum(rows,r=>r.total),q=PLG.q.toLowerCase(),l=rows.filter(r=>!q||r.name.toLowerCase().includes(q));
  window._plg=l;
  return`<div class="kg"><div class="kc"><small>Pelanggan bertransaksi · ${esc(perLabel())}</small><b>${rows.filter(r=>r.key.indexOf('n:')!==0).length}</b></div><div class="kc"><small>Total penjualan</small><b>${rp(tot)}</b></div><div class="kc"><small>Laba kotor</small><b>${rp(sum(rows,r=>r.profit))}</b></div></div>
- <div class="card"><div class="tool"><input placeholder="Cari pelanggan…" value="${esc(PLG.q)}" oninput="PLG.q=this.value;render()"><span style="margin-left:auto"><button class="btn" onclick="plgCsv()">${ic('dl',16)} CSV</button></span></div>
+ <div class="card"><div class="tool"><input placeholder="Cari pelanggan…" value="${esc(PLG.q)}" oninput="PLG.q=this.value;render()"><span style="margin-left:auto"><button class="btn" onclick="plgCsv()">${ic('dl',16)} Excel</button></span></div>
  <div class="tw">${l.length?`<table><tr><th>Pelanggan</th><th class="r">Transaksi</th><th class="r">Total</th><th class="r">Rata-rata</th><th class="r">Laba kotor</th><th class="r">Porsi</th></tr>${l.map((r,i)=>`<tr class="cl" onclick="plgDetail(${i})"><td><b>${esc(r.name)}</b></td><td class="r">${r.n}</td><td class="r">${rp(r.total)}</td><td class="r">${rp(r.n?r.total/r.n:0)}</td><td class="r">${rp(r.profit)}</td><td class="r">${tot?Math.round(r.total/tot*100):0}%</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada penjualan pada periode ini.</div>'}</div></div>`;
 }
 function plgCsv(){csv('Penjualan-per-Pelanggan',[['Pelanggan','Transaksi','Total','Laba Kotor'],...(window._plg||[]).map(r=>[r.name,r.n,r.total,r.profit])])}
@@ -3081,7 +3192,7 @@ function vHutang(){
  <div class="tw">${rows.length?`<table><tr><th>Pemasok</th><th class="r">Faktur</th>${AGE.map(x=>`<th class="r">${x}</th>`).join('')}<th class="r">Total</th></tr>${rows.map(r=>`<tr class="cl" onclick="hutCard('${esc(r.id||'')}','${esc(r.name).replace(/'/g,'')}')"><td><b>${esc(r.name)}</b></td><td class="r">${r.n}</td>${r.a.map((x,i)=>`<td class="r"${i>=3&&x?' style="color:var(--bad)"':''}>${x?rp(x):'-'}</td>`).join('')}<td class="r"><b>${rp(r.t)}</b></td></tr>`).join('')}<tr class="ft"><td>Total</td><td class="r">${o.length}</td>${col.map(x=>`<td class="r">${rp(x)}</td>`).join('')}<td class="r">${rp(tot)}</td></tr></table>`:'<div class="empty">Tidak ada hutang. Semua faktur sudah lunas.</div>'}</div>
  ${st>0?`<div class="hint" style="margin-top:8px">Catatan: ada ${rp(st)} pembelian “belum dibayar” dari Isi Stok cepat yang belum berupa faktur, jadi belum masuk laporan ini. Catat lewat Faktur Pembelian supaya bisa dilunasi.</div>`:''}</div>
  <div class="card"><h4>Riwayat Pembayaran Hutang</h4><p>Pembayaran ke pemasok · ${esc(perLabel())}</p>
- <div class="tool"><b>${rp(sum(pays,x=>x.amt))}</b><span class="mut">&nbsp;${pays.length} pembayaran</span><span style="margin-left:auto"><button class="btn" onclick="hutPayExport()">${ic('dl',16)} CSV</button></span></div>
+ <div class="tool"><b>${rp(sum(pays,x=>x.amt))}</b><span class="mut">&nbsp;${pays.length} pembayaran</span><span style="margin-left:auto"><button class="btn" onclick="hutPayExport()">${ic('dl',16)} Excel</button></span></div>
  <div class="tw">${pays.length?`<table><tr><th>Tanggal</th><th>Faktur</th><th>Pemasok</th><th>Rekening</th><th class="r">Jumlah</th></tr>${pays.map(p=>`<tr><td>${fmtT(p.ts)}</td><td>${esc(p.no)}</td><td>${esc(p.sup)}</td><td>${esc(p.acc)}</td><td class="r">${rp(p.amt)}</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada pembayaran pada periode ini.</div>'}</div></div>`;
 }
 function hutExport(){
@@ -3100,7 +3211,7 @@ function hutCard(id,name){
  const l=hutLedger(id,name);
  dlg(`<h3>Kartu Hutang · ${esc(name)}</h3><div class="mut" style="margin-bottom:8px">Saldo akhir <b>${rp(l.length?l[l.length-1].bal:0)}</b></div>
  <div class="tw"><table><tr><th>Tanggal</th><th>Keterangan</th><th class="r">Hutang +</th><th class="r">Bayar −</th><th class="r">Saldo</th></tr>${l.map(x=>`<tr><td>${dk(x.ts)}</td><td>${esc(x.d)}</td><td class="r">${x.plus?rp(x.plus):''}</td><td class="r">${x.minus?rp(x.minus):''}</td><td class="r"><b>${rp(x.bal)}</b></td></tr>`).join('')}</table></div>
- <div class="acts2"><button class="btn" onclick="hutCardCsv('${esc(id||'')}','${esc(name).replace(/'/g,'')}')">${ic('dl',16)} CSV</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
+ <div class="acts2"><button class="btn" onclick="hutCardCsv('${esc(id||'')}','${esc(name).replace(/'/g,'')}')">${ic('dl',16)} Excel</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
 }
 function hutCardCsv(id,name){csv('Kartu-Hutang-'+name,[['Tanggal','Keterangan','Hutang +','Bayar −','Saldo'],...hutLedger(id,name).map(x=>[dk(x.ts),x.d,x.plus,x.minus,x.bal])])}
 function purView(id){
