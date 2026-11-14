@@ -1,0 +1,70 @@
+[
+  {
+    "id": "akuntansi-2026-11",
+    "judul": "Akuntansi lebih rapi: Plot COA & sub akun",
+    "teks": "Sesuaikan akun dengan COA usahamu. Kode akun dibuat otomatis, laba rugi ikut menyesuaikan.",
+    "tombol": "Pelajari di WhatsApp",
+    "link": "wa:Halo, saya mau tahu soal fitur Plot COA dan akuntansi.",
+    "gambar": "banners/fitur-akuntansi.svg",
+    "warna": "#1f3fd6",
+    "warna2": "#38a3f5",
+    "mulai": "2026-11-01",
+    "selesai": "2026-12-31",
+    "urut": 1
+  },
+  {
+    "id": "bantuan-setup",
+    "judul": "Butuh bantuan setup produk & resep?",
+    "teks": "Tim kami bisa bantu impor produk, bahan baku, dan resep sampai siap dipakai kasir.",
+    "tombol": "Hubungi kami",
+    "link": "wa:Halo, saya butuh bantuan setup produk dan resep.",
+    "gambar": "banners/bantuan-setup.svg",
+    "warna": "#6d28d9",
+    "warna2": "#db2777",
+    "urut": 2
+  },
+  {
+    "id": "layar-dapur",
+    "judul": "Layar Dapur: pesanan langsung muncul di dapur",
+    "teks": "Tidak perlu cetak tiket. Dapur melihat pesanan masuk, menandai yang sedang dibuat dan yang sudah selesai.",
+    "tombol": "Tanya fitur ini",
+    "link": "wa:Halo, saya tertarik dengan fitur Layar Dapur.",
+    "gambar": "banners/layar-dapur.svg",
+    "warna": "#d97706",
+    "warna2": "#dc2626",
+    "urut": 3
+  },
+  {
+    "id": "resep-hpp",
+    "judul": "HPP otomatis dari resep & bahan baku",
+    "teks": "Isi resep sekali, stok bahan terpotong otomatis saat terjual dan HPP selalu mengikuti harga bahan. Bisa impor lewat Excel.",
+    "tombol": "Lihat caranya",
+    "link": "wa:Halo, saya mau belajar fitur resep dan HPP otomatis.",
+    "gambar": "banners/resep-hpp.svg",
+    "warna": "#047857",
+    "warna2": "#0284c7",
+    "urut": 4
+  },
+  {
+    "id": "laporan-keuangan",
+    "judul": "Laporan keuangan siap pakai",
+    "teks": "Laba rugi, neraca, dan buku besar otomatis dari transaksi harianmu. Tinggal pilih periode.",
+    "tombol": "Coba sekarang",
+    "link": "wa:Halo, saya mau tahu soal laporan keuangan otomatis.",
+    "gambar": "banners/laporan-keuangan.svg",
+    "warna": "#0f172a",
+    "warna2": "#475569",
+    "urut": 5
+  },
+  {
+    "id": "dua-bahasa",
+    "judul": "Aplikasi kasir dua bahasa",
+    "teks": "Pilih Indonesia atau English langsung dari layar login. Cocok untuk tim dan pelanggan internasional.",
+    "tombol": "Hubungi kami",
+    "link": "wa:Halo, saya mau tahu soal pilihan bahasa di TWINS POS.",
+    "gambar": "banners/dua-bahasa.svg",
+    "warna": "#0e7490",
+    "warna2": "#4f46e5",
+    "urut": 6
+  }
+]
