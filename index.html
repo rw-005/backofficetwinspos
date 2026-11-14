@@ -1290,7 +1290,7 @@ function vMProduk(){
  const search=`<input placeholder="Cari nama, kategori, kode…" value="${esc(PM.q)}" oninput="PM.q=this.value;mpRows()">`;
  const catSel=`<select onchange="PM.cat=this.value;mpRows()"><option value="">Semua kategori</option>${cats.map(c=>`<option value="${esc(c)}" ${PM.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`;
  const lowBtn=`<button class="btn ${PM.low?'on':''}" onclick="PM.low=!PM.low;render()">Stok menipis</button>`;
- const tool=isR?`<div class="tool">${search}<span style="margin-left:auto"><button class="btn pri" onclick="prodnForm()">${ic('plus',16)} Catat Produksi</button></span></div>`
+ const tool=isR?`<div class="tool">${search}<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="rsOpen()">${ic('plus',16)} Impor Resep</button><button class="btn pri" onclick="prodnForm()">${ic('plus',16)} Catat Produksi</button></span></div>`
   :isB?`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" id="psbtn" style="display:${Object.keys(PSEL).length?'':'none'};color:var(--bad)" onclick="psDelOpen()">Hapus terpilih (${Object.keys(PSEL).length})</button><button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="bhOpen()">${ic('plus',16)} Impor Bahan Baku</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm('',true)">${ic('plus',16)} Tambah Bahan Baku</button></div>`
   :`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" id="psbtn" style="display:${Object.keys(PSEL).length?'':'none'};color:var(--bad)" onclick="psDelOpen()">Hapus terpilih (${Object.keys(PSEL).length})</button><button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="ipOpen()">${ic('plus',16)} Impor Produk</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>`;
  return tabs+kpi+`<div class="card">${tool}<div class="tw" id="mpt">${mpBody()}</div></div>`+(isR?pkCard():'');
@@ -3205,6 +3205,71 @@ async function bhApply(btn){
   }
   closeDlg();scheduleLoad();render();alert(n+' bahan baku dibuat.');
  }catch(e){btn.disabled=false;btn.textContent='Buat Bahan Baku';alert('Berhenti setelah '+n+' bahan: '+e.message+'\n\nBahan yang sudah terbuat tidak akan dobel kalau Anda unggah ulang (nama yang sama dilewati).');scheduleLoad()}
+}
+
+
+/* ---------- Impor resep (template Excel) ---------- */
+const RS={rows:[],ok:[]};
+function rsTpl(){
+ const pr=D.products.filter(p=>!p.bahan&&!(p.paket||[]).length).slice(0,2),bh=D.products.filter(p=>p.bahan).slice(0,3);
+ const ex=pr.length&&bh.length?bh.map((b,i)=>[pr[Math.min(i>0?1:0,pr.length-1)].name,b.name,i+1]):[['Nasi Goreng','Beras',150],['Nasi Goreng','Telur',1],['Es Teh','Gula pasir',20]];
+ bkSave('Template-Resep',[['Produk','Bahan Baku','Jumlah per 1 Produk'],...ex]);
+}
+function rsOpen(){
+ RS.rows=[];RS.ok=[];
+ dlg(`<h3>Impor Resep</h3>
+ <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template. 2. Hapus baris contoh. Satu baris = satu bahan di satu produk (produk yang sama diulang di beberapa baris). 3. Simpan (.xlsx atau CSV), lalu unggah.<br>Nama <b>Produk</b> dan <b>Bahan Baku</b> harus sama dengan yang sudah ada di daftar. Impor bahan baku dan produk dulu kalau belum ada. <b>Jumlah</b> memakai satuan bahan (mis. gram) untuk 1 produk. Resep lama pada produk yang sama akan diganti. Resep varian dan topping diatur lewat Ubah produk.</div>
+ <div class="acts2" style="margin-top:10px"><button class="btn" onclick="rsTpl()">${ic('dl',16)} Unduh template resep</button></div>
+ <label>Unggah file Excel / CSV</label><input type="file" id="rs_file" accept=".xlsx,.xls,.csv,.txt" onchange="rsRead(this.files[0])">
+ ${chk('rs_off','Matikan hitung stok produk, supaya bahan terpotong otomatis saat produk terjual di kasir',true)}
+ <div id="rs_prev" style="margin-top:12px"></div>
+ <div class="acts2"><button class="btn" onclick="closeDlg()">Batal</button><button class="btn pri" id="rs_go" disabled onclick="rsApply(this)">Simpan Resep</button></div>`,true);
+}
+function rsRead(f){
+ if(!f)return;const el=$('#rs_prev'),rd=new FileReader(),isX=/\.xlsx?$/i.test(f.name);
+ if(isX&&!window.XLSX){el.innerHTML='<div class="mut" style="color:var(--bad)">Pembaca Excel belum termuat (cek internet). Simpan file sebagai CSV lalu unggah lagi.</div>';return}
+ const proc=rows=>{
+  RS.rows=[];
+  if(rows.length<2){el.innerHTML='<div class="mut">File kosong atau formatnya tidak dikenali.</div>';return}
+  const h=rows[0].map(x=>String(x).toLowerCase().replace(/[^a-z]/g,'')),ix=k=>h.findIndex(x=>x.startsWith(k));
+  const c={p:ix('produk'),b:ix('bahan'),q:ix('jumlah')};
+  if(c.p<0||c.b<0||c.q<0){el.innerHTML='<div class="mut" style="color:var(--bad)">Kolom Produk, Bahan Baku, dan Jumlah tidak lengkap. Pakai template dari tombol di atas.</div>';return}
+  const g=(r,k)=>String(r[k]==null?'':r[k]).trim();
+  RS.rows=rows.slice(1).map(r=>({p:g(r,c.p),b:g(r,c.b),q:bkNum(g(r,c.q))})).filter(r=>r.p||r.b);
+  rsPrev();
+ };
+ rd.onload=e=>{try{
+  if(isX){const wb=XLSX.read(e.target.result,{type:'array'});proc(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}).map(r=>r.map(x=>x==null?'':String(x))).filter(r=>r.some(x=>x.trim()!=='')))}
+  else proc(bkCsv(String(e.target.result||'')));
+ }catch(err){el.innerHTML='<div class="mut" style="color:var(--bad)">File tidak bisa dibaca: '+esc(err.message)+'</div>'}};
+ isX?rd.readAsArrayBuffer(f):rd.readAsText(f);
+}
+function rsPrev(){
+ const el=$('#rs_prev'),go=$('#rs_go');if(!el)return;
+ const nk=x=>String(x).trim().toLowerCase(),P={},B={};
+ D.products.forEach(p=>{(p.bahan?B:P)[nk(p.name)]=p});
+ const out=RS.rows.map(r=>{
+  const pr=P[nk(r.p)],bh=B[nk(r.b)];let msg='';
+  if(!pr)msg='Produk tidak ditemukan';else if((pr.paket||[]).length)msg='Produk paket, tidak bisa beresep';
+  else if(!bh)msg='Bahan baku tidak ditemukan';else if(!(r.q>0))msg='Jumlah harus lebih dari 0';
+  return{r,pr,bh,msg};
+ });
+ const by={};out.forEach(o=>{if(o.pr)(by[o.pr.id]=by[o.pr.id]||{pr:o.pr,rows:[],bad:0}),o.pr&&(o.msg?by[o.pr.id].bad++:by[o.pr.id].rows.push({id:o.bh.id,q:o.r.q}))});
+ RS.ok=Object.values(by).filter(x=>!x.bad&&x.rows.length).map(x=>{const m=new Map();x.rows.forEach(z=>m.set(z.id,(m.get(z.id)||0)+z.q));const rows=[...m].map(([id,q])=>({id,q}));return{pr:x.pr,rows,cost:recCostVal(rows),had:(x.pr.recipe||[]).length>0}});
+ const okIds=new Set(RS.ok.map(x=>x.pr.id));
+ el.innerHTML=RS.rows.length?`<div style="margin-bottom:8px"><span class="badge g">${RS.ok.length} produk akan diberi resep</span> ${out.filter(o=>o.msg).length?`<span class="badge v">${out.filter(o=>o.msg).length} baris bermasalah</span>`:''}</div><div class="tw" style="max-height:34vh;overflow:auto"><table><tr><th>Produk</th><th>Bahan</th><th class="r">Jumlah</th><th>Status</th></tr>${out.slice(0,400).map(o=>`<tr><td>${esc(o.r.p)}</td><td>${esc(o.r.b)}</td><td class="r">${fq(o.r.q||0)} ${o.bh?esc(o.bh.unit||''):''}</td><td>${o.msg?'<span class="badge v">'+esc(o.msg)+'</span>':okIds.has(o.pr.id)?(RS.ok.find(x=>x.pr.id===o.pr.id).had?'<span class="badge k">Ganti resep lama</span>':'<span class="badge g">Baru</span>'):'<span class="badge v">Dilewati (ada baris lain bermasalah)</span>'}</td></tr>`).join('')}</table></div>${RS.ok.length?`<div class="hint" style="margin-top:6px">HPP produk akan diisi dari biaya bahan: ${RS.ok.slice(0,4).map(x=>esc(x.pr.name)+' '+rp(x.cost)).join(', ')}${RS.ok.length>4?', …':''}</div>`:''}`:'';
+ if(go)go.disabled=!RS.ok.length;
+}
+async function rsApply(btn){
+ if(!RS.ok.length)return;btn.disabled=true;let n=0;const off=ck('rs_off');
+ try{
+  for(const x of RS.ok){
+   btn.textContent='Menyimpan '+n+'/'+RS.ok.length+'…';
+   await pushQuiet('product',{id:x.pr.id,name:x.pr.name,recipe:x.rows,recAuto:true,cogs:x.cost,...(off?{trackStock:false}:{}),updated:Date.now()});
+   n++;
+  }
+  closeDlg();scheduleLoad();render();alert(n+' produk sudah punya resep.');
+ }catch(e){btn.disabled=false;btn.textContent='Simpan Resep';alert('Berhenti setelah '+n+' produk: '+e.message+'\n\nUnggah ulang file yang sama untuk melanjutkan, produk yang sudah selesai akan diganti dengan isi yang sama.');scheduleLoad()}
 }
 
 /* ---------- Impor produk (template Excel) ---------- */
