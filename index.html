@@ -3230,9 +3230,19 @@ function rsOpen(){
  <div class="mut" style="font-size:13.5px;line-height:1.5">1. Unduh template: semua produkmu sudah terisi di kolom Produk, resep yang sudah ada ikut terisi, dan daftar bahan bakumu ada di sheet kedua. 2. Isi Bahan Baku dan Jumlah. Satu baris = satu bahan di satu produk (untuk bahan kedua, tambah baris baru dengan nama produk yang sama). Produk yang dibiarkan kosong dilewati. 3. Simpan (.xlsx atau CSV), lalu unggah.<br>Nama <b>Produk</b> dan <b>Bahan Baku</b> harus sama dengan yang sudah ada di daftar. Impor bahan baku dan produk dulu kalau belum ada. <b>Jumlah</b> memakai satuan bahan (mis. gram) untuk 1 produk. Resep lama pada produk yang sama akan diganti. Resep varian dan topping diatur lewat Ubah produk.</div>
  <div class="acts2" style="margin-top:10px"><button class="btn" onclick="rsTpl()">${ic('dl',16)} Unduh template resep</button></div>
  <label>Unggah file Excel / CSV</label><input type="file" id="rs_file" accept=".xlsx,.xls,.csv,.txt" onchange="rsRead(this.files[0])">
+ <div style="margin:14px 0 6px"><b>Atau isi langsung di sini</b> <span class="mut">(klik kolom lalu pilih dari daftar, atau ketik untuk mencari)</span></div>
+ <datalist id="rs_dp">${D.products.filter(p=>!p.bahan&&!(p.paket||[]).length).map(p=>`<option value="${esc(p.name)}">`).join('')}</datalist><datalist id="rs_db">${D.products.filter(p=>p.bahan).map(p=>`<option value="${esc(p.name)}" label="${esc(p.unit||'')}">`).join('')}</datalist>
+ <div id="rs_g">${rsRow()}${rsRow()}${rsRow()}</div><button class="btn sm" onclick="rsAdd()">${ic('plus',14)} Tambah baris</button>
  ${chk('rs_off','Matikan hitung stok produk, supaya bahan terpotong otomatis saat produk terjual di kasir',true)}
  <div id="rs_prev" style="margin-top:12px"></div>
  <div class="acts2"><button class="btn" onclick="closeDlg()">Batal</button><button class="btn pri" id="rs_go" disabled onclick="rsApply(this)">Simpan Resep</button></div>`,true);
+}
+
+function rsRow(p,b,q){return`<div class="rsr" style="display:grid;grid-template-columns:1.3fr 1.3fr .6fr auto;gap:8px;margin-bottom:8px"><input list="rs_dp" placeholder="Produk" value="${esc(p||'')}" oninput="rsSync()"><input list="rs_db" placeholder="Bahan baku" value="${esc(b||'')}" oninput="rsSync()"><input placeholder="Jumlah" inputmode="decimal" value="${esc(q==null?'':q)}" oninput="rsSync()"><button class="btn sm" title="Hapus baris" onclick="this.parentNode.remove();rsSync()">×</button></div>`}
+function rsAdd(){const g=$('#rs_g');if(g){g.insertAdjacentHTML('beforeend',rsRow());const l=g.querySelectorAll('.rsr');l[l.length-1].querySelector('input').focus()}}
+function rsSync(){
+ RS.rows=[...document.querySelectorAll('#rs_g .rsr')].map(r=>{const i=r.querySelectorAll('input');return{p:i[0].value.trim(),b:i[1].value.trim(),q:bkNum(i[2].value)}}).filter(r=>(r.p||r.b)&&(r.b||(r.q!=null&&!isNaN(r.q))||false));
+ rsPrev();
 }
 function rsRead(f){
  if(!f)return;const el=$('#rs_prev'),rd=new FileReader(),isX=/\.xlsx?$/i.test(f.name);
