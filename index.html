@@ -398,7 +398,7 @@ function upsell(k){
 /* Mode Owner (aplikasi Android owner): hanya laporan, tidak bisa mengubah data, tidak bisa unduh/cetak.
    Aktif bila alamat memakai ?app=owner (diingat di perangkat itu); ?app=full mematikannya. */
 const OWNER=(()=>{try{if(/[?&]app=full\b/.test(location.search))localStorage.removeItem('twinsbo_owner');if(/[?&]app=owner\b/.test(location.search))localStorage.setItem('twinsbo_owner','1');return localStorage.getItem('twinsbo_owner')==='1'}catch(e){return /[?&]app=owner\b/.test(location.search)}})();
-const OWN_OK=['ring','analisa','rsum','lappen','detail','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok','mexp'];
+const OWN_OK=['ring','analisa','rsum','lappen','detail','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok','mexp','lapstok'];
 const NAV_ALL=[
  ['Utama',[['ring','Ringkasan','home'],['analisa','Analisa Bisnis','trend']]],
  ['Penjualan',[['rsum','Ringkasan Penjualan','file'],['lappen','Laporan Penjualan','trend'],['detail','Detail Penjualan','file'],['produk','Penjualan per Produk','box'],['kasir','Penjualan per Kasir','user'],['pkasir','Produk per Kasir','layers'],['plglap','Penjualan per Pelanggan','users'],['fakturjual','Faktur Penjualan','file'],['pesanan','Pesanan & DP','wallet'],['jasa','Order Jasa','clock'],['piutang','Laporan Piutang','wallet']]],
@@ -406,7 +406,7 @@ const NAV_ALL=[
  ['Kas & Keuangan',[['cash','Kas Masuk & Keluar','wallet'],['arus','Arus Kas & Rekening','trend'],['shift','Laporan Shift','clock']]],
  ['Akuntansi',[['coa','Daftar Akun (COA)','layers'],['jurnal','Jurnal Umum','file'],['buku','Buku Besar','hist'],['lapkeu','Laporan Keuangan','trend']]],
  ['Karyawan',[['komisi','Komisi','tag'],['gaji','Penggajian','wallet']]],
- ['Data Master',[['mproduk','Produk & Stok','plus'],['mkat','Kategori','tag'],['monline','Harga Online','ponsel'],['mpaket','Paket','gift'],['mstok','Riwayat Stok','hist'],['mexp','Expired','clock'],['pelanggan','Pelanggan','users'],['pemasok','Pemasok','store'],['karyawan','Data Karyawan','users'],['rekening','Rekening & Akun Kas','wallet']]],
+ ['Data Master',[['mproduk','Produk & Stok','plus'],['lapstok','Laporan Persediaan','box'],['mkat','Kategori','tag'],['monline','Harga Online','ponsel'],['mpaket','Paket','gift'],['mstok','Riwayat Stok','hist'],['mexp','Expired','clock'],['pelanggan','Pelanggan','users'],['pemasok','Pemasok','store'],['karyawan','Data Karyawan','users'],['rekening','Rekening & Akun Kas','wallet']]],
  ['Pengaturan',[['mpromo','Diskon & Promo','tag'],['moutlet','Outlet & Struk','store'],['mbayar','Biaya & Metode Bayar','wallet'],['mstaf','Akun Kasir','user'],['mkeamanan','Keamanan','user']]]
 ];
 const NAV=OWNER?NAV_ALL.map(([g,l])=>[g==='Data Master'?'Stok':g,l.filter(x=>OWN_OK.includes(x[0]))]).filter(x=>x[1].length):NAV_ALL;
@@ -416,7 +416,7 @@ function navTog(i){const g=NAV[i][0],el=document.getElementById('gp'+i);if(!el)r
 const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['Laporan Penjualan','Metode pembayaran, kategori, varian, dan topping'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],arus:['Arus Kas & Rekening','Mutasi uang masuk dan keluar per rekening, seperti rekening koran'],
  pemasok:['Pemasok','Daftar pemasok dan laporan pembelian per pemasok'],fakturbeli:['Faktur Pembelian','Pembelian dari pemasok, hutang, dan pelunasan'],hutang:['Laporan Hutang','Umur hutang, kartu hutang per pemasok, dan riwayat pembayaran'],coa:['Daftar Akun (COA)','Bagan akun dan saldo tiap akun'],plglap:['Penjualan per Pelanggan','Total pembelian, laba, dan produk tiap pelanggan'],fakturjual:['Faktur Penjualan','Penjualan tempo ke pelanggan, piutang, dan penerimaan'],piutang:['Laporan Piutang','Umur piutang, kartu piutang, dan penerimaan'],jurnal:['Jurnal Umum','Jurnal otomatis dari penjualan, pembelian, kas, dan gaji'],buku:['Buku Besar','Mutasi dan saldo berjalan per akun'],lapkeu:['Laporan Keuangan','Neraca saldo, laba rugi, dan neraca'],
  karyawan:['Data Karyawan','Karyawan yang melayani di kasir, gaji pokok, dan keikutsertaan komisi'],komisi:['Komisi','Komisi penjualan, bertingkat dan dibagi bersama oleh yang melayani'],gaji:['Penggajian','Gaji bulanan, tunjangan, komisi, bonus, potongan, dan slip'],
- pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mbayar:['Biaya & Metode Bayar','Tambah metode bayar, potongan MDR, dan potongan platform online'],mstaf:['Akun Kasir','Akun login kasir: nama, peran, dan PIN. Sama dengan menu Staf di kasir'],jasa:['Order Jasa','Order layanan dari kasir beserta status pengerjaan dan pembayarannya'],mkat:['Kategori','Urutan, nama, dan daftar kategori produk'],mpaket:['Paket','Jual beberapa item sekaligus dengan satu harga; stok dan HPP mengikuti isinya'],monline:['Harga Online','Harga atau markup tiap produk untuk ShopeeFood, GrabFood, dan GoFood'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mexp:['Expired','Batch yang sudah dan akan kedaluwarsa'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
+ pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mbayar:['Biaya & Metode Bayar','Tambah metode bayar, potongan MDR, dan potongan platform online'],mstaf:['Akun Kasir','Akun login kasir: nama, peran, dan PIN. Sama dengan menu Staf di kasir'],jasa:['Order Jasa','Order layanan dari kasir beserta status pengerjaan dan pembayarannya'],mkat:['Kategori','Urutan, nama, dan daftar kategori produk'],mpaket:['Paket','Jual beberapa item sekaligus dengan satu harga; stok dan HPP mengikuti isinya'],monline:['Harga Online','Harga atau markup tiap produk untuk ShopeeFood, GrabFood, dan GoFood'],lapstok:['Laporan Persediaan','Nilai stok barang jadi, bahan baku, dan setengah jadi, dicocokkan dengan pembukuan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mexp:['Expired','Batch yang sudah dan akan kedaluwarsa'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
 if(OWNER){
  const _no=()=>{alert('Aplikasi owner hanya untuk melihat laporan. Unduh, cetak, dan ubah data dinonaktifkan.')};
  csv=_no;bkSave=_no;window.print=_no;
@@ -426,7 +426,7 @@ if(OWNER){
  const _r=render;render=function(){_r.apply(this,arguments);clean()};
  const _d=dlg;dlg=function(){_d.apply(this,arguments);clean()};
 }
-const MG=['mkat','monline','mpaket','mproduk','mstok','mexp','mpromo','moutlet','mbayar','mstaf','karyawan','komisi','gaji','rekening','mkeamanan','pelanggan','pemasok'];
+const MG=['lapstok','mkat','monline','mpaket','mproduk','mstok','mexp','mpromo','moutlet','mbayar','mstaf','karyawan','komisi','gaji','rekening','mkeamanan','pelanggan','pemasok'];
 
 /* Isi dengan URL Web App (Apps Script) agar login hanya perlu PIN. Kosongkan = URL diminta sekali di layar login. */
 const API_URL='';
@@ -690,7 +690,7 @@ function render(){
   return;
  }
  CUR=calc();
- const V={ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar};
+ const V={ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,lapstok:vLapStok,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar};
  if(OWNER&&!OWN_OK.includes(tab))tab='ring';
  if(D&&isLocked(tab))tab='ring';
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
@@ -1327,6 +1327,40 @@ async function safe(f,btn){
 const fld=(id,l,val,t,ph,extra)=>`<div><label>${l}</label><input id="${id}" type="${t||'text'}" ${t==='number'?'inputmode="decimal" step="any" min="0"':''} value="${esc(val==null?'':val)}" placeholder="${esc(ph||'')}" ${extra||''}></div>`;
 const chk=(id,l,on,fn)=>`<label class="ck"><input id="${id}" type="checkbox" ${on?'checked':''} ${fn?'onchange="'+fn+'"':''}> ${l}</label>`;
 const nameOf=id=>{const p=D.products.find(x=>x.id===id);return p?p.name:id};
+
+
+/* ---------- Laporan Persediaan ---------- */
+const LS={k:'all',q:'',nol:false};
+function lsGroups(){
+ const L=(D.products||[]).filter(p=>p.trackStock!==false&&p.active!==false||p.trackStock!==false&&(+p.stock||0)!==0);
+ const g=p=>p.bahan?((p.recipe||[]).length?'semi':'mentah'):'jadi';
+ const rows=L.map(p=>{const st=+p.stock||0,h=+p.cogs||0;return{id:p.id,n:p.name||'',cat:p.cat||'Umum',u:p.unit||'',st,h,v:Math.round(st*h),g:g(p)}});
+ return rows;
+}
+function lsFiltered(){const q=LS.q.toLowerCase();return lsGroups().filter(r=>(LS.k==='all'||r.g===LS.k)&&(!LS.nol||r.st!==0)&&(!q||(r.n+' '+r.cat).toLowerCase().includes(q)))}
+const LSN={jadi:'Barang jadi',mentah:'Bahan baku (mentah)',semi:'Setengah jadi'};
+function vLapStok(){
+ const all=lsGroups(),tot=k=>sum(all.filter(r=>k==='all'||r.g===k),r=>r.v),cnt=k=>all.filter(r=>k==='all'||r.g===k).length;
+ let led=0;try{led=jSaldo(jSums(0,Date.now()+1),'persediaan')}catch(e){}
+ const fis=tot('all'),df=fis-led,minus=all.filter(r=>r.st<0).length,notrack=(D.products||[]).filter(p=>p.trackStock===false).length;
+ const chips=`<div class="chips" style="margin-bottom:12px">${[['all','Semua'],['jadi','Barang jadi'],['mentah','Bahan baku'],['semi','Setengah jadi']].map(([k,l])=>`<button class="chip ${LS.k===k?'on':''}" onclick="LS.k='${k}';render()">${l} (${cnt(k)})</button>`).join('')}</div>`;
+ const kpi=`<div class="kg"><div class="kc"><small>Total nilai persediaan</small><b>${rp(fis)}</b></div><div class="kc"><small>Barang jadi</small><b>${rp(tot('jadi'))}</b></div><div class="kc"><small>Bahan baku</small><b>${rp(tot('mentah'))}</b></div><div class="kc"><small>Setengah jadi</small><b>${rp(tot('semi'))}</b></div></div>`;
+ const rec=`<div class="card" style="margin-bottom:12px"><div class="tw"><table><tr><th>Rekonsiliasi dengan pembukuan</th><th class="r">Nilai</th></tr><tr><td>Nilai stok fisik (stok × HPP)</td><td class="r">${rp(fis)}</td></tr><tr><td>Saldo Persediaan di jurnal (1-3000)</td><td class="r">${rp(led)}</td></tr><tr><td><b>Selisih</b> ${Math.abs(df)>1?'<span class="mut">— dicatat sebagai penyesuaian di Neraca. Isi nilai persediaan awal atau catat pembelian agar selisih mengecil.</span>':'<span class="badge g">Sama</span>'}</td><td class="r"><b style="color:var(--${Math.abs(df)>1?'bad':'ok'})">${rp(df)}</b></td></tr></table></div></div>`;
+ const warn=(minus?`<div class="hint">${minus} item punya stok minus. Lakukan koreksi/opname di Produk &amp; Stok.</div>`:'')+(notrack?`<div class="hint">${notrack} produk tidak melacak stok, jadi tidak ikut dihitung.</div>`:'');
+ const tool=`<div class="tool"><input placeholder="Cari nama atau kategori…" value="${esc(LS.q)}" oninput="LS.q=this.value;lsRows()">${chk('ls_nol','Sembunyikan stok 0',LS.nol,"LS.nol=this.checked;lsRows()")}<span style="margin-left:auto"><button class="btn" onclick="lsCsv()">${ic('dl',16)} CSV</button></span></div>`;
+ return chips+kpi+rec+warn+`<div class="card">${tool}<div class="tw" id="lst">${lsTable()}</div></div>`;
+}
+function lsTable(){
+ const l=lsFiltered().sort((a,b)=>a.g.localeCompare(b.g)||b.v-a.v);
+ if(!l.length)return'<div class="empty">Tidak ada data persediaan.</div>';
+ let h='<table><tr><th>Nama</th><th>Kelompok</th><th>Kategori</th><th class="r">Stok</th><th class="r">HPP / satuan</th><th class="r">Nilai</th></tr>',cur='';
+ const gs={};l.forEach(r=>{gs[r.g]=(gs[r.g]||0)+r.v});
+ l.forEach(r=>{if(r.g!==cur){cur=r.g;h+=`<tr style="background:var(--bg2,#f1f5f9)"><td colspan="5"><b>${LSN[r.g]}</b></td><td class="r"><b>${rp(gs[r.g])}</b></td></tr>`}
+  h+=`<tr><td>${esc(r.n)}</td><td>${LSN[r.g]}</td><td>${esc(r.cat)}</td><td class="r" style="${r.st<0?'color:var(--bad)':''}">${fq(r.st)} ${esc(r.u)}</td><td class="r">${rp(r.h)}</td><td class="r"><b>${rp(r.v)}</b></td></tr>`});
+ return h+`<tr><td colspan="5"><b>Total</b></td><td class="r"><b>${rp(sum(l,r=>r.v))}</b></td></tr></table>`;
+}
+function lsRows(){const e=document.getElementById('lst');if(e)e.innerHTML=lsTable()}
+function lsCsv(){csv('Laporan-Persediaan',[['Nama','Kelompok','Kategori','Satuan','Stok','HPP','Nilai'],...lsFiltered().sort((a,b)=>a.g.localeCompare(b.g)||b.v-a.v).map(r=>[r.n,LSN[r.g],r.cat,r.u,r.st,r.h,r.v])])}
 
 /* ---------- Produk & Stok ---------- */
 function vMProduk(){
