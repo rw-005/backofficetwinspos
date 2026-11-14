@@ -1298,7 +1298,7 @@ function vMProduk(){
 function mpBody(){return PM.k==='resep'?mpTableR():PM.k==='bahan'?mpTableB(mpFiltered()):mpTable(mpFiltered())}
 function mpTableB(l){
  if(!l.length)return'<div class="empty">Belum ada bahan baku. Tekan “Tambah Bahan Baku” atau “Impor Bahan Baku”.</div>';
- return`<table><tr><th style="width:34px"><input type="checkbox" title="Pilih semua yang tampil" onchange="psAll(this.checked)" ${l.length&&l.every(p=>PSEL[p.id])?'checked':''}></th><th>Bahan</th><th>Kategori</th><th class="r">Stok</th><th class="r">HPP / satuan</th><th class="r">Nilai stok</th><th></th></tr>${l.map(p=>{const s=+p.stock||0,lowS=s<=(+p.minStock||0);return`<tr><td><input type="checkbox" ${PSEL[p.id]?'checked':''} onchange="psTog('${p.id}',this.checked)"></td><td><b>${esc(p.name)}</b></td><td>${esc(p.cat||'Umum')}</td><td class="r"><b style="color:var(--${lowS?'bad':'tx'})">${fq(s)}</b> ${esc(p.unit||'')}${lowS?' <span class="badge v">menipis</span>':''}</td><td class="r">${rp(p.cogs||0)}</td><td class="r">${rp(s*(+p.cogs||0))}</td><td style="text-align:right"><button class="btn sm" onclick="stockForm('${p.id}')">+ Stok</button> <button class="btn sm" onclick="prodForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`;
+ return`<table><tr><th style="width:34px"><input type="checkbox" title="Pilih semua yang tampil" onchange="psAll(this.checked)" ${l.length&&l.every(p=>PSEL[p.id])?'checked':''}></th><th>Bahan</th><th>Kategori</th><th class="r">Stok</th><th class="r">HPP / satuan</th><th class="r">Nilai stok</th><th></th></tr>${l.map(p=>{const s=+p.stock||0,lowS=s<=(+p.minStock||0);return`<tr><td><input type="checkbox" ${PSEL[p.id]?'checked':''} onchange="psTog('${p.id}',this.checked)"></td><td><b>${esc(p.name)}</b>${(p.recipe||[]).length?' <span class="badge g">Setengah jadi</span>':''}</td><td>${esc(p.cat||'Umum')}</td><td class="r"><b style="color:var(--${lowS?'bad':'tx'})">${fq(s)}</b> ${esc(p.unit||'')}${lowS?' <span class="badge v">menipis</span>':''}</td><td class="r">${rp(p.cogs||0)}</td><td class="r">${rp(s*(+p.cogs||0))}</td><td style="text-align:right"><button class="btn sm" onclick="stockForm('${p.id}')">+ Stok</button> <button class="btn sm" onclick="prodForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`;
 }
 function mpTableR(){
  const q=PM.q.toLowerCase(),l=D.products.filter(p=>!p.bahan&&(p.recipe||[]).length&&(!q||String(p.name).toLowerCase().includes(q)));
@@ -1355,9 +1355,12 @@ function prodForm(id,asBahan){
  ${id?'':fld('f_stock','Stok awal',p.stock||0,'number')}${fld('f_min','Batas stok menipis',p.minStock||0,'number')}</div>
  <div class="hint">Margin akan dihitung otomatis dari harga jual dan HPP.</div>
  ${chk('f_bhn','Bahan baku (tidak tampil di kasir, hanya dipakai di resep)',!!p.bahan,'recUi()')}
- <div id="f_recw" style="${p.bahan?'display:none':''}"><label style="margin-top:8px">Resep: bahan yang terpakai untuk 1 ${esc(p.unit||'satuan')} produk ini (opsional)</label><div id="f_rec">${(p.recipe||[]).map(r=>recRow(r,id)).join('')}</div><button class="btn sm" onclick="recAdd('${id||''}')">${ic('plus',14)} Tambah bahan</button>
- <div class="hint" id="f_rech"></div>${chk('f_rauto','HPP otomatis dari resep',p.recAuto!==false,'recCost()')}
- <div class="hint">Kalau “Hitung stok produk ini” <b>mati</b>, bahan terpotong otomatis setiap produk terjual di kasir. Kalau <b>hidup</b>, stok produk dihitung sendiri dan bahan dipotong saat Anda mencatat <b>Produksi</b>.</div></div>
+ <div id="f_recw"><label id="f_recl" style="margin-top:8px">${p.bahan?'Bahan setengah jadi (opsional): dibuat dari bahan baku lain':'Resep: bahan yang terpakai untuk 1 '+esc(p.unit||'satuan')+' produk ini (opsional)'}</label>
+ <div id="f_ryw" style="${p.bahan?'':'display:none'}"><div class="hint" style="margin:0 0 6px">Isi kalau bahan ini dibuat sendiri, misalnya adonan, sirup, atau saus. Tulis bahan yang terpakai untuk menghasilkan sejumlah tertentu, lalu catat pembuatannya lewat Catat Produksi.</div>${fld('f_ry','Resep di bawah menghasilkan berapa '+esc(p.unit||'satuan')+'? (mis. 1000)',p.ryield||'','number','',"oninput=\"recCost()\"")}</div>
+ <div id="f_rec">${(p.recipe||[]).map(r=>recRow(p.bahan&&p.ryield?{...r,q:+(r.q*p.ryield).toFixed(4)}:r,id)).join('')}</div><button class="btn sm" onclick="recAdd('${id||''}')">${ic('plus',14)} Tambah bahan</button>
+ <div class="hint" id="f_rech"></div>
+ <div id="f_rpw" style="${p.bahan?'display:none':''}">${chk('f_rauto','HPP otomatis dari resep',p.recAuto!==false,'recCost()')}
+ <div class="hint">Kalau “Hitung stok produk ini” <b>mati</b>, bahan terpotong otomatis setiap produk terjual di kasir. Kalau <b>hidup</b>, stok produk dihitung sendiri dan bahan dipotong saat Anda mencatat <b>Produksi</b>.</div></div></div>
  <div id="f_chw" style="display:none"></div>
   ${id&&!p.bahan?`<div style="margin:10px 0"><button class="btn sm" onclick="ovForm('${id}')">Atur varian, topping &amp; resepnya…</button><div class="hint">${(p.variants||[]).length} varian, ${(p.toppings||[]).length} topping. Simpan dulu perubahan produk ini sebelum membuka.</div></div>`:(!id&&!p.bahan?`<div class="hint" style="margin:10px 0">Varian, topping &amp; resep: tekan <b>Simpan &amp; atur varian/topping</b> di bawah, produk disimpan lalu pengaturannya langsung terbuka.</div>`:'')}
  ${chk('f_trk','Hitung stok produk ini',p.trackStock!==false||!!p.bahan)}${chk('f_act','Aktif dijual di kasir',p.active!==false)}
@@ -1370,7 +1373,10 @@ function saveProd(id,btn,thenOv){
  if(D.products.some(x=>x.id!==id&&x.name.toLowerCase()===name.toLowerCase())){alert('Nama produk sudah ada');return}
  const old=D.products.find(x=>x.id===id)||{};
  const nid=id||'p'+Date.now().toString(36);let okSave=false;
- const pr={id:nid,name,sku:v('f_sku').trim(),barcode:v('f_sku').trim(),cat:v('f_cat').trim()||'Umum',unit:v('f_unit').trim()||'pcs',price:bhn?0:+price,cogs:(!bhn&&(old.paket||[]).length)?pkCostVal(old.paket):(!bhn&&ck('f_rauto')&&recRows().length)?recCostVal():(+v('f_cogs')||0),stock:id?(old.stock||0):(+v('f_stock')||0),minStock:+v('f_min')||0,trackStock:bhn?true:((old.paket||[]).length?false:ck('f_trk')),active:ck('f_act'),bahan:bhn,recipe:bhn?[]:((old.paket||[]).length?[]:recRows()),recAuto:ck('f_rauto'),updated:Date.now(),initStock:id?0:(+v('f_stock')||0)};
+ const srows=bhn?recRows():[],sry=+v('f_ry')||0;
+ if(srows.length&&!(sry>0)){alert('Isi berapa satuan yang dihasilkan resep ini');return}
+ const srec=srows.map(r=>({id:r.id,q:+(r.q/sry).toFixed(6)})),scost=srec.length?+sum(srec,r=>{const b=D.products.find(x=>x.id===r.id);return r.q*(b?+b.cogs||0:0)}).toFixed(2):0;
+ const pr={id:nid,name,sku:v('f_sku').trim(),barcode:v('f_sku').trim(),cat:v('f_cat').trim()||'Umum',unit:v('f_unit').trim()||'pcs',price:bhn?0:+price,cogs:(!bhn&&(old.paket||[]).length)?pkCostVal(old.paket):(!bhn&&ck('f_rauto')&&recRows().length)?recCostVal():(bhn&&srec.length&&!(+old.stock>0))?scost:(+v('f_cogs')||0),stock:id?(old.stock||0):(+v('f_stock')||0),minStock:+v('f_min')||0,trackStock:bhn?true:((old.paket||[]).length?false:ck('f_trk')),active:ck('f_act'),bahan:bhn,recipe:bhn?srec:((old.paket||[]).length?[]:recRows()),...(bhn?{ryield:srec.length?sry:0,semi:srec.length>0}:{}),recAuto:ck('f_rauto'),updated:Date.now(),initStock:id?0:(+v('f_stock')||0)};
  Promise.resolve(safe(async()=>{await push('product',pr);okSave=true;if(thenOv&&!D.products.some(x=>x.id===nid))D.products.push({...pr,variants:[],toppings:[]})},btn)).then(()=>{if(thenOv&&okSave&&!bhn)setTimeout(()=>ovForm(nid),30)});
 }
 
@@ -3122,29 +3128,30 @@ function recRow(r,ex){
 function recAdd(ex){if(!bahanList(ex).length){alert('Belum ada bahan baku. Tambah produk, lalu centang “Bahan baku”, atau pakai filter Bahan baku untuk melihatnya.');return}$('#f_rec').insertAdjacentHTML('beforeend',recRow(null,ex));recCost()}
 function recRows(){return[...document.querySelectorAll('#f_rec .rrow')].map(r=>({id:r.querySelector('.rb').value,q:+r.querySelector('.rq').value||0})).filter(x=>x.id&&x.q>0)}
 function recCostVal(rows){return Math.round(sum(rows||recRows(),r=>{const b=D.products.find(x=>x.id===r.id);return(+r.q||0)*(b?+b.cogs||0:0)}))}
-function recCost(){const h=$('#f_rech');if(!h)return;const rows=recRows();h.textContent=rows.length?'Biaya bahan per satuan: '+rp(recCostVal(rows))+(ck('f_rauto')?'. HPP produk akan diisi dengan angka ini.':'.'):'';}
-function recUi(){const cw=$('#f_chw');if(cw)cw.style.display=ck('f_bhn')?'none':'';const pw=$('#f_pkw');if(pw)pw.style.display=ck('f_bhn')?'none':'';const w=$('#f_recw');if(w)w.style.display=ck('f_bhn')?'none':'';if(ck('f_bhn')){const t=$('#f_trk');if(t)t.checked=true}}
+function recCost(){const h=$('#f_rech');if(!h)return;const rows=recRows();if(ck('f_bhn')){const ry=+v('f_ry')||0;h.textContent=rows.length?(ry>0?'Biaya bahan: '+rp(recCostVal(rows))+' untuk '+fq(ry)+' satuan, jadi sekitar '+rp(recCostVal(rows)/ry)+' per satuan.':'Isi berapa satuan yang dihasilkan resep ini.'):'';return}h.textContent=rows.length?'Biaya bahan per satuan: '+rp(recCostVal(rows))+(ck('f_rauto')?'. HPP produk akan diisi dengan angka ini.':'.'):'';}
+function recUi(){const cw=$('#f_chw');if(cw)cw.style.display=ck('f_bhn')?'none':'';const pw=$('#f_pkw');if(pw)pw.style.display=ck('f_bhn')?'none':'';const b=ck('f_bhn'),ry=$('#f_ryw'),rp2=$('#f_rpw'),rl=$('#f_recl');if(ry)ry.style.display=b?'':'none';if(rp2)rp2.style.display=b?'none':'';if(rl)rl.textContent=b?'Bahan setengah jadi (opsional): dibuat dari bahan baku lain':'Resep: bahan yang terpakai untuk 1 satuan produk ini (opsional)';recCost();if(ck('f_bhn')){const t=$('#f_trk');if(t)t.checked=true}}
 function prodnForm(pre){
- const ps=D.products.filter(p=>!p.bahan&&(p.recipe||[]).length&&p.active!==false);
+ const ps=D.products.filter(p=>(p.recipe||[]).length&&(p.bahan||p.active!==false));
  if(!ps.length){alert('Belum ada produk yang punya resep. Buat resep dulu lewat Ubah produk.');return}
  dlg(`<h3>Catat Produksi</h3><div class="mut" style="margin-bottom:8px">Bahan baku dipotong sesuai resep, lalu stok produk jadi bertambah (kalau produknya menghitung stok).</div>
- <label>Produk yang dibuat</label><select id="pr_p" onchange="prodnHint()">${ps.map(p=>`<option value="${esc(p.id)}" ${p.id===pre?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+ <label>Produk yang dibuat</label><select id="pr_p" onchange="prodnHint()">${ps.map(p=>`<option value="${esc(p.id)}" ${p.id===pre?'selected':''}>${p.bahan?'[Setengah jadi] ':''}${esc(p.name)}${p.trackStock===false&&!p.bahan?' (bahan terpotong saat terjual)':''}</option>`).join('')}</select>
  ${fld('pr_q','Jumlah hasil produksi','','number','','oninput="prodnHint()"')}${fld('pr_note','Catatan (opsional)','')}
  <div class="hint" id="pr_h"></div>
  <div class="acts2"><button class="btn pri" onclick="prodnSave(this)">Simpan Produksi</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
  prodnHint();
 }
 function prodnNeed(){const p=D.products.find(x=>x.id===v('pr_p')),q=+v('pr_q')||0;if(!p)return null;return{p,q,rows:(p.recipe||[]).map(r=>{const b=D.products.find(x=>x.id===r.id);return{b,id:r.id,need:Math.round(r.q*q*1000)/1000}}).filter(x=>x.b)}}
-function prodnHint(){const n=prodnNeed(),h=$('#pr_h');if(!n||!h)return;h.innerHTML=n.q>0?n.rows.map(x=>`${esc(x.b.name)}: pakai <b>${fq(x.need)} ${esc(x.b.unit||'')}</b> (stok ${fq(+x.b.stock||0)})`+((+x.b.stock||0)<x.need?' <span class="badge v">kurang</span>':'')).join('<br>'):'Isi jumlah hasil produksi.'}
+function prodnHint(){const n=prodnNeed(),h=$('#pr_h');if(!n||!h)return;const auto=n.p.trackStock===false&&!n.p.bahan?'<div class="note" style="margin-bottom:6px">Produk ini tidak menghitung stok sendiri: bahannya sudah terpotong otomatis setiap terjual di kasir. Jangan catat produksi untuk produk ini, nanti bahan terpotong dua kali. Pakai Produksi hanya untuk produk yang menghitung stok.</div>':'';h.innerHTML=auto+(n.q>0?n.rows.map(x=>`${esc(x.b.name)}: pakai <b>${fq(x.need)} ${esc(x.b.unit||'')}</b> (stok ${fq(+x.b.stock||0)})`+((+x.b.stock||0)<x.need?' <span class="badge v">kurang</span>':'')).join('<br>'):'Isi jumlah hasil produksi.')}
 async function prodnSave(btn){
  const n=prodnNeed();if(!n||!(n.q>0)){alert('Isi jumlah hasil produksi');return}
+ if(n.p.trackStock===false&&!n.p.bahan&&!confirm('Produk ini memotong bahan otomatis saat terjual. Mencatat produksi akan memotong bahan sekali lagi. Tetap lanjutkan?'))return;
  const kurang=n.rows.filter(x=>(+x.b.stock||0)<x.need);
  if(kurang.length&&!confirm('Stok kurang untuk: '+kurang.map(x=>x.b.name).join(', ')+'. Lanjutkan? Stok bahan akan menjadi minus.'))return;
  const note='[PRODUKSI] '+n.p.name+(v('pr_note').trim()?' · '+v('pr_note').trim():'');let outOk=false;
  btn.disabled=true;btn.textContent='Menyimpan…';
  try{
   await pushPost('stock_bulk',{mode:'out',note,items:n.rows.map(x=>({id:x.id,qty:x.need,note:note.slice(0,100)}))});outOk=true;
-  if(n.p.trackStock!==false)await pushPost('stock_bulk',{mode:'add',hppMode:'avg',note,items:[{id:n.p.id,qty:n.q,buyPrice:recCostVal(n.p.recipe),note:note.slice(0,100)}]});
+  if(n.p.trackStock!==false||n.p.bahan)await pushPost('stock_bulk',{mode:'add',hppMode:'avg',note,items:[{id:n.p.id,qty:n.q,buyPrice:n.p.bahan?+sum(n.p.recipe||[],r=>{const b=D.products.find(x=>x.id===r.id);return r.q*(b?+b.cogs||0:0)}).toFixed(2):recCostVal(n.p.recipe),note:note.slice(0,100)}]});
   closeDlg();render();
  }catch(e){btn.disabled=false;btn.textContent='Simpan Produksi';alert(outOk?'Bahan sudah dipotong, tetapi stok produk jadi belum bertambah: '+e.message+'\n\nTambahkan stok produk jadi manual lewat + Stok, jangan ulang produksinya.':'Gagal menyimpan: '+e.message)}
 }
