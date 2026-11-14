@@ -250,6 +250,21 @@ tr.ft td{background:var(--soft);border-top:0}
 #dlgx{position:fixed;top:14px;right:max(14px,calc((100% - 1040px)/2));z-index:90;width:44px;height:44px;border-radius:50%;border:0;background:var(--soft,#eef1f6);color:var(--tx,#222);font-size:24px;line-height:1;cursor:pointer;display:none}
 #dlg.on #dlgx{display:block}
 @media(max-width:700px){#dlgb,#dlgb.wide{padding:18px 14px 32px}}
+
+/* Banner info / promo di Ringkasan */
+.bn{position:relative;border-radius:16px;overflow:hidden;margin-bottom:16px;color:#fff;box-shadow:0 6px 22px rgba(20,40,120,.16)}
+.bns{display:none;grid-template-columns:minmax(0,42%) minmax(0,1fr);min-height:176px}
+.bns.on{display:grid}
+.bni{background-size:cover;background-position:center;background-color:rgba(255,255,255,.14)}
+.bnt{padding:22px 54px 40px 26px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+.bnt h3{margin:0;font-size:clamp(18px,2.2vw,26px);line-height:1.2;color:#fff}
+.bnt p{margin:0;font-size:14.5px;line-height:1.5;opacity:.93;color:#fff}
+.bnb{align-self:flex-start;margin-top:8px;background:#fff;color:#1c2c8f;border:0;border-radius:999px;padding:9px 20px;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none}
+.bnx{position:absolute;top:10px;right:12px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.28);color:#fff;font-size:18px;line-height:1;cursor:pointer}
+.bnd{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:7px}
+.bnd i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45);cursor:pointer;display:block}
+.bnd i.on{background:#fff;width:22px;border-radius:6px}
+@media(max-width:700px){.bns{grid-template-columns:1fr}.bni{min-height:120px}.bnt{padding:16px 16px 40px}}
 </style>
 <script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.NOXLSX=1"></script>
@@ -327,11 +342,47 @@ async function kodeToko(kode,app){
 const FT={on:new Set(),kunci:new Set(),code:'',wa:'',msg:'',nama:'',exp:false};
 const hasF=k=>FT.on.has(k);
 async function urlCode(u){try{const n=String(u||'').trim().split('?')[0].replace(/\/+$/,'').toLowerCase();if(!n||!(window.crypto&&crypto.subtle))return'';const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(n));return[...new Uint8Array(b)].slice(0,6).map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return''}}
+
+/* ---------- Banner info / promo (dibaca dari banners.json di samping backoffice.html) ---------- */
+const BN={list:[],i:0,t:null};
+function bnHid(){try{const o=JSON.parse(localStorage.getItem('twinsbo_bnx')||'{}'),n=Date.now();Object.keys(o).forEach(k=>{if(o[k]<n)delete o[k]});return o}catch(e){return{}}}
+async function bnLoad(){
+ try{
+  const r=await fetch('banners.json?v='+Math.floor(Date.now()/60000),{cache:'no-store'});if(!r.ok){BN.list=[];return}
+  const j=await r.json(),today=dk(Date.now()),me=String(FT.nama||'').trim().toLowerCase(),hid=bnHid();
+  BN.list=(Array.isArray(j)?j:(j&&j.banners)||[]).filter(b=>b&&b.judul&&b.aktif!==false&&(!b.mulai||b.mulai<=today)&&(!b.selesai||b.selesai>=today)&&(!(b.untuk&&b.untuk.length)||b.untuk.some(u=>String(u).trim().toLowerCase()===me))&&!hid[b.id||b.judul]).sort((a,b)=>(+a.urut||0)-(+b.urut||0));
+ }catch(e){BN.list=[]}
+}
+function bnLink(b){
+ if(!b.link)return'';const l=String(b.link);
+ if(/^wa:/i.test(l)){const t=l.slice(3)||'Halo, saya dari '+(FT.nama||'toko')+'. Saya tertarik dengan: '+b.judul;return'https://wa.me/'+String(FT.wa||'').replace(/\D/g,'')+'?text='+encodeURIComponent(t)}
+ return /^https?:\/\//i.test(l)?l:'';
+}
+function bnHtml(){
+ if(!BN.list.length)return'';
+ if(BN.i>=BN.list.length)BN.i=0;
+ setTimeout(bnStart,0);
+ return`<div class="bn" id="bn" style="background:linear-gradient(120deg,${esc(BN.list[BN.i].warna||'#1f3fd6')},${esc(BN.list[BN.i].warna2||'#3b82f6')})">${BN.list.map((b,k)=>{const u=bnLink(b);return`<div class="bns ${k===BN.i?'on':''}">${b.gambar?`<div class="bni" style="background-image:url('${esc(String(b.gambar).replace(/'/g,'%27'))}')"></div>`:'<div class="bni"></div>'}<div class="bnt"><h3>${esc(b.judul)}</h3>${b.teks?`<p>${esc(b.teks)}</p>`:''}${u?`<a class="bnb" href="${esc(u)}" target="_blank" rel="noopener">${esc(b.tombol||'Selengkapnya')}</a>`:''}</div></div>`}).join('')}
+ <button class="bnx" title="Sembunyikan" onclick="bnClose()">×</button>${BN.list.length>1?`<div class="bnd">${BN.list.map((b,k)=>`<i class="${k===BN.i?'on':''}" onclick="bnShow(${k})"></i>`).join('')}</div>`:''}</div>`;
+}
+function bnShow(k){
+ const el=document.getElementById('bn');if(!el)return;BN.i=k;
+ el.querySelectorAll('.bns').forEach((x,j)=>x.classList.toggle('on',j===k));el.querySelectorAll('.bnd i').forEach((x,j)=>x.classList.toggle('on',j===k));
+ const b=BN.list[k];if(b)el.style.background='linear-gradient(120deg,'+(b.warna||'#1f3fd6')+','+(b.warna2||'#3b82f6')+')';
+}
+function bnStart(){clearInterval(BN.t);if(BN.list.length>1&&document.getElementById('bn'))BN.t=setInterval(()=>{if(!document.getElementById('bn')){clearInterval(BN.t);return}bnShow((BN.i+1)%BN.list.length)},6500)}
+function bnClose(){
+ const b=BN.list[BN.i];if(!b)return;
+ try{const o=bnHid();o[b.id||b.judul]=Date.now()+3*864e5;localStorage.setItem('twinsbo_bnx',JSON.stringify(o))}catch(e){}
+ BN.list.splice(BN.i,1);BN.i=0;const el=document.getElementById('bn');
+ if(!BN.list.length){clearInterval(BN.t);if(el)el.remove()}else if(el){el.outerHTML=bnHtml()}
+}
 async function loadFitur(u,fast){
  FT.code=await urlCode(u);let j=null;const CK='twins_fitur_'+FT.code;
  if(!fast&&MASTER_URL&&FT.code){try{const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);const r=await fetch(MASTER_URL+(MASTER_URL.includes('?')?'&':'?')+'kode='+FT.code,{redirect:'follow',signal:c.signal});clearTimeout(t);const x=await r.json();if(x&&x.ok){j=x;try{localStorage.setItem(CK,JSON.stringify(x))}catch(e){}}}catch(e){}}
  if(!j){try{j=JSON.parse(localStorage.getItem(CK))}catch(e){}}
  FT.on=new Set((j&&j.fitur)||[]);FT.kunci=new Set((j&&j.kunci)||[]);FT.wa=(j&&j.wa)||'';FT.msg=(j&&j.pesan)||'';FT.nama=(j&&j.nama)||'';FT.exp=!!(j&&j.exp);
+ try{bnLoad().then(()=>{if(typeof tab!=='undefined'&&BN.list.length&&!document.getElementById('bn')&&!document.getElementById('dlg').classList.contains('on'))render()})}catch(e){}
 }
 const FG={karyawan:'karyawan',komisi:'komisi',gaji:'gaji',analisa:'analisa',pemasok:'pembelian',fakturbeli:'pembelian',hutang:'pembelian',coa:'akuntansi',fakturjual:'fakturjual',piutang:'fakturjual',jurnal:'akuntansi',buku:'akuntansi',lapkeu:'akuntansi'};
 const lockF=k=>FG[k]||(FT.kunci.has(k)?k:'');
@@ -648,7 +699,7 @@ function render(){
  <div class="sf"><div class="who">${cfg.nm?esc(cfg.nm)+'<br>':''}Diperbarui ${fmtH(loadedAt)}</div><div class="acts"><button class="btn" onclick="refresh()" title="Muat ulang">${ic('refresh',16)}</button><button class="btn" onclick="toggleTheme()" title="Tema">${ic('moon',16)}</button><button class="btn" onclick="logout()" title="Keluar">${ic('out',16)}</button></div></div></aside>
  <div class="scrim" onclick="toggleSide(false)"></div>
  <main class="main"><div class="tb"><button class="hb" onclick="toggleSide()">${ic('menu',22)}</button><div><h2>${ti[0]}</h2><div class="sub">${ti[1]}</div></div><div class="r">${isM?'':esc(perLabel())+'<br>'}Diperbarui ${fmtH(loadedAt)}</div><div class="who2"><span class="av">${esc(ini((D.outlet&&D.outlet.name)||cfg.nm||'TP'))}</span><span class="wn">${esc((D.outlet&&D.outlet.name)||cfg.nm||'Toko saya')}</span></div></div>
- <div class="content">${isM?'':periodBar()}${V[tab](CUR)}</div></main></div>`;
+ <div class="content">${bnHtml()}${isM?'':periodBar()}${V[tab](CUR)}</div></main></div>`;
  if(tab==='detail')dtRender();
  if(tab==='produk')ppRender();
  if(tab==='moutlet'){prevStruk();brcInit()}
