@@ -1169,7 +1169,7 @@ function cfForm(type,id){
  dlg(`<h3>${id?'Ubah':'Catat'} ${tp==='in'?'Dana Masuk':tp==='out'?'Pengeluaran':'Transfer / Pencairan / Setoran'}</h3><datalist id="cl">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>${tp==='tf'?'<div class="mut" style="margin-bottom:8px">Contoh: pencairan dari Bank Penampung ke BCA, atau setoran dari Kas Kasir ke bank.</div>':''}
  <div class="g2">${fld('c_dt','Tanggal',dk(e.ts),'date')}<div><label>${tp==='tf'?'Dari rekening':'Rekening'}</label><select id="c_acc">${opt(e.acc)}</select></div>
  ${tp==='tf'?`<div><label>Ke rekening</label><select id="c_to">${opt(e.to)}</select></div>`:fld('c_cat','Kategori',e.cat,'text','','list="cl" oninput="if(/belanja|peralatan|stok|bahan|prive|cicilan/i.test(this.value)){var c=document.getElementById(\'c_nop\');if(c)c.checked=true}"')}
- ${tp==='tf'?'':`<div style="grid-column:1/-1"><label>Akun COA (opsional)</label>${acctSel('c_acct',e.acct,tp==='out'?['X','H','P','T','AL','AT','L','E']:['R','L','E','AL','AT'],'Otomatis (ikut kategori / Plot Akun)')}</div>`}${tp==='tf'?'':fld('c_sub','Item (beli / bayar apa)',e.sub,'text','mis. Gas, Plastik','list="csl"')}${fld('c_amt','Nominal (Rp)',e.amount,'number')}${fld('c_note','Catatan',e.note)}</div><datalist id="csl">${[...new Set([...CFS().filter(x=>x.sub).map(x=>x.sub),...(D.cash||[]).filter(x=>x.sub).map(x=>x.sub)])].sort().map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+ ${tp==='tf'?'':`<div style="grid-column:1/-1"><label>Akun COA (opsional)</label>${acctSel('c_acct',e.acct,tp==='out'?['X','H','P','T','AL','AT','LP','LJ','E']:['R','LP','LJ','E','AL','AT'],'Otomatis (ikut kategori / Plot Akun)')}</div>`}${tp==='tf'?'':fld('c_sub','Item (beli / bayar apa)',e.sub,'text','mis. Gas, Plastik','list="csl"')}${fld('c_amt','Nominal (Rp)',e.amount,'number')}${fld('c_note','Catatan',e.note)}</div><datalist id="csl">${[...new Set([...CFS().filter(x=>x.sub).map(x=>x.sub),...(D.cash||[]).filter(x=>x.sub).map(x=>x.sub)])].sort().map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
  ${tp==='out'?chk('c_nop','Bukan biaya operasional (belanja stok, peralatan, cicilan pokok, prive): tetap tercatat di Arus Kas, tapi tidak mengurangi laba',e.nonop)+'<div class="hint" id="c_dbl" style="margin-top:6px">Membeli bahan atau barang dagangan dari pemasok? Catat lewat <b>Faktur Pembelian</b> supaya stok, hutang, dan HPP ikut tersambung. Jangan dicatat dua kali di sini.</div>':''}
  <div class="acts2"><button class="btn pri" onclick="saveCf('${id||''}','${tp}',this)">Simpan</button>${id?`<button class="btn del" onclick="delCf('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
@@ -2542,7 +2542,9 @@ const FX={piutang:['1-2000','Piutang Usaha','A'],persediaan:['1-3000','Persediaa
  modalawal:['3-1100','Modal Awal (Saldo Awal)','E'],modal:['3-1000','Modal Pemilik (Setoran)','E'],prive:['3-3000','Prive & Pengeluaran Non-Operasional','E'],
  jual:['4-1000','Penjualan','R'],retur:['4-2000','Retur Penjualan','R'],lain:['4-3000','Pendapatan Lain','R'],dpl:['2-1300','Uang Muka Pelanggan (DP)','L'],
  hpp:['5-1000','Harga Pokok Penjualan','X'],gaji:['6-1000','Beban Gaji','X'],komisi:['6-1100','Beban Komisi','X'],mdr:['6-2000','Beban MDR & Biaya Platform','X'],bebanlain:['6-9900','Beban Lain-lain','X'],asettetap:['1-5000','Aset Tetap','A'],akumsusut:['1-5900','Akumulasi Penyusutan','A'],sewamuka:['1-6000','Biaya Dibayar di Muka','A'],bebansusut:['6-4000','Beban Penyusutan','X'],bebansewa:['6-4100','Beban Sewa','X']};
-const ATYPE={A:'Aset',L:'Kewajiban',E:'Ekuitas',R:'Pendapatan',X:'Beban / HPP'};
+const ATYPE={A:'Aset',L:'Kewajiban',E:'Ekuitas',R:'Pendapatan',X:'Beban'};
+const liabSub=m=>m.sub||(m.id==='pinjam'?'panjang':'pendek');
+const akKind=m=>m.type==='A'?(assetSub(m)==='tetap'?'Aset Tetap':'Aset Lancar'):m.type==='L'?(liabSub(m)==='panjang'?'Kewajiban Jangka Panjang':'Kewajiban Jangka Pendek'):(ATYPE[m.type]||'');
 const AKUN=()=>(D&&D.akun)||{};
 const FXOK=(id,ak)=>!!FX[id]||/^exp:/.test(id)||(ak.custom||[]).some(c=>c.id===id);
 function jStart(){
@@ -2587,8 +2589,8 @@ function plotSave(btn){
  const map={};PMX.forEach((r,i)=>{const e=document.getElementById('pm_'+i);if(e&&e.value)map[r[0]]=e.value});
  safe(()=>push('akun',{...AKUN(),map}),btn);
 }
-const CTYPE={AL:'Aset Lancar',AT:'Aset Tetap',L:'Kewajiban',E:'Ekuitas',R:'Pendapatan',X:'Beban',H:'HPP (Harga Pokok)'};
-const GLBL={R:'Pendapatan',X:'Beban',H:'HPP',P:'Persediaan',T:'Pajak & Service Charge',AL:'Aset Lancar',AT:'Aset Tetap',L:'Kewajiban',E:'Ekuitas'};
+const CTYPE={AL:'Aset Lancar',AT:'Aset Tetap',LP:'Kewajiban Jangka Pendek',LJ:'Kewajiban Jangka Panjang',E:'Ekuitas',R:'Pendapatan',X:'Beban'};
+const GLBL={R:'Pendapatan',X:'Beban',H:'HPP',P:'Persediaan',T:'Pajak & Service Charge',AL:'Aset Lancar',AT:'Aset Tetap',LP:'Kewajiban Jangka Pendek',LJ:'Kewajiban Jangka Panjang',E:'Ekuitas'};
 const assetSub=m=>m.sub||(m.id==='asettetap'||m.id==='akumsusut'?'tetap':'lancar');
 function acctSel(id,sel,groups,auto){
  const M=jBuild().meta,gOf=m=>m.id==='persediaan'?'P':(m.id==='pajak'||m.id==='svc')?'T':akunGrp(m),l=aSorted().filter(m=>groups.includes(gOf(m)));
@@ -2596,19 +2598,20 @@ function acctSel(id,sel,groups,auto){
  const multi=new Set(l.map(gOf)).size>1;
  return`<select id="${id}"><option value="">${esc(auto)}</option>${multi?groups.filter(g=>l.some(m=>gOf(m)===g)).map(g=>`<optgroup label="${GLBL[g]||g}">${l.filter(m=>gOf(m)===g).map(opt).join('')}</optgroup>`).join(''):l.map(opt).join('')}</select>`;
 }
-function akunGrp(m){return m.type==='R'?'R':m.type==='X'?(m.hpp||m.id==='hpp'?'H':'X'):m.type==='A'?(m.custom?(assetSub(m)==='tetap'?'AT':'AL'):m.id==='asettetap'?'AT':''):(m.type==='L'||m.type==='E')&&m.custom?m.type:''}
+function akunGrp(m){return m.type==='R'?'R':m.type==='X'?(m.hpp||m.id==='hpp'?'H':'X'):m.type==='A'?(m.custom?(assetSub(m)==='tetap'?'AT':'AL'):m.id==='asettetap'?'AT':''):m.type==='L'&&m.custom?(liabSub(m)==='panjang'?'LJ':'LP'):m.type==='E'&&m.custom?'E':''}
 function akunNextCode(type,parent){
  const used=new Set(Object.values(jBuild().meta).map(m=>String(m.code)));
  const fmt=(pre,n,w)=>pre+String(n).padStart(w,'0');
  if(parent){const pm=jBuild().meta[parent],m=/^(.*?)(\d+)$/.exec(String(pm.code));if(m){let n=+m[2]+1;const w=m[2].length;while(used.has(fmt(m[1],n,w)))n++;return fmt(m[1],n,w)}}
- const base={R:[4,4000,1000],H:[5,2000,1000],X:[6,4000,100],AL:[1,7000,100],AT:[1,8000,100],L:[2,5000,100],E:[3,5000,100]}[type]||[6,4000,100];let n=base[1];while(used.has(base[0]+'-'+n))n+=base[2];return base[0]+'-'+n;
+ const base={R:[4,4000,1000],H:[5,2000,1000],X:[6,4000,100],AL:[1,7000,100],AT:[1,8000,100],LP:[2,5000,100],L:[2,5000,100],LJ:[2,6000,100],E:[3,5000,100]}[type]||[6,4000,100];let n=base[1];while(used.has(base[0]+'-'+n))n+=base[2];return base[0]+'-'+n;
 }
 function akunNew(id){
  const c=(AKUN().custom||[]).find(x=>x.id===id)||{},J=jBuild();
  const par=Object.values(J.meta).filter(m=>!m.parent&&akunGrp(m)&&m.id!==id).sort((x,y)=>String(x.code).localeCompare(String(y.code)));
  dlg(`<h3>${id?'Ubah':'Tambah'} Akun</h3>
  <div><label>Induk (opsional, untuk sub akun)</label><select id="n_par" ${id?'disabled':''} onchange="akunNewAuto()"><option value="">— Akun utama (tanpa induk) —</option>${par.map(m=>`<option value="${esc(m.id)}" ${c.parent===m.id?'selected':''}>${esc(m.code+' '+m.name)}</option>`).join('')}</select></div>
- <div><label>Jenis</label><select id="n_type" ${id?'disabled':''} onchange="akunNewAuto()">${Object.keys(CTYPE).map(k=>`<option value="${k}" ${c.type===k?'selected':''}>${CTYPE[k]}</option>`).join('')}</select></div>
+ <div><label>Jenis</label><select id="n_type" ${id?'disabled':''} onchange="akunNewAuto()">${Object.keys(CTYPE).map(k=>`<option value="${k}" ${(c.type==='H'?'X':c.type==='L'?'LP':c.type)===k?'selected':''}>${CTYPE[k]}</option>`).join('')}</select></div>
+ <div id="n_hppw" style="display:none"><label class="ck"><input id="n_hpp" type="checkbox" onchange="akunNewAuto()" ${c.type==='H'?'checked':''} ${id||c.parent?'disabled':''}> Termasuk HPP (harga pokok penjualan)</label></div>
  <div class="g2">${fld('n_code','Kode akun (kosongkan = otomatis)',c.code||'','text','otomatis')}${fld('n_name','Nama akun',c.name||'')}</div>
  <div class="hint" id="n_hint"></div>
  <div class="acts2"><button class="btn pri" onclick="akunNewSave('${esc(id||'')}',this)">Simpan</button>${id?`<button class="btn" style="color:var(--bad)" onclick="akunNewDel('${esc(id)}',this)">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
@@ -2618,11 +2621,12 @@ function akunTypeOf(par,type){if(!par)return type;const pm=jBuild().meta[par];re
 function akunNewAuto(){
  const par=v('n_par'),t=document.getElementById('n_type');if(!t)return;
  if(par&&!t.disabled){t.value=akunTypeOf(par,t.value);t.dataset.auto=1}
- const h=document.getElementById('n_hint');if(h&&!document.getElementById('n_type').disabled)h.textContent='Kode otomatis berikutnya: '+akunNextCode(par?akunTypeOf(par,v('n_type')):v('n_type'),par);
+ const hw=document.getElementById('n_hppw');if(hw){const tp=par?akunTypeOf(par,v('n_type')):v('n_type'),hx=document.getElementById('n_hpp');hw.style.display=(tp==='X'||tp==='H')?'':'none';if(par&&hx){hx.checked=tp==='H';hx.disabled=true}else if(hx&&!document.getElementById('n_type').disabled)hx.disabled=false}
+ const h=document.getElementById('n_hint');if(h&&!document.getElementById('n_type').disabled)h.textContent='Kode otomatis berikutnya: '+akunNextCode(par?akunTypeOf(par,v('n_type')):(v('n_type')==='X'&&document.getElementById('n_hpp')&&document.getElementById('n_hpp').checked?'H':v('n_type')),par);
 }
 function akunNewSave(id,btn){
  const name=v('n_name').trim();if(!name){alert('Isi nama akun');return}
- const ak=AKUN(),list=[...(ak.custom||[])],par=id?'':v('n_par'),type=akunTypeOf(par,v('n_type'));
+ const ak=AKUN(),list=[...(ak.custom||[])],par=id?'':v('n_par');let type=akunTypeOf(par,v('n_type'));if(!par&&type==='X'&&document.getElementById('n_hpp')&&document.getElementById('n_hpp').checked)type='H';
  let code=v('n_code').trim();if(!code)code=akunNextCode(type,par);
  if(Object.values(jBuild().meta).some(m=>m.id!==id&&String(m.code)===code)){alert('Kode akun '+code+' sudah dipakai.');return}
  if(id){const c=list.find(x=>x.id===id);if(c){c.code=code;c.name=name}}
@@ -2707,7 +2711,7 @@ function jBuild(){
  bs.forEach((b,i)=>meta[bk(b.id)]={id:bk(b.id),code:'1-1'+String((i+1)*10).padStart(3,'0'),name:'Kas/Bank · '+b.name,type:'A'});
  if(used['bank:-'])meta['bank:-']={id:'bank:-',code:'1-1999',name:'Kas/Bank belum diatur',type:'A'};
  cats.forEach((k,i)=>meta[k]={id:k,code:'6-3'+String((i+1)*10).padStart(3,'0'),name:'Beban '+k.slice(4),type:'X'});
- (ak.custom||[]).forEach(c=>{meta[c.id]={id:c.id,code:c.code,name:c.name,type:c.type==='H'?'X':(c.type==='AL'||c.type==='AT'?'A':c.type),sub:c.type==='AT'?'tetap':c.type==='AL'?'lancar':'',hpp:c.type==='H',custom:1,parent:c.parent&&FXOK(c.parent,ak)?c.parent:''}});
+ (ak.custom||[]).forEach(c=>{meta[c.id]={id:c.id,code:c.code,name:c.name,type:c.type==='H'?'X':(c.type==='AL'||c.type==='AT'?'A':(c.type==='LP'||c.type==='LJ'?'L':c.type)),sub:c.type==='AT'?'tetap':c.type==='AL'?'lancar':c.type==='LJ'?'panjang':(c.type==='LP'||c.type==='L')?'pendek':'',hpp:c.type==='H',custom:1,parent:c.parent&&FXOK(c.parent,ak)?c.parent:''}});
  Object.keys(meta).forEach(k=>{if(N[k]){if(N[k].code)meta[k].code=N[k].code;if(N[k].name)meta[k].name=N[k].name}});
  JC={src:D,ents,meta,start};return JC;
 }
@@ -2724,10 +2728,10 @@ function vCoa(){
  const s=jSums(0,asOf()),l=aSorted(),kids=id=>l.filter(m=>m.parent===id),tot=id=>jSaldo(s,id)+sum(kids(id),k=>tot(k.id));
  const rows=[];l.filter(m=>!m.parent||!jBuild().meta[m.parent]).forEach(m=>{rows.push([m,0]);kids(m.id).forEach(k=>rows.push([k,1]))});
  return`${akNote()}<div class="card"><div class="tool"><span class="mut">Saldo per ${esc(asLbl(asOf()))}</span><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="coaCsv()">${ic('dl',16)} CSV</button><button class="btn" onclick="akunNew()">+ Akun</button><button class="btn" onclick="plotOpen()">Plot Akun</button><button class="btn pri" onclick="akunSetup()">Atur Saldo Awal</button></span></div>
- <div class="tw"><table><tr><th>Kode</th><th>Nama akun</th><th>Jenis</th><th class="r">Saldo</th></tr>${rows.map(([m,d])=>{const hk=kids(m.id).length;return`<tr class="cl" onclick="${m.custom?'akunNew':'akunEdit'}('${esc(m.id)}')"><td><b>${esc(m.code)}</b></td><td style="${d?'padding-left:26px':''}${hk?';font-weight:600':''}">${d?'↳ ':''}${esc(m.name)}</td><td>${m.hpp?'HPP':ATYPE[m.type]}</td><td class="r"${hk?' style="font-weight:600"':''}>${rp(hk?tot(m.id):jSaldo(s,m.id))}</td></tr>`}).join('')}</table></div>
+ <div class="tw"><table><tr><th>Kode</th><th>Nama akun</th><th>Jenis</th><th class="r">Saldo</th></tr>${rows.map(([m,d])=>{const hk=kids(m.id).length;return`<tr class="cl" onclick="${m.custom?'akunNew':'akunEdit'}('${esc(m.id)}')"><td><b>${esc(m.code)}</b></td><td style="${d?'padding-left:26px':''}${hk?';font-weight:600':''}">${d?'↳ ':''}${esc(m.name)}</td><td>${m.hpp?'HPP':akKind(m)}</td><td class="r"${hk?' style="font-weight:600"':''}>${rp(hk?tot(m.id):jSaldo(s,m.id))}</td></tr>`}).join('')}</table></div>
  <div class="hint" style="margin-top:8px">Akun rekening mengikuti menu Rekening, dan akun beban mengikuti kategori pengeluaran. Ketuk satu baris untuk mengubah. Pakai <b>+ Akun</b> lalu pilih Induk untuk membuat sub akun; kodenya dibuat otomatis mengikuti induknya.</div></div>`;
 }
-function coaCsv(){const s=jSums(0,asOf());csv('Daftar-Akun',[['Kode','Nama','Jenis','Saldo'],...aSorted().map(m=>[m.code,m.name,ATYPE[m.type],jSaldo(s,m.id)])])}
+function coaCsv(){const s=jSums(0,asOf());csv('Daftar-Akun',[['Kode','Nama','Jenis','Saldo'],...aSorted().map(m=>[m.code,m.name,akKind(m),jSaldo(s,m.id)])])}
 function akunSetup(){
  const a=AKUN();
  dlg(`<h3>Saldo Awal Pembukuan</h3><div class="mut" style="margin-bottom:8px">Jurnal dihitung mulai tanggal ini. Transaksi sebelum tanggal ini tidak ikut. Saldo awal kas dan bank diambil dari menu Rekening. Modal awal dihitung otomatis sebagai selisihnya.</div>
@@ -2806,7 +2810,7 @@ function lapLR(d){
 }
 function nrData(d){
  const A=[],Lb=[],Eq=[];
- d.l.forEach(m=>{const v=jSaldo(d.sA,m.id);if(!v&&m.type!=='A')return;if(m.type==='A'&&v)A.push({n:m.name,v,sub:assetSub(m)});else if(m.type==='L'&&v)Lb.push({n:m.name,v});else if(m.type==='E'&&v)Eq.push({n:m.name,v})});
+ d.l.forEach(m=>{const v=jSaldo(d.sA,m.id);if(!v&&m.type!=='A')return;if(m.type==='A'&&v)A.push({n:m.name,v,sub:assetSub(m)});else if(m.type==='L'&&v)Lb.push({n:m.name,v,sub:liabSub(m)});else if(m.type==='E'&&v)Eq.push({n:m.name,v})});
  const laba=sum(d.l.filter(m=>m.type==='R'),m=>jSaldo(d.sA,m.id))-sum(d.l.filter(m=>m.type==='X'),m=>jSaldo(d.sA,m.id));
  Eq.push({n:'Laba berjalan (sejak pembukuan)',v:laba});
  let adj=0;if(d.live){const fis=Math.round(sum((D.products||[]).filter(p=>p.trackStock!==false),p=>(+p.stock||0)*(+p.cogs||0))),led=jSaldo(d.sA,'persediaan');adj=fis-led;if(adj){A.push({n:'Penyesuaian persediaan ke stok fisik',v:adj,sub:'lancar'});Eq.push({n:'Selisih persediaan (penyesuaian)',v:adj})}}
@@ -2816,9 +2820,13 @@ function asetSec(N){
  const ks=['lancar','tetap'].filter(k=>N.A.some(x=>x.sub===k)),one=ks.length<2,tl={lancar:'Aset Lancar',tetap:'Aset Tetap'};
  return`<tr class="ft"><td colspan="2">Aset</td></tr>`+ks.map(k=>{const l=N.A.filter(x=>x.sub===k);return(one?'':`<tr><td colspan="2" style="padding-left:10px;font-weight:600">${tl[k]}</td></tr>`)+l.map(x=>`<tr><td style="padding-left:20px">${esc(x.n)}</td><td class="r">${rp(x.v)}</td></tr>`).join('')+(one?'':`<tr><td style="padding-left:10px"><i>Total ${tl[k].toLowerCase()}</i></td><td class="r"><i>${rp(sum(l,x=>x.v))}</i></td></tr>`)}).join('')+`<tr class="ft"><td>Total aset</td><td class="r">${rp(N.ta)}</td></tr>`;
 }
+function kwjSec(N){
+ const ks=['pendek','panjang'].filter(k=>N.Lb.some(x=>(x.sub||'pendek')===k)),one=ks.length<2,tl={pendek:'Kewajiban Jangka Pendek',panjang:'Kewajiban Jangka Panjang'};
+ return`<tr class="ft"><td colspan="2">Kewajiban</td></tr>`+ks.map(k=>{const l=N.Lb.filter(x=>(x.sub||'pendek')===k);return(one?'':`<tr><td colspan="2" style="padding-left:10px;font-weight:600">${tl[k]}</td></tr>`)+l.map(x=>`<tr><td style="padding-left:20px">${esc(x.n)}</td><td class="r">${rp(x.v)}</td></tr>`).join('')+(one?'':`<tr><td style="padding-left:10px"><i>Total ${tl[k].toLowerCase()}</i></td><td class="r"><i>${rp(sum(l,x=>x.v))}</i></td></tr>`)}).join('')+`<tr class="ft"><td>Total kewajiban</td><td class="r">${rp(N.tl)}</td></tr>`;
+}
 function lapNR(d){
  const N=nrData(d),sec=(t,l,tot)=>`<tr class="ft"><td colspan="2">${t}</td></tr>${l.map(x=>`<tr><td style="padding-left:20px">${esc(x.n)}</td><td class="r">${rp(x.v)}</td></tr>`).join('')}<tr class="ft"><td>Total ${t.toLowerCase()}</td><td class="r">${rp(tot)}</td></tr>`;
- return`<p class="mut">Neraca per ${esc(asLbl(d.end))}</p><div class="tw"><table>${asetSec(N)}${sec('Kewajiban',N.Lb,N.tl)}${sec('Ekuitas',N.Eq,N.te)}<tr class="ft"><td>Kewajiban + Ekuitas</td><td class="r">${rp(N.tl+N.te)}</td></tr></table></div>
+ return`<p class="mut">Neraca per ${esc(asLbl(d.end))}</p><div class="tw"><table>${asetSec(N)}${kwjSec(N)}${sec('Ekuitas',N.Eq,N.te)}<tr class="ft"><td>Kewajiban + Ekuitas</td><td class="r">${rp(N.tl+N.te)}</td></tr></table></div>
  <div class="hint">${Math.abs(N.ta-N.tl-N.te)<=1?'Seimbang: aset sama dengan kewajiban ditambah ekuitas.':'Tidak seimbang. Selisih '+rp(N.ta-N.tl-N.te)+'.'}${N.adj?` Persediaan dicocokkan ke nilai stok fisik (stok × harga modal) hari ini; selisihnya ${rp(N.adj)} dicatat sebagai penyesuaian di ekuitas.`:''}</div>`;
 }
 function lapCsv(){
