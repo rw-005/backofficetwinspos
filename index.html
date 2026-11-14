@@ -2608,9 +2608,12 @@ function akunNextCode(type,parent){
 function akunNew(id,pre){
  const c=(AKUN().custom||[]).find(x=>x.id===id)||{},J=jBuild();if(!id&&pre)c.parent=pre;
  const par=Object.values(J.meta).filter(m=>!m.parent&&akunPar(m)&&m.id!==id).sort((x,y)=>String(x.code).localeCompare(String(y.code)));
- dlg(`<h3>${id?'Ubah':pre?'Tambah Sub Akun':pre===''?'Tambah Akun Induk':'Tambah'} Akun</h3>
- <div><label>Induk (opsional, untuk sub akun)</label><select id="n_par" ${id?'disabled':''} onchange="akunNewAuto()"><option value="">— Akun utama (tanpa induk) —</option>${par.map(m=>`<option value="${esc(m.id)}" ${c.parent===m.id?'selected':''}>${esc(m.code+' '+m.name)}</option>`).join('')}</select></div>
- <div><label>Jenis</label><select id="n_type" ${id?'disabled':''} onchange="akunNewAuto()">${Object.keys(CTYPE).map(k=>`<option value="${k}" ${(c.type==='H'?'X':c.type==='L'?'LP':c.type)===k?'selected':''}>${CTYPE[k]}</option>`).join('')}</select></div>
+ dlg(`<h3>${id?'Ubah Akun':pre?'Tambah Sub Akun':pre===''?'Tambah Akun Induk':'Tambah Akun'}</h3>
+ ${(()=>{const pm=c.parent?J.meta[c.parent]:null;
+  if(pm)return`<input type="hidden" id="n_par" value="${esc(c.parent)}"><div><label>Sub akun dari</label><div class="mut" style="padding:10px 12px;border:1px solid var(--bd,#e2e8f0);border-radius:10px;font-weight:600">${esc(pm.code+' '+pm.name)}</div></div>`;
+  if(id||pre==='')return`<input type="hidden" id="n_par" value="">`;
+  return`<div><label>Induk (opsional, untuk sub akun)</label><select id="n_par" onchange="akunNewAuto()"><option value="">— Akun induk (tanpa induk) —</option>${par.map(m=>`<option value="${esc(m.id)}">${esc(m.code+' '+m.name)}</option>`).join('')}</select></div>`})()}
+ <div><label>Jenis</label><select id="n_type" ${id||c.parent?'disabled':''} onchange="akunNewAuto()">${Object.keys(CTYPE).map(k=>`<option value="${k}" ${(c.type==='H'?'X':c.type==='L'?'LP':c.type)===k?'selected':''}>${CTYPE[k]}</option>`).join('')}</select></div>
  <div id="n_hppw" style="display:none"><label class="ck"><input id="n_hpp" type="checkbox" onchange="akunNewAuto()" ${c.type==='H'?'checked':''} ${id||c.parent?'disabled':''}> Termasuk HPP (harga pokok penjualan)</label></div>
  <div class="g2">${fld('n_code','Kode akun (kosongkan = otomatis)',c.code||'','text','otomatis')}${fld('n_name','Nama akun',c.name||'')}</div>
  <div class="hint" id="n_hint"></div>
@@ -2622,9 +2625,9 @@ function akunPar(m){return akunGrp(m)||PARFX[m.id]||''}
 function akunTypeOf(par,type){if(!par)return type;const pm=jBuild().meta[par];return pm?(akunPar(pm)||type):type}
 function akunNewAuto(){
  const par=v('n_par'),t=document.getElementById('n_type');if(!t)return;
- if(par&&!t.disabled){t.value=akunTypeOf(par,t.value);t.dataset.auto=1}
+ if(par){t.value=akunTypeOf(par,t.value);t.dataset.auto=1}
  const hw=document.getElementById('n_hppw');if(hw){const tp=par?akunTypeOf(par,v('n_type')):v('n_type'),hx=document.getElementById('n_hpp');hw.style.display=(tp==='X'||tp==='H')?'':'none';if(par&&hx){hx.checked=tp==='H';hx.disabled=true}else if(hx&&!document.getElementById('n_type').disabled)hx.disabled=false}
- const h=document.getElementById('n_hint');if(h&&!document.getElementById('n_type').disabled)h.textContent='Kode otomatis berikutnya: '+akunNextCode(par?akunTypeOf(par,v('n_type')):(v('n_type')==='X'&&document.getElementById('n_hpp')&&document.getElementById('n_hpp').checked?'H':v('n_type')),par);
+ const h=document.getElementById('n_hint'),nc=document.getElementById('n_code');if(h&&nc&&!nc.value)h.textContent='Kode otomatis berikutnya: '+akunNextCode(par?akunTypeOf(par,v('n_type')):(v('n_type')==='X'&&document.getElementById('n_hpp')&&document.getElementById('n_hpp').checked?'H':v('n_type')),par);
 }
 function akunNewSave(id,btn){
  const name=v('n_name').trim();if(!name){alert('Isi nama akun');return}
@@ -2729,7 +2732,7 @@ function jCheck(){const J=jBuild();let bad=0;J.ents.forEach(e=>{if(Math.abs(sum(
 function vCoa(){
  const s=jSums(0,asOf()),l=aSorted(),kids=id=>l.filter(m=>m.parent===id),tot=id=>jSaldo(s,id)+sum(kids(id),k=>tot(k.id));
  const rows=[];l.filter(m=>!m.parent||!jBuild().meta[m.parent]).forEach(m=>{rows.push([m,0]);kids(m.id).forEach(k=>rows.push([k,1]))});
- return`${akNote()}<div class="card"><div class="tool"><span class="mut">Saldo per ${esc(asLbl(asOf()))}</span><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="coaCsv()">${ic('dl',16)} CSV</button><button class="btn" onclick="akunNew('','')">+ Akun Induk</button><button class="btn" onclick="akunNew()">+ Akun / Sub Akun</button><button class="btn" onclick="plotOpen()">Plot Akun</button><button class="btn pri" onclick="akunSetup()">Atur Saldo Awal</button></span></div>
+ return`${akNote()}<div class="card"><div class="tool"><span class="mut">Saldo per ${esc(asLbl(asOf()))}</span><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="coaCsv()">${ic('dl',16)} CSV</button><button class="btn pri" onclick="akunNew('','')">+ Akun Induk</button><button class="btn" onclick="plotOpen()">Plot Akun</button><button class="btn pri" onclick="akunSetup()">Atur Saldo Awal</button></span></div>
  <div class="tw"><table><tr><th>Kode</th><th>Nama akun</th><th>Jenis</th><th class="r">Saldo</th><th></th></tr>${rows.map(([m,d])=>{const hk=kids(m.id).length;return`<tr class="cl" onclick="${m.custom?'akunNew':'akunEdit'}('${esc(m.id)}')"><td><b>${esc(m.code)}</b></td><td style="${d?'padding-left:26px':''}${hk?';font-weight:600':''}">${d?'↳ ':''}${esc(m.name)}</td><td>${m.hpp?'HPP':akKind(m)}</td><td class="r"${hk?' style="font-weight:600"':''}>${rp(hk?tot(m.id):jSaldo(s,m.id))}</td><td style="text-align:right">${!m.parent&&akunPar(m)?`<button class="btn sm" title="Tambah sub akun di bawah ${esc(m.name)}" onclick="event.stopPropagation();akunNew('','${esc(m.id)}')">+ Sub</button>`:''}</td></tr>`}).join('')}</table></div>
  <div class="hint" style="margin-top:8px">Akun rekening mengikuti menu Rekening, dan akun beban mengikuti kategori pengeluaran. Ketuk satu baris untuk mengubah. Pakai <b>+ Akun Induk</b> untuk membuat kelompok akun baru, atau <b>+ Sub</b> di tiap baris untuk menambah sub akunnya; kodenya otomatis mengikuti induknya.</div></div>`;
 }
