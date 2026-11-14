@@ -1284,21 +1284,21 @@ function vMProduk(){
  const grp=D.products.filter(p=>isB?!!p.bahan:!p.bahan),cats=[...new Set(grp.map(p=>p.cat||'Umum'))].sort();
  const low=grp.filter(p=>p.active!==false&&(+p.stock||0)<=(+p.minStock||0)&&p.trackStock!==false);
  const rec=D.products.filter(p=>!p.bahan&&(p.recipe||[]).length);
- const tabs=`<div class="chips" style="margin-bottom:12px">${[['jual','Produk'],['bahan','Bahan Baku'],['resep','Resep & Produksi']].map(([k,l])=>`<button class="chip ${PM.k===k?'on':''}" onclick="PM.k='${k}';PM.q='';PM.cat='';PM.low=false;render()">${l}</button>`).join('')}</div>`;
+ const tabs=`<div class="chips" style="margin-bottom:12px">${[['jual','Produk'],['bahan','Bahan Baku'],['resep','Resep & Produksi']].map(([k,l])=>`<button class="chip ${PM.k===k?'on':''}" onclick="PM.k='${k}';PM.q='';PM.cat='';PM.low=false;PSEL={};render()">${l}</button>`).join('')}</div>`;
  const kpi=isR?`<div class="kg"><div class="kc"><small>Produk beresep</small><b>${rec.length}</b></div><div class="kc"><small>Bahan baku terdaftar</small><b>${D.products.filter(p=>p.bahan).length}</b></div></div>`
   :`<div class="kg"><div class="kc"><small>Jumlah ${isB?'bahan baku':'produk'}</small><b>${grp.length}</b></div><div class="kc"><small>Stok menipis</small><b style="color:var(--${low.length?'bad':'ok'})">${low.length}</b></div><div class="kc"><small>Nilai stok (HPP)</small><b>${rp(sum(grp,p=>(+p.stock||0)*(+p.cogs||0)))}</b></div></div>`;
  const search=`<input placeholder="Cari nama, kategori, kode…" value="${esc(PM.q)}" oninput="PM.q=this.value;mpRows()">`;
  const catSel=`<select onchange="PM.cat=this.value;mpRows()"><option value="">Semua kategori</option>${cats.map(c=>`<option value="${esc(c)}" ${PM.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`;
  const lowBtn=`<button class="btn ${PM.low?'on':''}" onclick="PM.low=!PM.low;render()">Stok menipis</button>`;
  const tool=isR?`<div class="tool">${search}<span style="margin-left:auto"><button class="btn pri" onclick="prodnForm()">${ic('plus',16)} Catat Produksi</button></span></div>`
-  :isB?`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="bhOpen()">${ic('plus',16)} Impor Bahan Baku</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm('',true)">${ic('plus',16)} Tambah Bahan Baku</button></div>`
-  :`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="ipOpen()">${ic('plus',16)} Impor Produk</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>`;
+  :isB?`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" id="psbtn" style="display:${Object.keys(PSEL).length?'':'none'};color:var(--bad)" onclick="psDelOpen()">Hapus terpilih (${Object.keys(PSEL).length})</button><button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="bhOpen()">${ic('plus',16)} Impor Bahan Baku</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm('',true)">${ic('plus',16)} Tambah Bahan Baku</button></div>`
+  :`<div class="tool">${search}${catSel}${lowBtn}<button class="btn" id="psbtn" style="display:${Object.keys(PSEL).length?'':'none'};color:var(--bad)" onclick="psDelOpen()">Hapus terpilih (${Object.keys(PSEL).length})</button><button class="btn" onclick="exportMProduk()">${ic('dl',16)} CSV</button><button class="btn" onclick="ipOpen()">${ic('plus',16)} Impor Produk</button><button class="btn" onclick="bkOpen()">${ic('plus',16)} Isi Stok Massal</button><button class="btn pri" onclick="prodForm()">${ic('plus',16)} Tambah Produk</button></div>`;
  return tabs+kpi+`<div class="card">${tool}<div class="tw" id="mpt">${mpBody()}</div></div>`+(isR?pkCard():'');
 }
 function mpBody(){return PM.k==='resep'?mpTableR():PM.k==='bahan'?mpTableB(mpFiltered()):mpTable(mpFiltered())}
 function mpTableB(l){
  if(!l.length)return'<div class="empty">Belum ada bahan baku. Tekan “Tambah Bahan Baku” atau “Impor Bahan Baku”.</div>';
- return`<table><tr><th>Bahan</th><th>Kategori</th><th class="r">Stok</th><th class="r">HPP / satuan</th><th class="r">Nilai stok</th><th></th></tr>${l.map(p=>{const s=+p.stock||0,lowS=s<=(+p.minStock||0);return`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.cat||'Umum')}</td><td class="r"><b style="color:var(--${lowS?'bad':'tx'})">${fq(s)}</b> ${esc(p.unit||'')}${lowS?' <span class="badge v">menipis</span>':''}</td><td class="r">${rp(p.cogs||0)}</td><td class="r">${rp(s*(+p.cogs||0))}</td><td style="text-align:right"><button class="btn sm" onclick="stockForm('${p.id}')">+ Stok</button> <button class="btn sm" onclick="prodForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`;
+ return`<table><tr><th style="width:34px"><input type="checkbox" title="Pilih semua yang tampil" onchange="psAll(this.checked)" ${l.length&&l.every(p=>PSEL[p.id])?'checked':''}></th><th>Bahan</th><th>Kategori</th><th class="r">Stok</th><th class="r">HPP / satuan</th><th class="r">Nilai stok</th><th></th></tr>${l.map(p=>{const s=+p.stock||0,lowS=s<=(+p.minStock||0);return`<tr><td><input type="checkbox" ${PSEL[p.id]?'checked':''} onchange="psTog('${p.id}',this.checked)"></td><td><b>${esc(p.name)}</b></td><td>${esc(p.cat||'Umum')}</td><td class="r"><b style="color:var(--${lowS?'bad':'tx'})">${fq(s)}</b> ${esc(p.unit||'')}${lowS?' <span class="badge v">menipis</span>':''}</td><td class="r">${rp(p.cogs||0)}</td><td class="r">${rp(s*(+p.cogs||0))}</td><td style="text-align:right"><button class="btn sm" onclick="stockForm('${p.id}')">+ Stok</button> <button class="btn sm" onclick="prodForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`;
 }
 function mpTableR(){
  const q=PM.q.toLowerCase(),l=D.products.filter(p=>!p.bahan&&(p.recipe||[]).length&&(!q||String(p.name).toLowerCase().includes(q)));
@@ -1323,12 +1323,12 @@ function mpFiltered(){
  const q=PM.q.toLowerCase();
  return D.products.filter(p=>pmKind(p)&&(!PM.cat||p.cat===PM.cat)&&(!PM.low||(p.active!==false&&(+p.stock||0)<=(+p.minStock||0)&&p.trackStock!==false))&&(!q||(p.name+' '+(p.cat||'')+' '+(p.sku||'')).toLowerCase().includes(q)));
 }
-function mpRows(){const t=$('#mpt');if(t)t.innerHTML=mpBody()}
+function mpRows(){const t=$('#mpt');if(t)t.innerHTML=mpBody();psUpd()}
 function mpTable(l){
  if(!l.length)return'<div class="empty">Belum ada produk. Tekan “Tambah Produk”.</div>';
- return`<table><tr><th>Produk</th><th>Kategori</th><th class="r">Harga</th><th class="r">HPP</th><th class="r">Margin</th><th class="r">Stok</th><th>Status</th><th></th></tr>${l.map(p=>{
+ return`<table><tr><th style="width:34px"><input type="checkbox" title="Pilih semua yang tampil" onchange="psAll(this.checked)" ${l.length&&l.every(p=>PSEL[p.id])?'checked':''}></th><th>Produk</th><th>Kategori</th><th class="r">Harga</th><th class="r">HPP</th><th class="r">Margin</th><th class="r">Stok</th><th>Status</th><th></th></tr>${l.map(p=>{
   const m=p.price?((p.price-(p.cogs||0))/p.price*100):0,s=+p.stock||0,lowS=p.trackStock!==false&&s<=(+p.minStock||0);
-  return`<tr><td><b>${esc(p.name)}</b>${p.bahan?' <span class="badge k">Bahan baku</span>':(p.paket&&p.paket.length)?' <span class="badge g">Paket</span>':(p.recipe&&p.recipe.length)?' <span class="badge g">Resep</span>':''}${p.sku?'<br><small class="mut">'+esc(p.sku)+'</small>':''}</td><td>${esc(p.cat||'Umum')}</td><td class="r">${rp(p.price)}</td><td class="r">${rp(p.cogs)}</td><td class="r" style="color:var(--${m<=0?'bad':m<10?'warn':'ok'})">${pct(m)}</td>
+  return`<tr><td><input type="checkbox" ${PSEL[p.id]?'checked':''} onchange="psTog('${p.id}',this.checked)"></td><td><b>${esc(p.name)}</b>${p.bahan?' <span class="badge k">Bahan baku</span>':(p.paket&&p.paket.length)?' <span class="badge g">Paket</span>':(p.recipe&&p.recipe.length)?' <span class="badge g">Resep</span>':''}${p.sku?'<br><small class="mut">'+esc(p.sku)+'</small>':''}</td><td>${esc(p.cat||'Umum')}</td><td class="r">${rp(p.price)}</td><td class="r">${rp(p.cogs)}</td><td class="r" style="color:var(--${m<=0?'bad':m<10?'warn':'ok'})">${pct(m)}</td>
   <td class="r">${p.trackStock===false?'<span class="mut">tanpa stok</span>':`<b style="color:var(--${lowS?'bad':'tx'})">${fq(s)}</b> ${esc(p.unit)}${lowS?' <span class="badge v">menipis</span>':''}`}</td>
   <td>${p.active===false?'<span class="badge v">Nonaktif</span>':'<span class="badge g">Aktif</span>'}</td>
   <td style="text-align:right">${p.trackStock===false?'':`<button class="btn sm" onclick="stockForm('${p.id}')">+ Stok</button> `}<button class="btn sm" onclick="prodForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`;
@@ -1428,6 +1428,37 @@ function ovSave(id,btn){
  const sel=$('#ov_mode').value==='abs';
  if($('#ov_v').querySelectorAll('.om').length&&[...$('#ov_v').querySelectorAll('.ovrow')].some(r=>r.querySelector('.om').value==='sendiri'&&!ovRecs(r).length)&&!confirm('Ada varian bermode "resep sendiri" tanpa bahan. Varian itu akan memakai resep produk. Lanjut simpan?'))return;
  safe(()=>pushPost('product',{id:id,name:p.name,variants:vs.list,toppings:ts.list,vabs:sel}),btn);
+}
+
+/* ---------- Hapus banyak produk ---------- */
+let PSEL={};
+function psUpd(){
+ const n=Object.keys(PSEL).length,b=document.getElementById('psbtn');
+ if(b){b.style.display=n?'':'none';b.textContent='Hapus terpilih ('+n+')'}
+}
+function psTog(id,on){if(on)PSEL[id]=1;else delete PSEL[id];psUpd();const h=document.querySelector('#mpt th input[type=checkbox]');if(h){const l=mpFiltered();h.checked=l.length>0&&l.every(p=>PSEL[p.id])}}
+function psAll(on){mpFiltered().forEach(p=>{if(on)PSEL[p.id]=1;else delete PSEL[p.id]});mpRows();psUpd()}
+function psDelOpen(){
+ const ids=Object.keys(PSEL).filter(id=>D.products.some(p=>p.id===id));if(!ids.length)return;
+ const names=ids.map(nameOf),used=D.products.filter(p=>!ids.includes(p.id)&&[...(p.recipe||[]),...(p.paket||[])].some(r=>ids.includes(r.id||r.pid)));
+ dlg(`<h3 style="color:var(--bad)">Hapus ${ids.length} produk</h3>
+ <div class="mut" style="margin-bottom:10px">${esc(names.slice(0,12).join(', '))}${names.length>12?' dan '+(names.length-12)+' lainnya':''}</div>
+ <div class="hint" style="margin:0 0 10px">Produk dihapus dari daftar dan dari semua kasir. Riwayat penjualan lama tetap tersimpan. Untuk sekadar menyembunyikan, matikan “Aktif” di produknya. <b>Tidak bisa dibatalkan.</b></div>
+ ${used.length?`<div class="note" style="margin-bottom:10px">Perhatian: ${used.length} produk lain memakai yang akan dihapus ini di resep atau paket (${esc(used.slice(0,5).map(p=>p.name).join(', '))}${used.length>5?', …':''}). Resepnya perlu dirapikan setelahnya.</div>`:''}
+ ${ids.length>1?fld('ps_t','Ketik HAPUS untuk melanjutkan','','text','HAPUS'):''}
+ <div class="acts2"><button class="btn" style="background:var(--bad);color:#fff" onclick="psDelRun(this)">Hapus ${ids.length} produk</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+function psDelRun(btn){
+ const ids=Object.keys(PSEL).filter(id=>D.products.some(p=>p.id===id));
+ if(ids.length>1&&v('ps_t').trim()!=='HAPUS'){alert('Ketik HAPUS dengan huruf besar.');return}
+ safe(async()=>{
+  try{await pushPost('product_del_bulk',{ids})}
+  catch(e){
+   if(!/tidak dikenal|tidak lengkap/i.test(e.message))throw e;   // Code.gs lama: hapus satu per satu
+   for(let i=0;i<ids.length;i++){btn.textContent='Menghapus '+(i+1)+' dari '+ids.length+'…';await pushPost('product_del',{id:ids[i]})}
+  }
+  D.products=D.products.filter(p=>!ids.includes(p.id));JC=null;PSEL={};
+ },btn);
 }
 function delProd(id){if(confirm('Hapus produk ini dari daftar? Riwayat penjualan lama tetap tersimpan. (Untuk menyembunyikan saja, matikan “Aktif”.)'))safe(()=>push('product_del',{id}))}
 function stockForm(id){
