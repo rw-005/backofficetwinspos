@@ -1169,7 +1169,7 @@ function cfForm(type,id){
  dlg(`<h3>${id?'Ubah':'Catat'} ${tp==='in'?'Dana Masuk':tp==='out'?'Pengeluaran':'Transfer / Pencairan / Setoran'}</h3><datalist id="cl">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>${tp==='tf'?'<div class="mut" style="margin-bottom:8px">Contoh: pencairan dari Bank Penampung ke BCA, atau setoran dari Kas Kasir ke bank.</div>':''}
  <div class="g2">${fld('c_dt','Tanggal',dk(e.ts),'date')}<div><label>${tp==='tf'?'Dari rekening':'Rekening'}</label><select id="c_acc">${opt(e.acc)}</select></div>
  ${tp==='tf'?`<div><label>Ke rekening</label><select id="c_to">${opt(e.to)}</select></div>`:fld('c_cat','Kategori',e.cat,'text','','list="cl" oninput="if(/belanja|peralatan|stok|bahan|prive|cicilan/i.test(this.value)){var c=document.getElementById(\'c_nop\');if(c)c.checked=true}"')}
- ${tp==='tf'?'':`<div style="grid-column:1/-1"><label>Akun COA (opsional)</label>${acctSel('c_acct',e.acct,tp==='out'?['X','H','P','T']:['R'],'Otomatis (ikut kategori / Plot Akun)')}</div>`}${tp==='tf'?'':fld('c_sub','Item (beli / bayar apa)',e.sub,'text','mis. Gas, Plastik','list="csl"')}${fld('c_amt','Nominal (Rp)',e.amount,'number')}${fld('c_note','Catatan',e.note)}</div><datalist id="csl">${[...new Set([...CFS().filter(x=>x.sub).map(x=>x.sub),...(D.cash||[]).filter(x=>x.sub).map(x=>x.sub)])].sort().map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+ ${tp==='tf'?'':`<div style="grid-column:1/-1"><label>Akun COA (opsional)</label>${acctSel('c_acct',e.acct,tp==='out'?['X','H','P','T','AL','AT','L','E']:['R','L','E','AL','AT'],'Otomatis (ikut kategori / Plot Akun)')}</div>`}${tp==='tf'?'':fld('c_sub','Item (beli / bayar apa)',e.sub,'text','mis. Gas, Plastik','list="csl"')}${fld('c_amt','Nominal (Rp)',e.amount,'number')}${fld('c_note','Catatan',e.note)}</div><datalist id="csl">${[...new Set([...CFS().filter(x=>x.sub).map(x=>x.sub),...(D.cash||[]).filter(x=>x.sub).map(x=>x.sub)])].sort().map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
  ${tp==='out'?chk('c_nop','Bukan biaya operasional (belanja stok, peralatan, cicilan pokok, prive): tetap tercatat di Arus Kas, tapi tidak mengurangi laba',e.nonop)+'<div class="hint" id="c_dbl" style="margin-top:6px">Membeli bahan atau barang dagangan dari pemasok? Catat lewat <b>Faktur Pembelian</b> supaya stok, hutang, dan HPP ikut tersambung. Jangan dicatat dua kali di sini.</div>':''}
  <div class="acts2"><button class="btn pri" onclick="saveCf('${id||''}','${tp}',this)">Simpan</button>${id?`<button class="btn del" onclick="delCf('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
@@ -2587,17 +2587,21 @@ function plotSave(btn){
  const map={};PMX.forEach((r,i)=>{const e=document.getElementById('pm_'+i);if(e&&e.value)map[r[0]]=e.value});
  safe(()=>push('akun',{...AKUN(),map}),btn);
 }
-const CTYPE={R:'Pendapatan',X:'Beban',H:'HPP (Harga Pokok)'};
+const CTYPE={AL:'Aset Lancar',AT:'Aset Tetap',L:'Kewajiban',E:'Ekuitas',R:'Pendapatan',X:'Beban',H:'HPP (Harga Pokok)'};
+const GLBL={R:'Pendapatan',X:'Beban',H:'HPP',P:'Persediaan',T:'Pajak & Service Charge',AL:'Aset Lancar',AT:'Aset Tetap',L:'Kewajiban',E:'Ekuitas'};
+const assetSub=m=>m.sub||(m.id==='asettetap'||m.id==='akumsusut'?'tetap':'lancar');
 function acctSel(id,sel,groups,auto){
- const M=jBuild().meta,l=aSorted().filter(m=>groups.includes(m.id==='persediaan'?'P':(m.id==='pajak'||m.id==='svc')?'T':akunGrp(m)));
- return`<select id="${id}"><option value="">${esc(auto)}</option>${l.map(m=>`<option value="${esc(m.id)}" ${sel===m.id?'selected':''}>${esc(m.code+' '+(m.parent&&M[m.parent]?M[m.parent].name+' › ':'')+m.name)}</option>`).join('')}</select>`;
+ const M=jBuild().meta,gOf=m=>m.id==='persediaan'?'P':(m.id==='pajak'||m.id==='svc')?'T':akunGrp(m),l=aSorted().filter(m=>groups.includes(gOf(m)));
+ const opt=m=>`<option value="${esc(m.id)}" ${sel===m.id?'selected':''}>${esc(m.code+' '+(m.parent&&M[m.parent]?M[m.parent].name+' › ':'')+m.name)}</option>`;
+ const multi=new Set(l.map(gOf)).size>1;
+ return`<select id="${id}"><option value="">${esc(auto)}</option>${multi?groups.filter(g=>l.some(m=>gOf(m)===g)).map(g=>`<optgroup label="${GLBL[g]||g}">${l.filter(m=>gOf(m)===g).map(opt).join('')}</optgroup>`).join(''):l.map(opt).join('')}</select>`;
 }
-function akunGrp(m){return m.type==='R'?'R':(m.type==='X'?(m.hpp||m.id==='hpp'?'H':'X'):'')}
+function akunGrp(m){return m.type==='R'?'R':m.type==='X'?(m.hpp||m.id==='hpp'?'H':'X'):m.type==='A'?(m.custom?(assetSub(m)==='tetap'?'AT':'AL'):m.id==='asettetap'?'AT':''):(m.type==='L'||m.type==='E')&&m.custom?m.type:''}
 function akunNextCode(type,parent){
  const used=new Set(Object.values(jBuild().meta).map(m=>String(m.code)));
  const fmt=(pre,n,w)=>pre+String(n).padStart(w,'0');
  if(parent){const pm=jBuild().meta[parent],m=/^(.*?)(\d+)$/.exec(String(pm.code));if(m){let n=+m[2]+1;const w=m[2].length;while(used.has(fmt(m[1],n,w)))n++;return fmt(m[1],n,w)}}
- const base={R:[4,4000,1000],H:[5,2000,1000],X:[6,4000,100]}[type]||[6,4000,100];let n=base[1];while(used.has(base[0]+'-'+n))n+=base[2];return base[0]+'-'+n;
+ const base={R:[4,4000,1000],H:[5,2000,1000],X:[6,4000,100],AL:[1,7000,100],AT:[1,8000,100],L:[2,5000,100],E:[3,5000,100]}[type]||[6,4000,100];let n=base[1];while(used.has(base[0]+'-'+n))n+=base[2];return base[0]+'-'+n;
 }
 function akunNew(id){
  const c=(AKUN().custom||[]).find(x=>x.id===id)||{},J=jBuild();
@@ -2703,7 +2707,7 @@ function jBuild(){
  bs.forEach((b,i)=>meta[bk(b.id)]={id:bk(b.id),code:'1-1'+String((i+1)*10).padStart(3,'0'),name:'Kas/Bank · '+b.name,type:'A'});
  if(used['bank:-'])meta['bank:-']={id:'bank:-',code:'1-1999',name:'Kas/Bank belum diatur',type:'A'};
  cats.forEach((k,i)=>meta[k]={id:k,code:'6-3'+String((i+1)*10).padStart(3,'0'),name:'Beban '+k.slice(4),type:'X'});
- (ak.custom||[]).forEach(c=>{meta[c.id]={id:c.id,code:c.code,name:c.name,type:c.type==='H'?'X':c.type,hpp:c.type==='H',custom:1,parent:c.parent&&FXOK(c.parent,ak)?c.parent:''}});
+ (ak.custom||[]).forEach(c=>{meta[c.id]={id:c.id,code:c.code,name:c.name,type:c.type==='H'?'X':(c.type==='AL'||c.type==='AT'?'A':c.type),sub:c.type==='AT'?'tetap':c.type==='AL'?'lancar':'',hpp:c.type==='H',custom:1,parent:c.parent&&FXOK(c.parent,ak)?c.parent:''}});
  Object.keys(meta).forEach(k=>{if(N[k]){if(N[k].code)meta[k].code=N[k].code;if(N[k].name)meta[k].name=N[k].name}});
  JC={src:D,ents,meta,start};return JC;
 }
@@ -2802,15 +2806,19 @@ function lapLR(d){
 }
 function nrData(d){
  const A=[],Lb=[],Eq=[];
- d.l.forEach(m=>{const v=jSaldo(d.sA,m.id);if(!v&&m.type!=='A')return;if(m.type==='A'&&v)A.push({n:m.name,v});else if(m.type==='L'&&v)Lb.push({n:m.name,v});else if(m.type==='E'&&v)Eq.push({n:m.name,v})});
+ d.l.forEach(m=>{const v=jSaldo(d.sA,m.id);if(!v&&m.type!=='A')return;if(m.type==='A'&&v)A.push({n:m.name,v,sub:assetSub(m)});else if(m.type==='L'&&v)Lb.push({n:m.name,v});else if(m.type==='E'&&v)Eq.push({n:m.name,v})});
  const laba=sum(d.l.filter(m=>m.type==='R'),m=>jSaldo(d.sA,m.id))-sum(d.l.filter(m=>m.type==='X'),m=>jSaldo(d.sA,m.id));
  Eq.push({n:'Laba berjalan (sejak pembukuan)',v:laba});
- let adj=0;if(d.live){const fis=Math.round(sum((D.products||[]).filter(p=>p.trackStock!==false),p=>(+p.stock||0)*(+p.cogs||0))),led=jSaldo(d.sA,'persediaan');adj=fis-led;if(adj){A.push({n:'Penyesuaian persediaan ke stok fisik',v:adj});Eq.push({n:'Selisih persediaan (penyesuaian)',v:adj})}}
+ let adj=0;if(d.live){const fis=Math.round(sum((D.products||[]).filter(p=>p.trackStock!==false),p=>(+p.stock||0)*(+p.cogs||0))),led=jSaldo(d.sA,'persediaan');adj=fis-led;if(adj){A.push({n:'Penyesuaian persediaan ke stok fisik',v:adj,sub:'lancar'});Eq.push({n:'Selisih persediaan (penyesuaian)',v:adj})}}
  return{A,Lb,Eq,ta:sum(A,x=>x.v),tl:sum(Lb,x=>x.v),te:sum(Eq,x=>x.v),adj};
+}
+function asetSec(N){
+ const ks=['lancar','tetap'].filter(k=>N.A.some(x=>x.sub===k)),one=ks.length<2,tl={lancar:'Aset Lancar',tetap:'Aset Tetap'};
+ return`<tr class="ft"><td colspan="2">Aset</td></tr>`+ks.map(k=>{const l=N.A.filter(x=>x.sub===k);return(one?'':`<tr><td colspan="2" style="padding-left:10px;font-weight:600">${tl[k]}</td></tr>`)+l.map(x=>`<tr><td style="padding-left:20px">${esc(x.n)}</td><td class="r">${rp(x.v)}</td></tr>`).join('')+(one?'':`<tr><td style="padding-left:10px"><i>Total ${tl[k].toLowerCase()}</i></td><td class="r"><i>${rp(sum(l,x=>x.v))}</i></td></tr>`)}).join('')+`<tr class="ft"><td>Total aset</td><td class="r">${rp(N.ta)}</td></tr>`;
 }
 function lapNR(d){
  const N=nrData(d),sec=(t,l,tot)=>`<tr class="ft"><td colspan="2">${t}</td></tr>${l.map(x=>`<tr><td style="padding-left:20px">${esc(x.n)}</td><td class="r">${rp(x.v)}</td></tr>`).join('')}<tr class="ft"><td>Total ${t.toLowerCase()}</td><td class="r">${rp(tot)}</td></tr>`;
- return`<p class="mut">Neraca per ${esc(asLbl(d.end))}</p><div class="tw"><table>${sec('Aset',N.A,N.ta)}${sec('Kewajiban',N.Lb,N.tl)}${sec('Ekuitas',N.Eq,N.te)}<tr class="ft"><td>Kewajiban + Ekuitas</td><td class="r">${rp(N.tl+N.te)}</td></tr></table></div>
+ return`<p class="mut">Neraca per ${esc(asLbl(d.end))}</p><div class="tw"><table>${asetSec(N)}${sec('Kewajiban',N.Lb,N.tl)}${sec('Ekuitas',N.Eq,N.te)}<tr class="ft"><td>Kewajiban + Ekuitas</td><td class="r">${rp(N.tl+N.te)}</td></tr></table></div>
  <div class="hint">${Math.abs(N.ta-N.tl-N.te)<=1?'Seimbang: aset sama dengan kewajiban ditambah ekuitas.':'Tidak seimbang. Selisih '+rp(N.ta-N.tl-N.te)+'.'}${N.adj?` Persediaan dicocokkan ke nilai stok fisik (stok × harga modal) hari ini; selisihnya ${rp(N.adj)} dicatat sebagai penyesuaian di ekuitas.`:''}</div>`;
 }
 function lapCsv(){
