@@ -391,7 +391,7 @@ async function loadFitur(u,fast){
  if(!fast&&MASTER_URL&&FT.code){try{const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);const r=await fetch(MASTER_URL+(MASTER_URL.includes('?')?'&':'?')+'kode='+FT.code,{redirect:'follow',signal:c.signal});clearTimeout(t);const x=await r.json();if(x&&x.ok){j=x;try{localStorage.setItem(CK,JSON.stringify(x))}catch(e){}}}catch(e){}}
  if(!j){try{j=JSON.parse(localStorage.getItem(CK))}catch(e){}}
  FT.on=new Set((j&&j.fitur)||[]);FT.kunci=new Set((j&&j.kunci)||[]);FT.wa=(j&&j.wa)||'';FT.msg=(j&&j.pesan)||'';FT.nama=(j&&j.nama)||'';FT.exp=!!(j&&j.exp);FT.sampai=(j&&j.sampai)||'';
- try{bnLoad().then(()=>{if(typeof tab!=='undefined'&&BN.list.length&&!document.getElementById('bn')&&!document.getElementById('dlg').classList.contains('on'))render()})}catch(e){}
+ try{bnLoad().then(()=>{if(D&&typeof tab!=='undefined'&&BN.list.length&&!document.getElementById('bn')&&!document.getElementById('dlg').classList.contains('on'))render()})}catch(e){}
 }
 const FG={karyawan:'karyawan',komisi:'komisi',gaji:'gaji',analisa:'analisa',pemasok:'pembelian',fakturbeli:'pembelian',hutang:'pembelian',coa:'akuntansi',fakturjual:'fakturjual',piutang:'fakturjual',jurnal:'akuntansi',buku:'akuntansi',lapkeu:'akuntansi'};
 const lockF=k=>FG[k]||(FT.kunci.has(k)?k:'');
