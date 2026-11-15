@@ -2351,7 +2351,7 @@ function psView(id){
  const q=(D.pesanan||[]).find(x=>x.id===id);if(!q)return;const st=PSB[q.status]||['-',''],dp=psDpB(q);
  dlg(`<h3>Pesanan ${esc(q.no)}</h3><div class="mut" style="margin-bottom:8px">${esc(q.name)}${q.wa?' · '+esc(q.wa):''} · dibuat ${fmtDT(q.ts)} oleh ${esc(q.by||'-')} <span class="badge ${st[1]}">${st[0]}</span></div>
  ${q.pickup?`<div class="mut">Ambil: ${q.pickup}</div>`:''}${q.note?`<div class="mut">Catatan: ${esc(q.note)}</div>`:''}
- <div class="tw"><table><tr><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>${(q.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${fq(i.qty)} ${esc(i.unit||'')}</td><td class="r">${rp(i.price)}</td><td class="r">${rp(i.qty*i.price)}</td></tr>`).join('')}<tr class="ft"><td colspan="3">Total pesanan</td><td class="r">${rp(q.total)}</td></tr></table></div>
+ <div class="tw"><table><tr><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>${(q.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${itQ(i)}</td><td class="r">${itP(i)}</td><td class="r">${rp(Math.round(i.qty*i.price))}</td></tr>`).join('')}<tr class="ft"><td colspan="3">Total pesanan</td><td class="r">${rp(q.total)}</td></tr></table></div>
  <div class="tw" style="margin-top:8px"><table><tr><th>Tanggal</th><th>DP</th><th>Dibayar dengan</th><th>Kasir</th></tr>${(q.dps||[]).map(d=>`<tr><td>${fmtDT(d.ts)}</td><td class="r">${rp(d.amount)}</td><td>${esc(METHODS[d.m]||d.m||'-')}</td><td>${esc(d.by||'-')}</td></tr>`).join('')}<tr class="ft"><td>Total DP</td><td class="r">${rp(dp)}</td><td colspan="2">${q.status==='open'?'Sisa '+rp(Math.max(0,q.total-dp)):q.status==='done'?'Nota '+esc(q.txNo||'-'):'DP dikembalikan'}</td></tr></table></div>
  <div class="acts2"><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
 }
@@ -2757,17 +2757,36 @@ function itmPick(it,m){
 function itmChg(el,m,jenis){
  const r=el.closest('.prow'),j=r.querySelector('.pj').value;window._itmJ=j;
  const pc=r.querySelector('.pc');if(jenis)pc.innerHTML=itmCatOpts(m,j,'');
- r.querySelector('.pp').innerHTML=itmItemOpts(m,j,pc.value,'');
+ r.querySelector('.pp').innerHTML=itmItemOpts(m,j,pc.value,'');unSync(r);
  (m==='pur'?purTot:sinTot)();
+}
+/* satuan pada faktur: qty dan harga disimpan per satuan dasar; uq/un/uqty/uprice hanya untuk tampilan */
+const itQ=i=>i.un&&i.uqty?fq(i.uqty)+' '+esc(i.un)+' <small style="opacity:.7">('+fq(i.qty)+' '+esc(i.unit||'')+')</small>':fq(i.qty)+' '+esc(i.unit||'');
+const itP=i=>rp(i.un&&i.uprice!=null?i.uprice:i.price)+(i.un?'<small style="opacity:.7"> /'+esc(i.un)+'</small>':'');
+function unOpts(p,sel){return p&&(p.units||[]).length?`<option value="" data-q="1">${esc(p.unit||'satuan dasar')}</option>`+p.units.map(u=>`<option value="${esc(u.n)}" data-q="${+u.q||1}" ${sel===u.n?'selected':''}>${esc(u.n)} (isi ${fq(u.q)} ${esc(p.unit||'')})</option>`).join(''):''}
+function unSync(r,sel){
+ const pid=r.querySelector('.pp').value,p=D.products.find(x=>x.id===pid),u=r.querySelector('.pu');if(!u)return;
+ const has=!!(p&&(p.units||[]).length);u.innerHTML=has?unOpts(p,sel||''):'';u.style.display=has?'':'none';
+ const o=u.selectedOptions[0];u.dataset.q=o?o.dataset.q:'1';
+}
+function unChg(sel,m){
+ const r=sel.closest('.prow'),pb=r.querySelector('.pb'),oq=+sel.dataset.q||1,nq=+(sel.selectedOptions[0]&&sel.selectedOptions[0].dataset.q)||1;
+ if(pb&&+pb.value>0)pb.value=Math.round(+pb.value/oq*nq);sel.dataset.q=nq;(m==='pur'?purTot:sinTot)();
+}
+function unRead(r){const u=r.querySelector('.pu'),o=u&&u.style.display!=='none'?u.selectedOptions[0]:null,q=o?(+o.dataset.q||1):1;return{q,n:q!==1&&o?o.value:''}}
+function unItem(r){
+ const k=unRead(r),qty=+r.querySelector('.pq').value||0,pr=+r.querySelector('.pb').value||0;
+ if(k.q===1)return{qty,price:pr};
+ return{qty:+(qty*k.q).toFixed(6),price:pr/k.q,uq:k.q,un:k.n,uqty:qty,uprice:pr};
 }
 function purRow(it){
  const ps=D.products.filter(p=>p.trackStock!==false).sort((x,y)=>String(x.name).localeCompare(String(y.name)));
- return`<div class="prow" style="display:grid;grid-template-columns:1fr 1fr 34px;gap:6px;margin-bottom:6px;align-items:center">${itmPick(it,'pur')}<input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?it.qty:''}" oninput="purTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga beli" value="${it?it.price:''}" oninput="purTot()"><button class="btn sm del" onclick="this.parentNode.remove();purTot()">✕</button><div class="pbx" style="grid-column:1/-1;display:none;grid-template-columns:1fr 1fr;gap:6px"><input class="pn" maxlength="30" placeholder="No. batch (opsional)" value="${esc(it&&it.bn||'')}"><input class="pe" type="date" title="Tanggal expired" value="${esc(it&&it.ex||'')}"></div></div>`;
+ return`<div class="prow" style="display:grid;grid-template-columns:1fr 1fr 34px;gap:6px;margin-bottom:6px;align-items:center">${itmPick(it,'pur')}<select class="pu" style="grid-column:1/-1;display:${it&&it.un?'':'none'}" data-q="${it&&it.uq||1}" onchange="unChg(this,'pur')">${it&&it.un?unOpts(D.products.find(p=>p.id===it.pid),it.un):''}</select><input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?(it.uqty!=null&&it.un?it.uqty:it.qty):''}" oninput="purTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga beli" value="${it?(it.uprice!=null&&it.un?it.uprice:it.price):''}" oninput="purTot()"><button class="btn sm del" onclick="this.parentNode.remove();purTot()">✕</button><div class="pbx" style="grid-column:1/-1;display:none;grid-template-columns:1fr 1fr;gap:6px"><input class="pn" maxlength="30" placeholder="No. batch (opsional)" value="${esc(it&&it.bn||'')}"><input class="pe" type="date" title="Tanggal expired" value="${esc(it&&it.ex||'')}"></div></div>`;
 }
-function purPick(sel){const r=sel.parentNode,pb=r.querySelector('.pb'),c=sel.selectedOptions[0]&&sel.selectedOptions[0].dataset.c;if(pb&&!pb.value&&+c>0)pb.value=c;purTot()}
+function purPick(sel){const r=sel.parentNode,pb=r.querySelector('.pb'),c=sel.selectedOptions[0]&&sel.selectedOptions[0].dataset.c;unSync(r);if(pb&&!pb.value&&+c>0)pb.value=c;purTot()}
 function purAdd(){const r=$('#p_rows');if(r.children.length>=60){alert('Maksimal 60 barang per faktur');return}r.insertAdjacentHTML('beforeend',purRow());purBx()}
 function purBx(){const c=$('#p_bx'),on=!!(c&&c.checked);document.querySelectorAll('#p_rows .pbx').forEach(x=>x.style.display=on?'grid':'none')}
-function purItems(){return[...document.querySelectorAll('#p_rows .prow')].map(r=>{const id=r.querySelector('.pp').value,p=D.products.find(x=>x.id===id);return{pid:id,name:p?p.name:'',unit:p?p.unit:'',qty:+r.querySelector('.pq').value||0,price:+r.querySelector('.pb').value||0,...(((!$('#p_bx')||$('#p_bx').checked)&&/^\d{4}-\d{2}-\d{2}$/.test(r.querySelector('.pe').value))?{ex:r.querySelector('.pe').value,bn:r.querySelector('.pn').value.trim().slice(0,30)}:{})}}).filter(x=>x.pid&&x.qty>0)}
+function purItems(){return[...document.querySelectorAll('#p_rows .prow')].map(r=>{const id=r.querySelector('.pp').value,p=D.products.find(x=>x.id===id);return{pid:id,name:p?p.name:'',unit:p?p.unit:'',...unItem(r),...(((!$('#p_bx')||$('#p_bx').checked)&&/^\d{4}-\d{2}-\d{2}$/.test(r.querySelector('.pe').value))?{ex:r.querySelector('.pe').value,bn:r.querySelector('.pn').value.trim().slice(0,30)}:{})}}).filter(x=>x.pid&&x.qty>0)}
 function purCalc(items){items=items||purItems();const sub=Math.round(sum(items,x=>x.qty*x.price)),disc=Math.min(sub,Math.max(0,Math.round(+v('p_disc')||0))),ship=Math.max(0,Math.round(+v('p_ship')||0)),pct=Math.max(0,+v('p_tax')||0),tax=Math.round((sub-disc)*pct/100);return{sub,disc,ship,pct,tax,total:sub-disc+ship+tax}}
 function purTot(){const c=purCalc(),e=$('#p_tot'),d=$('#p_det');if(e)e.textContent=rp(c.total);if(d)d.textContent=(c.disc||c.ship||c.tax)?'Barang '+rp(c.sub)+(c.disc?' − diskon '+rp(c.disc):'')+(c.ship?' + ongkir '+rp(c.ship):'')+(c.tax?' + PPN '+rp(c.tax):''):'';purPayUi()}
 function purTerm(){const t=+v('p_term');if(t>0){const d=new Date(dts(v('p_date')));d.setDate(d.getDate()+t);$('#p_due').value=dk(d.getTime())}else if(t===0)$('#p_due').value=''}
@@ -2818,7 +2837,7 @@ function purSum(f){const sub=f.sub!=null?f.sub:Math.round(sum(f.items||[],i=>i.q
 function purPrint(id){
  const f=PUR().find(x=>x.id===id);if(!f)return;const o=D.outlet||{},sp=SUP().find(x=>x.id===f.supplierId)||{},left=purLeft(f),st=purSt(f);
  const w=window.open('','_blank');if(!w){alert('Pop-up diblokir browser');return}
- const rows=(f.items||[]).map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.name)}</td><td class="r">${fq(i.qty)} ${esc(i.unit||'')}</td><td class="r">${rp(i.price)}</td><td class="r">${rp(i.qty*i.price)}</td></tr>`).join('');
+ const rows=(f.items||[]).map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.name)}</td><td class="r">${itQ(i)}</td><td class="r">${itP(i)}</td><td class="r">${rp(Math.round(i.qty*i.price))}</td></tr>`).join('');
  const sub=f.sub!=null?f.sub:Math.round(sum(f.items||[],i=>i.qty*i.price)),sr=(l,n,b)=>`<tr${b?' class="b"':''}><td colspan="4" class="r">${l}</td><td class="r">${n}</td></tr>`;
  const pays=(f.payments||[]).map(p=>`<tr><td colspan="2">${fmtT(p.ts)}</td><td colspan="2">${esc(p.acc?accName(p.acc):(p.method||'-'))}</td><td class="r">${rp(p.amount)}</td></tr>`).join('');
  w.document.write(`<!doctype html><meta charset="utf-8"><title>Faktur ${esc(f.no)}</title><style>body{font:13px/1.5 Arial,sans-serif;color:#111;margin:28px auto;max-width:760px}h1{font-size:22px;margin:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}th{background:#f3f4f6}.r{text-align:right}.b td{font-weight:700;border-top:2px solid #111}.hd{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px}.bx{display:flex;justify-content:space-between;gap:20px}small{color:#555}@media print{button{display:none}}</style>
@@ -3222,11 +3241,11 @@ function vFakturJual(){
 function sinExport(){csv('Faktur-Penjualan',[['No Faktur','Tanggal','Pelanggan','Diskon','Ongkir','PPN','Total','Diterima','Sisa','Jatuh Tempo','Status'],...sinList().map(f=>[f.no,dk(f.ts),f.customerName||'',f.disc||0,f.ship||0,f.tax||0,f.total,sinPaid(f),sinLeft(f),f.due?dk(f.due):'',SPST[sinSt(f)][0]])])}
 function sinRow(it){
  const ps=D.products.filter(p=>p.active!==false).sort((x,y)=>String(x.name).localeCompare(String(y.name)));
- return`<div class="prow" style="display:grid;grid-template-columns:1fr 1fr 34px;gap:6px;margin-bottom:6px;align-items:center">${itmPick(it,'sin')}<input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?it.qty:''}" oninput="sinTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga jual" value="${it?it.price:''}" oninput="sinTot()"><button class="btn sm del" onclick="this.parentNode.remove();sinTot()">✕</button></div>`;
+ return`<div class="prow" style="display:grid;grid-template-columns:1fr 1fr 34px;gap:6px;margin-bottom:6px;align-items:center">${itmPick(it,'sin')}<select class="pu" style="grid-column:1/-1;display:${it&&it.un?'':'none'}" data-q="${it&&it.uq||1}" onchange="unChg(this,'sin')">${it&&it.un?unOpts(D.products.find(p=>p.id===it.pid),it.un):''}</select><input class="pq" type="number" inputmode="decimal" step="any" min="0" placeholder="Jumlah" value="${it?(it.uqty!=null&&it.un?it.uqty:it.qty):''}" oninput="sinTot()"><input class="pb" type="number" inputmode="numeric" min="0" placeholder="Harga jual" value="${it?(it.uprice!=null&&it.un?it.uprice:it.price):''}" oninput="sinTot()"><button class="btn sm del" onclick="this.parentNode.remove();sinTot()">✕</button></div>`;
 }
-function sinPick(sel){const r=sel.parentNode,pb=r.querySelector('.pb'),c=sel.selectedOptions[0]&&sel.selectedOptions[0].dataset.pr;if(pb&&!pb.value&&+c>0)pb.value=c;sinTot()}
+function sinPick(sel){const r=sel.parentNode,pb=r.querySelector('.pb'),c=sel.selectedOptions[0]&&sel.selectedOptions[0].dataset.pr;unSync(r);if(pb&&!pb.value&&+c>0)pb.value=c;sinTot()}
 function sinAdd(){const r=$('#j_rows');if(r.children.length>=60){alert('Maksimal 60 barang per faktur');return}r.insertAdjacentHTML('beforeend',sinRow())}
-function sinItems(){return[...document.querySelectorAll('#j_rows .prow')].map(r=>{const id=r.querySelector('.pp').value,p=D.products.find(x=>x.id===id);return{pid:id,name:p?p.name:'',unit:p?p.unit:'',cat:p?p.cat||p.category||'Umum':'Umum',cogs:p?+p.cogs||0:0,trackStock:p?p.trackStock!==false:false,qty:+r.querySelector('.pq').value||0,price:+r.querySelector('.pb').value||0}}).filter(x=>x.pid&&x.qty>0)}
+function sinItems(){return[...document.querySelectorAll('#j_rows .prow')].map(r=>{const id=r.querySelector('.pp').value,p=D.products.find(x=>x.id===id);return{pid:id,name:p?p.name:'',unit:p?p.unit:'',cat:p?p.cat||p.category||'Umum':'Umum',cogs:p?+p.cogs||0:0,trackStock:p?p.trackStock!==false:false,...unItem(r)}}).filter(x=>x.pid&&x.qty>0)}
 function sinCalc(items){items=items||sinItems();const sub=Math.round(sum(items,x=>x.qty*x.price)),disc=Math.min(sub,Math.max(0,Math.round(+v('j_disc')||0))),ship=Math.max(0,Math.round(+v('j_ship')||0)),pct=Math.max(0,+v('j_tax')||0),tax=Math.round((sub-disc)*pct/100);return{sub,disc,ship,pct,tax,total:sub-disc+ship+tax}}
 function sinTot(){const c=sinCalc(),e=$('#j_tot'),d=$('#j_det');if(e)e.textContent=rp(c.total);if(d)d.textContent=(c.disc||c.ship||c.tax)?'Barang '+rp(c.sub)+(c.disc?' − diskon '+rp(c.disc):'')+(c.ship?' + ongkir '+rp(c.ship):'')+(c.tax?' + PPN '+rp(c.tax):''):'';sinPayUi()}
 function sinTerm(){const t=+v('j_term');if(t>0){const d=new Date(dts(v('j_date')));d.setDate(d.getDate()+t);$('#j_due').value=dk(d.getTime())}else if(t===0)$('#j_due').value=''}
@@ -3257,7 +3276,7 @@ async function sinSave(btn){
  if(amt>0&&!acc){alert('Pilih rekening penerima');return}
  const kurang=ck('j_stk')?items.filter(x=>x.trackStock&&(+(D.products.find(p=>p.id===x.pid)||{}).stock||0)<x.qty):[];
  if(kurang.length&&!confirm('Stok tidak cukup untuk: '+kurang.map(x=>x.name).join(', ')+'. Lanjutkan? Stok akan menjadi minus.'))return;
- const rec={id:'fj'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),no,ts:dts(v('j_date')),customerId:cu.id,customerName:cu.name,items:items.map(x=>({pid:x.pid,name:x.name,unit:x.unit,cat:x.cat,cogs:x.cogs,qty:x.qty,price:x.price})),sub:C.sub,disc:C.disc,ship:C.ship,taxPct:C.pct,tax:C.tax,total,payments:amt>0?[{ts:Date.now(),amount:amt,acc,method:accName(acc)}]:[],due:v('j_due')?dts(v('j_due')):0,note:v('j_note').trim(),stock:ck('j_stk'),by:cfg.nm||''};
+ const rec={id:'fj'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),no,ts:dts(v('j_date')),customerId:cu.id,customerName:cu.name,items:items.map(x=>({pid:x.pid,name:x.name,unit:x.unit,cat:x.cat,cogs:x.cogs,qty:x.qty,price:x.price,...(x.un?{uq:x.uq,un:x.un,uqty:x.uqty,uprice:x.uprice}:{})})),sub:C.sub,disc:C.disc,ship:C.ship,taxPct:C.pct,tax:C.tax,total,payments:amt>0?[{ts:Date.now(),amount:amt,acc,method:accName(acc)}]:[],due:v('j_due')?dts(v('j_due')):0,note:v('j_note').trim(),stock:ck('j_stk'),by:cfg.nm||''};
  btn.disabled=true;btn.textContent='Menyimpan…';let stokOk=false;
  try{
   const st=items.filter(x=>x.trackStock);
@@ -3274,7 +3293,7 @@ function sinSum(f){const sub=f.sub!=null?f.sub:Math.round(sum(f.items||[],i=>i.q
 function sinView(id){
  const f=SIN().find(x=>x.id===id);if(!f)return;const st=sinSt(f),left=sinLeft(f);
  dlg(`<h3>Faktur ${esc(f.no)}</h3><div class="mut" style="margin-bottom:8px">${esc(f.customerName||'-')} · ${dk(f.ts)}${f.due?' · jatuh tempo '+dk(f.due):''} <span class="badge ${SPST[st][1]}">${SPST[st][0]}</span></div>
- <div class="tw"><table><tr><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>${(f.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${fq(i.qty)} ${esc(i.unit||'')}</td><td class="r">${rp(i.price)}</td><td class="r">${rp(i.qty*i.price)}</td></tr>`).join('')}${sinSum(f)}</table></div>
+ <div class="tw"><table><tr><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>${(f.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${itQ(i)}</td><td class="r">${itP(i)}</td><td class="r">${rp(Math.round(i.qty*i.price))}</td></tr>`).join('')}${sinSum(f)}</table></div>
  <b style="display:block;margin-top:12px">Pembayaran</b><div class="tw">${(f.payments||[]).length?`<table><tr><th>Tanggal</th><th>Rekening</th><th class="r">Jumlah</th></tr>${f.payments.map(p=>`<tr><td>${fmtT(p.ts)}</td><td>${esc(p.acc?accName(p.acc):(p.method||'-'))}</td><td class="r">${rp(p.amount)}</td></tr>`).join('')}<tr class="ft"><td colspan="2">Sisa piutang</td><td class="r">${rp(left)}</td></tr></table>`:'<div class="mut" style="padding:8px">Belum ada pembayaran.</div>'}</div>
  ${f.note?`<div class="mut" style="margin-top:8px">Catatan: ${esc(f.note)}</div>`:''}
  ${retBlock('j',f)}
@@ -3301,7 +3320,7 @@ function sinDel(id){delDlg('j',id)}
 function sinPrint(id){
  const f=SIN().find(x=>x.id===id);if(!f)return;const o=D.outlet||{},cu=(D.customers||[]).find(x=>x.id===f.customerId)||{},left=sinLeft(f),st=sinSt(f);
  const w=window.open('','_blank');if(!w){alert('Pop-up diblokir browser');return}
- const rows=(f.items||[]).map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.name)}</td><td class="r">${fq(i.qty)} ${esc(i.unit||'')}</td><td class="r">${rp(i.price)}</td><td class="r">${rp(i.qty*i.price)}</td></tr>`).join('');
+ const rows=(f.items||[]).map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.name)}</td><td class="r">${itQ(i)}</td><td class="r">${itP(i)}</td><td class="r">${rp(Math.round(i.qty*i.price))}</td></tr>`).join('');
  const sub=f.sub!=null?f.sub:Math.round(sum(f.items||[],i=>i.qty*i.price)),sr=(l,n,b)=>`<tr${b?' class="b"':''}><td colspan="4" class="r">${l}</td><td class="r">${n}</td></tr>`;
  const pays=(f.payments||[]).map(p=>`<tr><td colspan="2">${fmtT(p.ts)}</td><td colspan="2">${esc(p.acc?accName(p.acc):(p.method||'-'))}</td><td class="r">${rp(p.amount)}</td></tr>`).join('');
  w.document.write(`<!doctype html><meta charset="utf-8"><title>Faktur ${esc(f.no)}</title><style>body{font:13px/1.5 Arial,sans-serif;color:#111;margin:28px auto;max-width:760px}h1{font-size:22px;margin:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}th{background:#f3f4f6}.r{text-align:right}.b td{font-weight:700;border-top:2px solid #111}.hd{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px}.bx{display:flex;justify-content:space-between;gap:20px}small{color:#555}@media print{button{display:none}}
@@ -3439,7 +3458,7 @@ function hutCardCsv(id,name){csv('Kartu-Hutang-'+name,[['Tanggal','Keterangan','
 function purView(id){
  const f=PUR().find(x=>x.id===id);if(!f)return;const st=purSt(f),left=purLeft(f);
  dlg(`<h3>Faktur ${esc(f.no)}</h3><div class="mut" style="margin-bottom:8px">${esc(f.supplierName||'-')} · ${dk(f.ts)}${f.due?' · jatuh tempo '+dk(f.due):''} <span class="badge ${PST[st][1]}">${PST[st][0]}</span></div>
- <div class="tw"><table><tr><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga beli</th><th class="r">Subtotal</th></tr>${(f.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${fq(i.qty)} ${esc(i.unit||'')}</td><td class="r">${rp(i.price)}</td><td class="r">${rp(i.qty*i.price)}</td></tr>`).join('')}${purSum(f)}</table></div>
+ <div class="tw"><table><tr><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga beli</th><th class="r">Subtotal</th></tr>${(f.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${itQ(i)}</td><td class="r">${itP(i)}</td><td class="r">${rp(Math.round(i.qty*i.price))}</td></tr>`).join('')}${purSum(f)}</table></div>
  <b style="display:block;margin-top:12px">Pembayaran</b><div class="tw">${(f.payments||[]).length?`<table><tr><th>Tanggal</th><th>Rekening</th><th class="r">Jumlah</th></tr>${f.payments.map(p=>`<tr><td>${fmtT(p.ts)}</td><td>${esc(p.acc?accName(p.acc):(p.method||'-'))}</td><td class="r">${rp(p.amount)}</td></tr>`).join('')}<tr class="ft"><td colspan="2">Sisa hutang</td><td class="r">${rp(left)}</td></tr></table>`:'<div class="mut" style="padding:8px">Belum ada pembayaran.</div>'}</div>
  ${f.note?`<div class="mut" style="margin-top:8px">Catatan: ${esc(f.note)}</div>`:''}
  ${retBlock('b',f)}
@@ -3538,7 +3557,7 @@ async function sinEditSave(id,btn){
  const C=sinCalc(items),no=v('j_no').trim()||old.no;
  if(SIN().some(f=>f.no===no&&f.id!==id)){alert('Nomor faktur sudah dipakai');return}
  if(!editChecks(old,items,C.total,'diterima'))return;
- const rec=Object.assign({},old,{no,ts:dts(v('j_date')),customerId:cu.id,customerName:cu.name,items:items.map(x=>({pid:x.pid,name:x.name,unit:x.unit,cat:x.cat,cogs:x.cogs,qty:x.qty,price:x.price})),sub:C.sub,disc:C.disc,ship:C.ship,taxPct:C.pct,tax:C.tax,total:C.total,due:v('j_due')?dts(v('j_due')):0,note:v('j_note').trim(),edited:Date.now(),editedBy:cfg.nm||''});
+ const rec=Object.assign({},old,{no,ts:dts(v('j_date')),customerId:cu.id,customerName:cu.name,items:items.map(x=>({pid:x.pid,name:x.name,unit:x.unit,cat:x.cat,cogs:x.cogs,qty:x.qty,price:x.price,...(x.un?{uq:x.uq,un:x.un,uqty:x.uqty,uprice:x.uprice}:{})})),sub:C.sub,disc:C.disc,ship:C.ship,taxPct:C.pct,tax:C.tax,total:C.total,due:v('j_due')?dts(v('j_due')):0,note:v('j_note').trim(),edited:Date.now(),editedBy:cfg.nm||''});
  const dl=old.stock?stockDelta(old.items,items):{},out=[],add=[];
  Object.keys(dl).forEach(k=>{const e={id:k,qty:Math.abs(dl[k]),note:('[FJ-EDIT] '+no).slice(0,100)};if(dl[k]>0)out.push(e);else add.push(e)});
  btn.disabled=true;btn.textContent='Menyimpan…';let stokOk=false;
