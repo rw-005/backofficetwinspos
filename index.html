@@ -647,7 +647,9 @@ async function load(){
   if(!RAW)await readCache();
   const full=!RAW||!SINCE||(Date.now()-FULLTS>43200000);   // sinkron penuh tiap 12 jam, selain itu hanya yang berubah
   const url=u+(u.includes('?')?'&':'?')+'action=bopull&hp='+encodeURIComponent(cfg.hp||'')+'&pin='+encodeURIComponent(cfg.pin||'')+(full?'':'&since='+Math.max(0,SINCE-30000));
-  const [,r]=await Promise.all([loadFitur(u),fetch(url,{redirect:'follow'})]);
+  const fp=loadFitur(u);let fdone=false;fp.then(()=>{fdone=true},()=>{fdone=true});
+  const [,r]=await Promise.all([Promise.race([fp,new Promise(z=>setTimeout(z,2500))]).catch(()=>{}),fetch(url,{redirect:'follow'})]);   // server master lambat tidak menahan layar; fitur dipasang menyusul
+  if(!fdone)fp.then(()=>{if(D&&!$('#dlg').classList.contains('on')&&!MG.includes(tab))render()}).catch(()=>{});
   const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');
   const dat=j.data||{},gone=j.dels||{};
   if(full){RAW={};FULLTS=Date.now()}
