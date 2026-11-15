@@ -69,7 +69,7 @@ svg{flex-shrink:0;vertical-align:middle}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:16px;box-shadow:var(--sh)}
 .card h4{margin:0 0 4px;font-size:16px;font-weight:800}.card p{margin:0 0 12px;font-size:13px;color:var(--mut)}
 .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.two>*{min-width:0}
 .tool{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}.tool input{flex:1;min-width:200px}.tool select{width:auto;min-width:150px}
 .tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
@@ -129,7 +129,7 @@ tr.ft td{font-weight:800;border-top:2px solid var(--bd);background:var(--soft)}
  .side{position:fixed;left:0;top:0;transform:translateX(-102%);transition:transform .25s}
  .side.open{transform:none}.side.open~.scrim{display:block}
  .hb{display:grid}.tb{padding:12px 14px}.content{padding:14px 14px 40px}
- .two{grid-template-columns:1fr}.kc.hero b{font-size:28px}.tb .r{display:none}
+ .two{grid-template-columns:minmax(0,1fr)}.kc.hero b{font-size:28px}.tb .r{display:none}
 }
 @media(max-width:560px){.g2{grid-template-columns:1fr}}
 .rs-s{border:1px solid var(--bd);border-radius:14px;overflow:hidden;margin-bottom:14px;background:var(--card)}
@@ -483,11 +483,11 @@ function upsell(k){
 /* Mode Owner (aplikasi Android owner): hanya laporan, tidak bisa mengubah data, tidak bisa unduh/cetak.
    Aktif bila alamat memakai ?app=owner (diingat di perangkat itu); ?app=full mematikannya. */
 const OWNER=(()=>{try{if(/[?&]app=full\b/.test(location.search))localStorage.removeItem('twinsbo_owner');if(/[?&]app=owner\b/.test(location.search))localStorage.setItem('twinsbo_owner','1');return localStorage.getItem('twinsbo_owner')==='1'}catch(e){return /[?&]app=owner\b/.test(location.search)}})();
-const OWN_OK=['home','lapgudang','lapmutasi','lapkartu','ring','analisa','rsum','lappen','detail','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok','mexp','lapstok','lappajak','aset'];
+const OWN_OK=['home','lapgudang','lapmutasi','lapkartu','ring','analisa','rsum','lappen','detail','lapdiskon','laprefund','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok','mexp','lapstok','lappajak','aset'];
 const NAV_ALL=[
  ['Ringkasan','home',[['ring','Ringkasan','home','L'],['analisa','Analisa Bisnis','trend','L']]],
  ['Transaksi','file',[['fakturjual','Faktur Penjualan','file','T'],['fakturbeli','Faktur Pembelian','file','T'],['pesanan','Pesanan & DP','wallet','T'],['jasa','Order Jasa','clock','T']]],
- ['Laporan Penjualan','trend',[['rsum','Ringkasan Penjualan','file','L'],['lappen','Laporan Penjualan','trend','L'],['detail','Detail Penjualan','file','L'],['produk','Penjualan per Produk','box','L'],['kasir','Penjualan per Kasir','user','L'],['pkasir','Produk per Kasir','layers','L'],['plglap','Penjualan per Pelanggan','users','L'],['lappajak','Laporan Pajak','file','L'],['shift','Laporan Shift','clock','L']]],
+ ['Laporan Penjualan','trend',[['rsum','Ringkasan Penjualan','file','L'],['lappen','Laporan Penjualan','trend','L'],['detail','Detail Penjualan','file','L'],['lapdiskon','Laporan Diskon','tag','L'],['laprefund','Laporan Refund','hist','L'],['produk','Penjualan per Produk','box','L'],['kasir','Penjualan per Kasir','user','L'],['pkasir','Produk per Kasir','layers','L'],['plglap','Penjualan per Pelanggan','users','L'],['lappajak','Laporan Pajak','file','L'],['shift','Laporan Shift','clock','L']]],
  ['Stok & Gudang','box',[['mproduk','Produk & Stok','plus','D'],['mpaket','Paket','gift','D'],['mkat','Kategori','tag','D'],['monline','Harga Online','ponsel','D'],['lapmutasi','Mutasi Stok','layers','T'],['mexp','Expired','clock','D']]],
  ['Laporan Stok','layers',[['lapstok','Nilai Persediaan','box','L'],['lapgudang','Laporan Gudang','box','L'],['lapkartu','Kartu Stok (Awal-Akhir)','file','L'],['mstok','Riwayat Stok','hist','L']]],
  ['Kas & Keuangan','wallet',[['cash','Kas Masuk & Keluar','wallet','T'],['arus','Arus Kas & Rekening','trend','L'],['rekening','Rekening & Akun Kas','wallet','D'],['piutang','Laporan Piutang','wallet','L'],['hutang','Laporan Hutang','wallet','L']]],
@@ -542,7 +542,7 @@ function mmFit(){const p=$('#mmp');if(!p)return;const n=p.querySelectorAll('.mt'
 function mmFind(){const b=$('#mmb');if(b)b.innerHTML=mmBody();mmFit();mmPlace();const h=document.querySelector('#mmp .mh b');if(h)h.textContent=MQ.trim()?'Hasil pencarian':NAV[MM][0]}
 function mmClose(){MM=-1;MQ='';mmDraw()}
 function mmGo(k){if(isLocked(k)){mmClose();upsell(k);return}MM=-1;MQ='';go(k)}
-const TITLE={home:['Beranda','Pilih menu yang ingin dibuka'],lapgudang:['Laporan Gudang','Stok dan nilai persediaan di setiap gudang'],lapmutasi:['Mutasi Stok','Perpindahan stok antar gudang'],lapkartu:['Laporan Stok','Stok awal, masuk, keluar, dan stok akhir per barang'],ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['Laporan Penjualan','Metode pembayaran, kategori, varian, dan topping'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],arus:['Arus Kas & Rekening','Mutasi uang masuk dan keluar per rekening, seperti rekening koran'],
+const TITLE={laprefund:['Laporan Refund','Pengembalian barang dan uang, alasan, serta yang menyetujui'],lapdiskon:['Laporan Diskon','Diskon, promo, voucher, dan komplimen yang diberikan'],home:['Beranda','Pilih menu yang ingin dibuka'],lapgudang:['Laporan Gudang','Stok dan nilai persediaan di setiap gudang'],lapmutasi:['Mutasi Stok','Perpindahan stok antar gudang'],lapkartu:['Laporan Stok','Stok awal, masuk, keluar, dan stok akhir per barang'],ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['Laporan Penjualan','Metode pembayaran, kategori, varian, dan topping'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],arus:['Arus Kas & Rekening','Mutasi uang masuk dan keluar per rekening, seperti rekening koran'],
  pemasok:['Pemasok','Daftar pemasok dan laporan pembelian per pemasok'],fakturbeli:['Faktur Pembelian','Pembelian dari pemasok, hutang, dan pelunasan'],hutang:['Laporan Hutang','Umur hutang, kartu hutang per pemasok, dan riwayat pembayaran'],coa:['Daftar Akun (COA)','Bagan akun dan saldo tiap akun'],plglap:['Penjualan per Pelanggan','Total pembelian, laba, dan produk tiap pelanggan'],fakturjual:['Faktur Penjualan','Penjualan tempo ke pelanggan, piutang, dan penerimaan'],piutang:['Laporan Piutang','Umur piutang, kartu piutang, dan penerimaan'],jurnal:['Jurnal Umum','Jurnal otomatis dari penjualan, pembelian, kas, dan gaji'],buku:['Buku Besar','Mutasi dan saldo berjalan per akun'],lapkeu:['Laporan Keuangan','Neraca saldo, laba rugi, dan neraca'],
  karyawan:['Data Karyawan','Karyawan yang melayani di kasir, gaji pokok, dan keikutsertaan komisi'],komisi:['Komisi','Komisi penjualan, bertingkat dan dibagi bersama oleh yang melayani'],gaji:['Penggajian','Gaji bulanan, tunjangan, komisi, bonus, potongan, dan slip'],
  pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mbayar:['Biaya & Metode Bayar','Tambah metode bayar, potongan MDR, dan potongan platform online'],mstaf:['Akun Kasir','Akun login kasir: nama, peran, dan PIN. Sama dengan menu Staf di kasir'],jasa:['Order Jasa','Order layanan dari kasir beserta status pengerjaan dan pembayarannya'],mkat:['Kategori','Urutan, nama, dan daftar kategori produk'],mpaket:['Paket','Jual beberapa item sekaligus dengan satu harga; stok dan HPP mengikuti isinya'],monline:['Harga Online','Harga atau markup tiap produk untuk ShopeeFood, GrabFood, dan GoFood'],aset:['Aset & Biaya di Muka','Aset tetap dengan penyusutan otomatis, serta sewa dan biaya yang dibayar di muka'],lappajak:['Laporan Pajak','Pajak dan service charge yang dipungut, sudah disetor, dan belum disetor'],lapstok:['Laporan Persediaan','Nilai stok barang jadi, bahan baku, dan setengah jadi, dicocokkan dengan pembukuan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mexp:['Expired','Batch yang sudah dan akan kedaluwarsa'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
@@ -731,8 +731,8 @@ function agg0(a,b){
  }));
  const chan={};tx.forEach(t=>{const k=typeLabel(t.type,t.channel),o=chan[k]||(chan[k]={n:0,total:0});o.n++;o.total+=t.total});
  const kas={},K=n=>kas[n]||(kas[n]={n:0,total:0,tunai:0,non:0,ref:0,sel:0,jam:0,items:0});
- tx.forEach(t=>{const o=K(t.cashier);o.n++;o.total+=t.total;t.payments.forEach(p=>p.m==='tunai'?o.tunai+=p.ap:o.non+=p.ap);o.items+=sum(t.items,i=>i.qty-(i.refQty||0))});
- rf.forEach(r=>{K(r.cashier).ref+=r.amount});sh.forEach(x=>{const o=K(x.name);o.jam+=(x.closeTs||Date.now())-x.openTs;if(x.closeTs)o.sel+=x.diff||0});
+ tx.forEach(t=>{const o=K(t.cashier||'-');o.n++;o.total+=t.total;t.payments.forEach(p=>p.m==='tunai'?o.tunai+=p.ap:o.non+=p.ap);o.items+=sum(t.items,i=>i.qty-(i.refQty||0))});
+ rf.forEach(r=>{K(r.cashier||'-').ref+=r.amount});sh.forEach(x=>{const o=K(x.name||'-');o.jam+=(x.closeTs||Date.now())-x.openTs;if(x.closeTs)o.sel+=x.diff||0});
  const day={},hour={},wd={};for(let h=0;h<24;h++)hour[h]=0;for(let w=0;w<7;w++)wd[w]=0;
  tx.forEach(t=>{const dt=new Date(t.ts);day[dk(t.ts)]=(day[dk(t.ts)]||0)+t.total;hour[dt.getHours()]+=t.total;wd[dt.getDay()]+=t.total});
  rf.forEach(r=>{day[dk(r.ts)]=(day[dk(r.ts)]||0)-r.amount});
@@ -924,7 +924,7 @@ function render(){
   return;
  }
  CUR=calc();
- const V={home:vHome,lapgudang:vLapGudang,lapmutasi:vLapMutasi,lapkartu:vLapKartu,ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar};
+ const V={laprefund:vLapRefund,lapdiskon:vLapDiskon,home:vHome,lapgudang:vLapGudang,lapmutasi:vLapMutasi,lapkartu:vLapKartu,ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar};
  if(OWNER&&!OWN_OK.includes(tab))tab='ring';
  if(D&&isLocked(tab))tab='ring';
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
@@ -1262,6 +1262,71 @@ function vKasir(d){
  <div class="card"><div class="ch"><div><h4>Penjualan per Kasir</h4><p>${esc(perLabel())} · klik baris untuk melihat produk yang dijual kasir tersebut</p></div><button class="btn" onclick="exportKasir()">${ic('dl',16)} Excel</button></div><div class="tw">${l.length?`<table><tr><th>Kasir</th><th class="r">Nota</th><th class="r">Item</th><th class="r">Penjualan</th><th class="r">Rata-rata/nota</th><th class="r">Tunai</th><th class="r">Non-tunai</th><th class="r">Refund</th><th class="r">Bersih</th><th>Jam kerja</th><th class="r">Selisih kas</th></tr>${l.map(([n,o])=>`<tr class="cl" data-n="${esc(n)}" onclick="goKasir(this.dataset.n)"><td><b>${esc(n)}</b></td><td class="r">${o.n}</td><td class="r">${fq(o.items)}</td><td class="r"><b>${rp(o.total)}</b></td><td class="r">${rp(o.n?o.total/o.n:0)}</td><td class="r">${rp(o.tunai)}</td><td class="r">${rp(o.non)}</td><td class="r">${rp(o.ref)}</td><td class="r"><b>${rp(o.total-o.ref)}</b></td><td>${dur(o.jam)}</td><td class="r" style="color:var(--${selClr(o.sel)})">${selTxt(o.sel)}</td></tr>`).join('')}<tr class="ft"><td>Total</td><td class="r">${T(o=>o.n)}</td><td class="r">${fq(T(o=>o.items))}</td><td class="r">${rp(T(o=>o.total))}</td><td></td><td class="r">${rp(T(o=>o.tunai))}</td><td class="r">${rp(T(o=>o.non))}</td><td class="r">${rp(T(o=>o.ref))}</td><td class="r">${rp(T(o=>o.total-o.ref))}</td><td></td><td></td></tr></table>`:noData}</div></div>
  <div class="card"><h4>Perbandingan Penjualan</h4><p>Porsi tiap kasir</p>${l.length?l.map(([n,o],i)=>`<div class="row"><div class="rk">${i+1}</div><div class="grow"><b>${esc(n)}</b><div class="bar"><i style="width:${Math.max(3,Math.round(o.total/mx*100))}%"></i></div></div><div class="val">${rp(o.total)}<small>${o.n} nota</small></div></div>`).join(''):noData}</div>`;
 }
+
+/* ---------- Laporan Diskon ---------- */
+const LDS={k:'',q:''};
+function ldTypes(t){return[['cD','Harga pelanggan & grup',t.custDisc||0],['autoD','Promo otomatis',t.autoDisc||0],['vD','Voucher',t.voucherDisc||0],['pD','Tukar poin',t.ptDisc||0],['manD','Diskon manual kasir',t.manualDisc||0],['cmp','Komplimen',t.compAmt||0]]}
+function ldData(d){
+ const T={cD:{n:'Harga pelanggan & grup',a:0,c:0},autoD:{n:'Promo otomatis',a:0,c:0},vD:{n:'Voucher',a:0,c:0},pD:{n:'Tukar poin',a:0,c:0},manD:{n:'Diskon manual kasir',a:0,c:0},cmp:{n:'Komplimen',a:0,c:0}};
+ const pr={},vc={},ks={},rows=[];
+ d.tx.forEach(t=>{
+  const ty=ldTypes(t);let tot=0;
+  ty.forEach(([k,,v])=>{if(v>0){T[k].a+=v;T[k].c++;tot+=v}});
+  if(!(tot>0))return;
+  const nm=(t.autoNames||[]).filter(Boolean);
+  if((t.autoDisc||0)>0)(nm.length?nm:['(promo tanpa nama)']).forEach(n=>{const o=pr[n]||(pr[n]={n,c:0,a:0});o.c++;o.a+=t.autoDisc/(nm.length||1)});
+  if((t.voucherDisc||0)>0){const k=t.voucher||'(tanpa kode)',o=vc[k]||(vc[k]={n:k,c:0,a:0});o.c++;o.a+=t.voucherDisc}
+  const kn=t.cashier||'-',o=ks[kn]||(ks[kn]={n:kn,c:0,tot:0,man:0,cmp:0,sales:0});o.c++;o.tot+=tot;o.man+=t.manualDisc||0;o.cmp+=t.compAmt||0;
+  rows.push({t,tot,ty});
+ });
+ d.tx.forEach(t=>{const kn=t.cashier||'-',o=ks[kn];if(o)o.sales+=(t.subtotal||0)});
+ const all=sum(Object.values(T),x=>x.a);
+ return{T,pr:Object.values(pr).sort((a,b)=>b.a-a.a),vc:Object.values(vc).sort((a,b)=>b.a-a.a),ks:Object.values(ks).sort((a,b)=>b.tot-a.tot),rows:rows.sort((a,b)=>b.tot-a.tot),all,nn:rows.length}
+}
+function ldRows(L){const q=LDS.q.toLowerCase();return L.rows.filter(r=>(!LDS.k||r.ty.some(x=>x[0]===LDS.k&&x[2]>0))&&(!q||[r.t.no,r.t.cashier,r.t.custName,r.t.voucher,(r.t.autoNames||[]).join(' ')].join(' ').toLowerCase().includes(q)))}
+function ldSet(k,v){LDS[k]=v;render()}
+function vLapDiskon(d){
+ const L=ldData(d),kot=(d.gross||0)+L.all,tp=Object.entries(L.T);
+ const list=ldRows(L),show=list.slice(0,200);
+ return`<div class="kg"><div class="kc"><small>Total diskon</small><b>${rp(L.all)}</b><small>${pct(kot?L.all/kot*100:0)} dari penjualan sebelum diskon</small></div><div class="kc"><small>Nota berdiskon</small><b>${L.nn}</b><small>dari ${d.tx.length} nota</small></div><div class="kc"><small>Rata-rata diskon / nota</small><b>${rp(L.nn?Math.round(L.all/L.nn):0)}</b></div><div class="kc"><small>Diskon manual kasir</small><b>${rp(L.T.manD.a)}</b><small>${L.T.manD.c} nota</small></div></div>
+ <div class="card"><div class="ch"><div><h4>Diskon per Jenis</h4><p>${esc(perLabel())} · klik baris untuk memfilter daftar nota</p></div><button class="btn" onclick="ldCsv()">${ic('dl',16)} Excel</button></div><div class="tw">${L.all>0?`<table><tr><th>Jenis</th><th class="r">Nota</th><th class="r">Nilai</th><th class="r">Porsi</th></tr>${tp.map(([k,o])=>`<tr class="cl ${LDS.k===k?'on':''}" onclick="ldSet('k',LDS.k==='${k}'?'':'${k}')"><td><b>${o.n}</b></td><td class="r">${o.c}</td><td class="r">${rp(o.a)}</td><td class="r">${pct(L.all?o.a/L.all*100:0)}</td></tr>`).join('')}<tr class="ft"><td>Total</td><td class="r">${L.nn}</td><td class="r">${rp(L.all)}</td><td class="r">100%</td></tr></table>`:noData}</div><div class="mut" style="margin-top:8px;font-size:12px">Komplimen = pembayaran gratis oleh pemilik/manajer. Harga pelanggan &amp; grup adalah selisih harga spesial.</div></div>
+ <div class="two"><div class="card"><h4>Per Promo</h4><p>Promo otomatis. Bila satu nota memakai beberapa promo, nilainya dibagi rata (perkiraan).</p><div class="tw">${L.pr.length?`<table><tr><th>Promo</th><th class="r">Nota</th><th class="r">Nilai</th></tr>${L.pr.map(x=>`<tr><td><b>${esc(x.n)}</b></td><td class="r">${x.c}</td><td class="r">${rp(Math.round(x.a))}</td></tr>`).join('')}</table>`:noData}</div></div>
+ <div class="card"><h4>Per Voucher</h4><p>Kode voucher yang dipakai</p><div class="tw">${L.vc.length?`<table><tr><th>Kode</th><th class="r">Nota</th><th class="r">Nilai</th></tr>${L.vc.map(x=>`<tr><td><b>${esc(x.n)}</b></td><td class="r">${x.c}</td><td class="r">${rp(x.a)}</td></tr>`).join('')}</table>`:noData}</div></div></div>
+ <div class="card"><h4>Per Kasir</h4><p>Pantau siapa yang paling banyak memberi diskon manual dan komplimen</p><div class="tw">${L.ks.length?`<table><tr><th>Kasir</th><th class="r">Nota berdiskon</th><th class="r">Total diskon</th><th class="r">Diskon manual</th><th class="r">Komplimen</th></tr>${L.ks.map(x=>`<tr><td><b>${esc(x.n)}</b></td><td class="r">${x.c}</td><td class="r">${rp(x.tot)}</td><td class="r">${rp(x.man)}</td><td class="r">${rp(x.cmp)}</td></tr>`).join('')}</table>`:noData}</div></div>
+ <div class="card"><div class="ch"><div><h4>Daftar Nota Berdiskon</h4><p>${list.length} nota${LDS.k?' · jenis: '+esc(L.T[LDS.k].n):''} · urut dari diskon terbesar · klik untuk detail nota</p></div></div><div class="tool"><input placeholder="Cari nota, kasir, pelanggan, promo, voucher…" value="${esc(LDS.q)}" oninput="LDS.q=this.value;ldList()">${LDS.k?`<button class="btn" onclick="ldSet('k','')">Semua jenis</button>`:''}</div><div class="tw" id="ldl">${ldTable(show,list.length)}</div></div>`;
+}
+function ldTable(show,n){
+ return show.length?`<table><tr><th>Nota</th><th>Waktu</th><th>Kasir</th><th>Rincian diskon</th><th class="r">Total diskon</th></tr>${show.map(r=>`<tr class="cl" onclick="txDetail('${esc(r.t.id)}')"><td><b>${esc(r.t.no)}</b></td><td>${fmtT(r.t.ts)}</td><td>${esc(r.t.cashier||'-')}</td><td>${r.ty.filter(x=>x[2]>0).map(x=>esc(x[1])+' '+rp(x[2])).join(' · ')}${(r.t.autoNames||[]).length&&r.t.autoDisc?' ('+esc(r.t.autoNames.join(', '))+')':''}</td><td class="r"><b>${rp(r.tot)}</b></td></tr>`).join('')}</table>${n>show.length?`<div class="mut" style="padding:8px">Menampilkan ${show.length} dari ${n} nota. Gunakan Excel untuk semuanya.</div>`:''}`:noData
+}
+function ldList(){const L=ldData(CUR),list=ldRows(L),e=document.getElementById('ldl');if(e)e.innerHTML=ldTable(list.slice(0,200),list.length)}
+function ldCsv(){const L=ldData(CUR);csv('Laporan-Diskon',[['No Nota','Tanggal','Kasir','Pelanggan','Harga Pelanggan/Grup','Promo Otomatis','Nama Promo','Voucher','Kode Voucher','Tukar Poin','Diskon Manual','Komplimen','Alasan Komplimen','Total Diskon'],...ldRows(L).map(r=>{const t=r.t;return[t.no,fmtT(t.ts),t.cashier||'',t.custName||'',t.custDisc||0,t.autoDisc||0,(t.autoNames||[]).join(', '),t.voucherDisc||0,t.voucher||'',t.ptDisc||0,t.manualDisc||0,t.compAmt||0,t.compReason||'',r.tot]})])}
+
+
+/* ---------- Laporan Refund ---------- */
+const RFX={q:'',by:''};
+function rfxData(d){
+ const grp=(f)=>{const m={};d.rf.forEach(r=>{const k=f(r)||'-',o=m[k]||(m[k]={n:k,c:0,a:0});o.c++;o.a+=r.amount||0});return Object.values(m).sort((a,b)=>b.a-a.a)};
+ const pm={};d.rf.forEach(r=>(r.items||[]).forEach(i=>{const o=pm[i.name]||(pm[i.name]={n:i.name,q:0,a:0,unit:i.unit||''});o.q+=+i.qty||0;o.a+=(+i.qty||0)*(+i.price||0)}));
+ const tot=sum(d.rf,r=>r.amount||0);
+ return{tot,n:d.rf.length,alasan:grp(r=>(r.reason||'').trim().toLowerCase()||'(tanpa alasan)'),kasir:grp(r=>r.cashier),by:grp(r=>r.by),metode:grp(r=>METHODS[r.method]||r.method),prod:Object.values(pm).sort((a,b)=>b.a-a.a).slice(0,15)}
+}
+function rfxRows(d){const q=RFX.q.toLowerCase();return d.rf.filter(r=>(!RFX.by||(r.by||'-')===RFX.by)&&(!q||[r.no,r.txNo,r.cashier,r.by,r.reason,(r.items||[]).map(i=>i.name).join(' ')].join(' ').toLowerCase().includes(q))).sort((a,b)=>b.ts-a.ts)}
+function rfxSet(k,v){RFX[k]=v;render()}
+function rfxTable(l){
+ return l.length?`<table><tr><th>No refund</th><th>Waktu</th><th>Nota asal</th><th>Kasir</th><th>Disetujui</th><th>Barang</th><th>Metode</th><th>Alasan</th><th class="r">Refund</th></tr>${l.slice(0,200).map(r=>`<tr class="${r.txId?'cl':''}" ${r.txId?`onclick="txDetail('${esc(r.txId)}')"`:''}><td><b>${esc(r.no||'-')}</b></td><td>${fmtT(r.ts)}</td><td>${esc(r.txNo||'-')}</td><td>${esc(r.cashier||'-')}</td><td>${esc(r.by||'-')}</td><td>${(r.items||[]).map(i=>esc(i.name)+' ×'+fq(i.qty)).join(', ')}</td><td>${esc(METHODS[r.method]||r.method||'-')}</td><td>${esc(r.reason||'-')}</td><td class="r"><b>${rp(r.amount||0)}</b></td></tr>`).join('')}</table>${l.length>200?`<div class="mut" style="padding:8px">Menampilkan 200 dari ${l.length}. Gunakan Excel untuk semuanya.</div>`:''}`:noData
+}
+function rfxList(){const e=document.getElementById('rfxl');if(e)e.innerHTML=rfxTable(rfxRows(CUR))}
+function vLapRefund(d){
+ const L=rfxData(d),gross=(d.gross||0)+L.tot,grpT=(t,rows,hd)=>`<div class="card"><h4>${t}</h4><div class="tw">${rows.length?`<table><tr><th>${hd}</th><th class="r">Refund</th><th class="r">Nilai</th><th class="r">Porsi</th></tr>${rows.map(x=>`<tr><td><b>${esc(x.n)}</b></td><td class="r">${x.c}</td><td class="r">${rp(x.a)}</td><td class="r">${pct(L.tot?x.a/L.tot*100:0)}</td></tr>`).join('')}</table>`:noData}</div></div>`;
+ const bys=[...new Set(d.rf.map(r=>r.by||'-'))].sort();
+ return`<div class="kg"><div class="kc"><small>Total refund</small><b>${rp(L.tot)}</b></div><div class="kc"><small>Jumlah refund</small><b>${L.n}</b><small>${rp(L.n?Math.round(L.tot/L.n):0)} rata-rata</small></div><div class="kc"><small>Tingkat refund</small><b>${pct(d.gross?L.tot/d.gross*100:0)}</b><small>dari total penjualan</small></div><div class="kc"><small>Nota terdampak</small><b>${new Set(d.rf.map(r=>r.txNo)).size}</b><small>dari ${d.tx.length} nota</small></div></div>
+ <div class="two">${grpT('Per Alasan',L.alasan,'Alasan')}${grpT('Per Metode Pengembalian',L.metode,'Metode')}</div>
+ <div class="two">${grpT('Per Kasir (yang memproses)',L.kasir,'Kasir')}${grpT('Per Penyetuju (supervisor/owner)',L.by,'Disetujui')}</div>
+ <div class="card"><h4>Barang Paling Sering Direfund</h4><p>Nilai dihitung dari harga jual saat transaksi</p><div class="tw">${L.prod.length?`<table><tr><th>Produk</th><th class="r">Jumlah</th><th class="r">Nilai</th></tr>${L.prod.map(x=>`<tr><td><b>${esc(x.n)}</b></td><td class="r">${fq(x.q)} ${esc(x.unit)}</td><td class="r">${rp(x.a)}</td></tr>`).join('')}</table>`:noData}</div></div>
+ <div class="card"><div class="ch"><div><h4>Daftar Refund</h4><p>${esc(perLabel())} · klik baris untuk membuka nota asal</p></div><button class="btn" onclick="rfxCsv()">${ic('dl',16)} Excel</button></div><div class="tool"><input placeholder="Cari no refund, nota, kasir, alasan, barang…" value="${esc(RFX.q)}" oninput="RFX.q=this.value;rfxList()"><select onchange="rfxSet('by',this.value)"><option value="">Semua penyetuju</option>${bys.map(k=>`<option value="${esc(k)}" ${RFX.by===k?'selected':''}>${esc(k)}</option>`).join('')}</select></div><div class="tw" id="rfxl">${rfxTable(rfxRows(d))}</div></div>`;
+}
+function rfxCsv(){csv('Laporan-Refund',[['No Refund','Tanggal','Nota Asal','Kasir','Disetujui','Barang','Metode','Alasan','Nilai Barang','Total Refund'],...rfxRows(CUR).map(r=>[r.no||'',fmtT(r.ts),r.txNo||'',r.cashier||'',r.by||'',(r.items||[]).map(i=>i.name+' x'+i.qty).join('; '),METHODS[r.method]||r.method||'',r.reason||'',r.gross||0,r.amount||0])])}
+
 function goKasir(n){PK.k=n;go('pkasir')}
 function exportKasir(){csv('Penjualan-per-Kasir',[['Kasir','Nota','Item','Penjualan','Rata-rata per Nota','Tunai','Non-Tunai','Refund','Bersih','Jam Kerja (menit)','Selisih Kas'],...Object.entries(CUR.kas).map(([n,o])=>[n,o.n,+o.items.toFixed(3),o.total,Math.round(o.n?o.total/o.n:0),o.tunai,o.non,o.ref,o.total-o.ref,Math.round(o.jam/60000),o.sel])])}
 
