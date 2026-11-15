@@ -409,7 +409,7 @@ function upsell(k){
 /* Mode Owner (aplikasi Android owner): hanya laporan, tidak bisa mengubah data, tidak bisa unduh/cetak.
    Aktif bila alamat memakai ?app=owner (diingat di perangkat itu); ?app=full mematikannya. */
 const OWNER=(()=>{try{if(/[?&]app=full\b/.test(location.search))localStorage.removeItem('twinsbo_owner');if(/[?&]app=owner\b/.test(location.search))localStorage.setItem('twinsbo_owner','1');return localStorage.getItem('twinsbo_owner')==='1'}catch(e){return /[?&]app=owner\b/.test(location.search)}})();
-const OWN_OK=['ring','analisa','rsum','lappen','detail','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok','mexp','lapstok','lappajak','aset'];
+const OWN_OK=['lapgudang','lapmutasi','lapkartu','ring','analisa','rsum','lappen','detail','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok','mexp','lapstok','lappajak','aset'];
 const NAV_ALL=[
  ['Utama',[['ring','Ringkasan','home'],['analisa','Analisa Bisnis','trend']]],
  ['Penjualan',[['rsum','Ringkasan Penjualan','file'],['lappen','Laporan Penjualan','trend'],['detail','Detail Penjualan','file'],['produk','Penjualan per Produk','box'],['kasir','Penjualan per Kasir','user'],['lappajak','Laporan Pajak','file'],['pkasir','Produk per Kasir','layers'],['plglap','Penjualan per Pelanggan','users'],['fakturjual','Faktur Penjualan','file'],['pesanan','Pesanan & DP','wallet'],['jasa','Order Jasa','clock'],['piutang','Laporan Piutang','wallet']]],
@@ -417,14 +417,14 @@ const NAV_ALL=[
  ['Kas & Keuangan',[['cash','Kas Masuk & Keluar','wallet'],['arus','Arus Kas & Rekening','trend'],['shift','Laporan Shift','clock']]],
  ['Akuntansi',[['coa','Daftar Akun (COA)','layers'],['jurnal','Jurnal Umum','file'],['buku','Buku Besar','hist'],['lapkeu','Laporan Keuangan','trend'],['aset','Aset & Biaya di Muka','box']]],
  ['Karyawan',[['komisi','Komisi','tag'],['gaji','Penggajian','wallet']]],
- ['Data Master',[['mproduk','Produk & Stok','plus'],['lapstok','Laporan Persediaan','box'],['mkat','Kategori','tag'],['monline','Harga Online','ponsel'],['mpaket','Paket','gift'],['mstok','Riwayat Stok','hist'],['mexp','Expired','clock'],['pelanggan','Pelanggan','users'],['pemasok','Pemasok','store'],['karyawan','Data Karyawan','users'],['rekening','Rekening & Akun Kas','wallet']]],
+ ['Data Master',[['mproduk','Produk & Stok','plus'],['lapstok','Laporan Persediaan','box'],['lapgudang','Laporan Gudang','box'],['lapmutasi','Mutasi Stok','layers'],['lapkartu','Laporan Stok','file'],['mkat','Kategori','tag'],['monline','Harga Online','ponsel'],['mpaket','Paket','gift'],['mstok','Riwayat Stok','hist'],['mexp','Expired','clock'],['pelanggan','Pelanggan','users'],['pemasok','Pemasok','store'],['karyawan','Data Karyawan','users'],['rekening','Rekening & Akun Kas','wallet']]],
  ['Pengaturan',[['mpromo','Diskon & Promo','tag'],['moutlet','Outlet & Struk','store'],['mbayar','Biaya & Metode Bayar','wallet'],['mstaf','Akun Kasir','user'],['mkeamanan','Keamanan','user']]]
 ];
 const NAV=OWNER?NAV_ALL.map(([g,l])=>[g==='Data Master'?'Stok':g,l.filter(x=>OWN_OK.includes(x[0]))]).filter(x=>x[1].length):NAV_ALL;
 let NAVOPEN={};try{NAVOPEN=JSON.parse(localStorage.getItem('twinsbo_nav')||'{}')||{}}catch(e){}
 const navGrp=k=>{const g=NAV.find(x=>x[1].some(y=>y[0]===k));return g?g[0]:''};
 function navTog(i){const g=NAV[i][0],el=document.getElementById('gp'+i);if(!el)return;el.classList.toggle('shut');NAVOPEN[g]=!el.classList.contains('shut');try{localStorage.setItem('twinsbo_nav',JSON.stringify(NAVOPEN))}catch(e){}}
-const TITLE={ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['Laporan Penjualan','Metode pembayaran, kategori, varian, dan topping'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],arus:['Arus Kas & Rekening','Mutasi uang masuk dan keluar per rekening, seperti rekening koran'],
+const TITLE={lapgudang:['Laporan Gudang','Stok dan nilai persediaan di setiap gudang'],lapmutasi:['Mutasi Stok','Perpindahan stok antar gudang'],lapkartu:['Laporan Stok','Stok awal, masuk, keluar, dan stok akhir per barang'],ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['Laporan Penjualan','Metode pembayaran, kategori, varian, dan topping'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],arus:['Arus Kas & Rekening','Mutasi uang masuk dan keluar per rekening, seperti rekening koran'],
  pemasok:['Pemasok','Daftar pemasok dan laporan pembelian per pemasok'],fakturbeli:['Faktur Pembelian','Pembelian dari pemasok, hutang, dan pelunasan'],hutang:['Laporan Hutang','Umur hutang, kartu hutang per pemasok, dan riwayat pembayaran'],coa:['Daftar Akun (COA)','Bagan akun dan saldo tiap akun'],plglap:['Penjualan per Pelanggan','Total pembelian, laba, dan produk tiap pelanggan'],fakturjual:['Faktur Penjualan','Penjualan tempo ke pelanggan, piutang, dan penerimaan'],piutang:['Laporan Piutang','Umur piutang, kartu piutang, dan penerimaan'],jurnal:['Jurnal Umum','Jurnal otomatis dari penjualan, pembelian, kas, dan gaji'],buku:['Buku Besar','Mutasi dan saldo berjalan per akun'],lapkeu:['Laporan Keuangan','Neraca saldo, laba rugi, dan neraca'],
  karyawan:['Data Karyawan','Karyawan yang melayani di kasir, gaji pokok, dan keikutsertaan komisi'],komisi:['Komisi','Komisi penjualan, bertingkat dan dibagi bersama oleh yang melayani'],gaji:['Penggajian','Gaji bulanan, tunjangan, komisi, bonus, potongan, dan slip'],
  pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mbayar:['Biaya & Metode Bayar','Tambah metode bayar, potongan MDR, dan potongan platform online'],mstaf:['Akun Kasir','Akun login kasir: nama, peran, dan PIN. Sama dengan menu Staf di kasir'],jasa:['Order Jasa','Order layanan dari kasir beserta status pengerjaan dan pembayarannya'],mkat:['Kategori','Urutan, nama, dan daftar kategori produk'],mpaket:['Paket','Jual beberapa item sekaligus dengan satu harga; stok dan HPP mengikuti isinya'],monline:['Harga Online','Harga atau markup tiap produk untuk ShopeeFood, GrabFood, dan GoFood'],aset:['Aset & Biaya di Muka','Aset tetap dengan penyusutan otomatis, serta sewa dan biaya yang dibayar di muka'],lappajak:['Laporan Pajak','Pajak dan service charge yang dipungut, sudah disetor, dan belum disetor'],lapstok:['Laporan Persediaan','Nilai stok barang jadi, bahan baku, dan setengah jadi, dicocokkan dengan pembukuan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mexp:['Expired','Batch yang sudah dan akan kedaluwarsa'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
@@ -437,7 +437,7 @@ if(OWNER){
  const _r=render;render=function(){_r.apply(this,arguments);clean()};
  const _d=dlg;dlg=function(){_d.apply(this,arguments);clean()};
 }
-const MG=['lapstok','mkat','monline','mpaket','mproduk','mstok','mexp','mpromo','moutlet','mbayar','mstaf','karyawan','komisi','gaji','rekening','mkeamanan','pelanggan','pemasok'];
+const MG=['lapgudang','lapstok','mkat','monline','mpaket','mproduk','mstok','mexp','mpromo','moutlet','mbayar','mstaf','karyawan','komisi','gaji','rekening','mkeamanan','pelanggan','pemasok'];
 
 /* Isi dengan URL Web App (Apps Script) agar login hanya perlu PIN. Kosongkan = URL diminta sekali di layar login. */
 const API_URL='';
@@ -795,7 +795,7 @@ function render(){
   return;
  }
  CUR=calc();
- const V={ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar};
+ const V={lapgudang:vLapGudang,lapmutasi:vLapMutasi,lapkartu:vLapKartu,ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar};
  if(OWNER&&!OWN_OK.includes(tab))tab='ring';
  if(D&&isLocked(tab))tab='ring';
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
@@ -1589,6 +1589,100 @@ function gdMvSave(btn){
  const nm=id=>(gdList().find(g=>g.id===id)||{}).name||id;
  safe(()=>push('stock_mv',{from:f,to:t,items,note:'Mutasi gudang '+nm(f)+' ke '+nm(t)}),btn);
 }
+/* ---------- Laporan Gudang / Mutasi / Stok ---------- */
+const LG={g:'',q:'',nol:true};
+const gdNm=id=>(gdList().find(g=>g.id===id)||{}).name||(id===BGD?'Gudang Utama':String(id||''));
+function gdNone(){return`<div class="card"><div class="empty">Belum ada gudang tambahan.<br><small class="mut">Tambah gudang lewat Produk &amp; Stok, tombol Gudang.</small></div><div style="text-align:center;margin-top:10px"><button class="btn pri" onclick="go('mproduk')">Buka Produk &amp; Stok</button></div></div>`}
+function lgRows(){
+ const L=gdList(),q=LG.q.toLowerCase();
+ return(D.products||[]).filter(p=>p.trackStock!==false&&p.active!==false&&(!q||((p.name||'')+' '+(p.cat||'')).toLowerCase().includes(q))).map(p=>({p,g:L.map(x=>gdQty(p,x.id)),tot:+p.stock||0})).filter(r=>!LG.nol||r.tot!==0||r.g.some(x=>x!==0)).sort((a,b)=>String(a.p.name).localeCompare(String(b.p.name)));
+}
+function vLapGudang(){
+ const L=gdList();if(!L.length)return gdNone();
+ const rows=lgRows(),ix=L.findIndex(x=>x.id===LG.g),sel=ix>=0;
+ const kpi=`<div class="kg">${L.map((g,i)=>{const v=sum(rows,r=>Math.max(0,r.g[i])*(+r.p.cogs||0));return`<div class="kc"><small>${esc(g.name)}</small><b>${rp(v)}</b><small>${rows.filter(r=>r.g[i]>0).length} barang</small></div>`}).join('')}<div class="kc"><small>Total semua gudang</small><b>${rp(sum(rows,r=>Math.max(0,r.tot)*(+r.p.cogs||0)))}</b><small>nilai stok (HPP)</small></div></div>`;
+ const tool=`<div class="tool"><input placeholder="Cari barang atau kategori…" value="${esc(LG.q)}" oninput="LG.q=this.value;lgRender()"><select onchange="LG.g=this.value;render()"><option value="">Semua gudang</option>${L.map(g=>`<option value="${esc(g.id)}" ${LG.g===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</select>${chk('lg_nol','Sembunyikan stok 0',LG.nol,"LG.nol=this.checked;lgRender()")}<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="gdMenu()">Gudang</button><button class="btn pri" onclick="gdMutasi()">Mutasi stok</button><button class="btn" onclick="lgCsv()">${ic('dl',16)} Excel</button></span></div>`;
+ return kpi+`<div class="card">${tool}<div class="tw" id="lgt">${lgTable()}</div></div>`;
+}
+function lgTable(){
+ const L=gdList(),rows=lgRows(),ix=L.findIndex(x=>x.id===LG.g),sel=ix>=0,cols=sel?[ix]:L.map((_,i)=>i);
+ if(!rows.length)return'<div class="empty">Tidak ada barang yang cocok.</div>';
+ const un=r=>(r.p.units||[]).length?[...r.p.units].sort((a,b)=>b.q-a.q)[0]:null;
+ const sub=(r,v)=>{const u=un(r);return u&&Math.abs(v)>=u.q?`<div class="mut" style="font-size:12px">≈ ${fq(+(v/u.q).toFixed(2))} ${esc(u.n)}</div>`:''};
+ return`<table><tr><th>Barang</th><th>Satuan</th>${cols.map(i=>`<th class="r">${esc(L[i].name)}</th>`).join('')}${sel?'<th class="r">Nilai (HPP)</th>':'<th class="r">Total</th>'}</tr>${rows.map(r=>`<tr><td>${esc(r.p.name)}</td><td>${esc(r.p.unit||'')}</td>${cols.map(i=>`<td class="r" style="${r.g[i]<0?'color:var(--bad)':''}">${fq(r.g[i])}${sub(r,r.g[i])}</td>`).join('')}${sel?`<td class="r">${rp(Math.max(0,r.g[ix])*(+r.p.cogs||0))}</td>`:`<td class="r"><b>${fq(r.tot)}</b>${sub(r,r.tot)}</td>`}</tr>`).join('')}<tr><td colspan="2"><b>Total</b></td>${cols.map(i=>`<td class="r"><b>${rp(sum(rows,r=>Math.max(0,r.g[i])*(+r.p.cogs||0)))}</b></td>`).join('')}${sel?`<td class="r"><b>${rp(sum(rows,r=>Math.max(0,r.g[ix])*(+r.p.cogs||0)))}</b></td>`:`<td class="r"><b>${rp(sum(rows,r=>Math.max(0,r.tot)*(+r.p.cogs||0)))}</b></td>`}</tr></table><div class="hint" style="margin-top:6px">Baris total menunjukkan nilai stok (jumlah × HPP).</div>`;
+}
+function lgRender(){const e=document.getElementById('lgt');if(e)e.innerHTML=lgTable()}
+function lgCsv(){const L=gdList(),rows=lgRows();csv('Laporan-Gudang',[['Barang','Kategori','Satuan',...L.map(g=>g.name),'Total','HPP','Nilai total'],...rows.map(r=>[r.p.name,r.p.cat||'',r.p.unit||'',...r.g,r.tot,+r.p.cogs||0,Math.round(Math.max(0,r.tot)*(+r.p.cogs||0))])])}
+
+/* mutasi: dari stocklog tipe 'mv' (Backoffice: from/to, kasir: gid + gdelta) */
+function mvList(a,b){
+ const rows=(D.stocklog||[]).filter(x=>x.type==='mv'&&x.ts>=a&&x.ts<b).slice().sort((x,y)=>x.ts-y.ts),out=[],used=new Set();
+ rows.forEach((x,i)=>{
+  if(x.from||x.to){out.push({ts:x.ts,id:x.id,name:x.name||nameOf(x.id),from:x.from,to:x.to,q:+x.qty||0,by:x.by||'',note:x.note||''});used.add(i);return}
+ });
+ rows.forEach((x,i)=>{
+  if(used.has(i)||!x.gid)return;const d=+x.gdelta||0;if(!d)return;
+  if(d<0){const j=rows.findIndex((y,k)=>!used.has(k)&&k!==i&&y.gid&&y.id===x.id&&(+y.gdelta||0)===-d&&Math.abs(y.ts-x.ts)<=15000);
+   used.add(i);if(j>=0){used.add(j);out.push({ts:x.ts,id:x.id,name:x.name||nameOf(x.id),from:x.gid,to:rows[j].gid,q:-d,by:x.by||'',note:x.note||''})}else out.push({ts:x.ts,id:x.id,name:x.name||nameOf(x.id),from:x.gid,to:BGD,q:-d,by:x.by||'',note:x.note||''})}
+ });
+ rows.forEach((x,i)=>{if(used.has(i)||!x.gid)return;const d=+x.gdelta||0;if(d>0){used.add(i);out.push({ts:x.ts,id:x.id,name:x.name||nameOf(x.id),from:BGD,to:x.gid,q:d,by:x.by||'',note:x.note||''})}});
+ return out.sort((x,y)=>y.ts-x.ts);
+}
+const LM={g:'',q:''};
+function lmFiltered(){const[a,b]=range(),q=LM.q.toLowerCase();return mvList(a,b).filter(r=>(!LM.g||r.from===LM.g||r.to===LM.g)&&(!q||(r.name+' '+r.by+' '+r.note).toLowerCase().includes(q)))}
+function qtyTxt(id,q){const p=(D.products||[]).find(x=>x.id===id);if(!p)return fq(q);const u=(p.units||[]).length?[...p.units].sort((x,y)=>y.q-x.q).find(x=>q>=x.q&&Math.abs(q/x.q-Math.round(q/x.q))<1e-9):null;return fq(q)+' '+esc(p.unit||'')+(u?` <small class="mut">(${fq(q/u.q)} ${esc(u.n)})</small>`:'')}
+function vLapMutasi(){
+ const L=gdList();if(!L.length)return gdNone();
+ const l=lmFiltered();
+ const kpi=`<div class="kg"><div class="kc"><small>Jumlah mutasi</small><b>${l.length}</b></div><div class="kc"><small>Jumlah barang berbeda</small><b>${new Set(l.map(r=>r.id)).size}</b></div><div class="kc"><small>Periode</small><b style="font-size:16px">${esc(perLabel())}</b></div></div>`;
+ const tool=`<div class="tool"><input placeholder="Cari barang, pelaku, catatan…" value="${esc(LM.q)}" oninput="LM.q=this.value;lmRender()"><select onchange="LM.g=this.value;render()"><option value="">Semua gudang</option>${L.map(g=>`<option value="${esc(g.id)}" ${LM.g===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</select><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" onclick="gdMutasi()">Mutasi stok</button><button class="btn" onclick="lmCsv()">${ic('dl',16)} Excel</button></span></div>`;
+ return kpi+`<div class="card">${tool}<div class="tw" id="lmt">${lmTable()}</div></div>`;
+}
+function lmTable(){
+ const l=lmFiltered();if(!l.length)return'<div class="empty">Belum ada mutasi pada periode ini.</div>';
+ return`<table><tr><th>Waktu</th><th>Barang</th><th>Dari gudang</th><th>Ke gudang</th><th class="r">Jumlah</th><th>Oleh</th></tr>${l.slice(0,500).map(r=>`<tr><td>${fmtDT(r.ts)}</td><td>${esc(r.name)}</td><td>${esc(gdNm(r.from))}</td><td>${esc(gdNm(r.to))}</td><td class="r"><b>${qtyTxt(r.id,r.q)}</b></td><td>${esc(r.by)}</td></tr>`).join('')}</table>${l.length>500?'<div class="hint">Menampilkan 500 terbaru. Unduh Excel untuk semuanya.</div>':''}`;
+}
+function lmRender(){const e=document.getElementById('lmt');if(e)e.innerHTML=lmTable()}
+function lmCsv(){csv('Mutasi-Stok',[['Waktu','Barang','Dari gudang','Ke gudang','Jumlah (satuan dasar)','Satuan','Oleh','Catatan'],...lmFiltered().map(r=>{const p=(D.products||[]).find(x=>x.id===r.id)||{};return[fmtDT(r.ts),r.name,gdNm(r.from),gdNm(r.to),r.q,p.unit||'',r.by,r.note]})])}
+
+/* laporan stok: awal, masuk, keluar, koreksi, akhir per barang (boleh per gudang) */
+const LKS={g:'',q:'',nol:true};
+function lkDelta(x,G){
+ const t=x.type;
+ if(!G){return t==='mv'?0:(+x.delta||0)}
+ if(t==='mv'){
+  if(x.from||x.to){return(x.to===G?(+x.qty||0):0)-(x.from===G?(+x.qty||0):0)}
+  const d=+x.gdelta||0;return G===BGD?-d:(x.gid===G?d:0);
+ }
+ if(G===BGD)return x.gid?0:(+x.delta||0);
+ return x.gid===G?(+x.delta||0):0;
+}
+function lkData(){
+ const[a,b]=range(),G=LKS.g,q=LKS.q.toLowerCase(),by={};
+ (D.stocklog||[]).forEach(x=>{(by[x.id]||(by[x.id]=[])).push(x)});
+ return(D.products||[]).filter(p=>p.trackStock!==false&&(!q||((p.name||'')+' '+(p.cat||'')).toLowerCase().includes(q))).map(p=>{
+  const L=by[p.id]||[],now=G?gdQty(p,G):(+p.stock||0);
+  let after=0,inP={masuk:0,keluar:0,koreksi:0};
+  L.forEach(x=>{const d=lkDelta(x,G);if(!d)return;
+   if(x.ts>=b)after+=d;
+   else if(x.ts>=a){const t=x.type;if(t==='set'||t==='adj')inP.koreksi+=d;else if(d>0)inP.masuk+=d;else inP.keluar+=-d}
+  });
+  const akhir=+(now-after).toFixed(3),awal=+(akhir-inP.masuk+inP.keluar-inP.koreksi).toFixed(3);
+  return{p,awal,masuk:+inP.masuk.toFixed(3),keluar:+inP.keluar.toFixed(3),koreksi:+inP.koreksi.toFixed(3),akhir};
+ }).filter(r=>!LKS.nol||r.awal||r.masuk||r.keluar||r.koreksi||r.akhir).sort((x,y)=>String(x.p.name).localeCompare(String(y.p.name)));
+}
+function vLapKartu(){
+ const L=gdList(),rows=lkData();
+ const kpi=`<div class="kg"><div class="kc"><small>Barang tercatat</small><b>${rows.length}</b></div><div class="kc"><small>Total masuk</small><b style="color:var(--ok)">${fq(sum(rows,r=>r.masuk))}</b></div><div class="kc"><small>Total keluar</small><b style="color:var(--bad)">${fq(sum(rows,r=>r.keluar))}</b></div><div class="kc"><small>Periode</small><b style="font-size:16px">${esc(perLabel())}</b></div></div>`;
+ const tool=`<div class="tool"><input placeholder="Cari barang atau kategori…" value="${esc(LKS.q)}" oninput="LKS.q=this.value;lkRender()">${L.length?`<select onchange="LKS.g=this.value;render()"><option value="">Semua gudang</option>${L.map(g=>`<option value="${esc(g.id)}" ${LKS.g===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</select>`:''}${chk('lk_nol','Sembunyikan yang kosong',LKS.nol,"LKS.nol=this.checked;lkRender()")}<span style="margin-left:auto"><button class="btn" onclick="lkCsv()">${ic('dl',16)} Excel</button></span></div>`;
+ return kpi+`<div class="card">${tool}<div class="tw" id="lkt">${lkTable()}</div></div>`;
+}
+function lkTable(){
+ const rows=lkData();if(!rows.length)return'<div class="empty">Tidak ada data stok pada periode ini.</div>';
+ return`<table><tr><th>Barang</th><th>Satuan</th><th class="r">Stok awal</th><th class="r">Masuk</th><th class="r">Keluar</th><th class="r">Koreksi</th><th class="r">Stok akhir</th></tr>${rows.map(r=>`<tr><td>${esc(r.p.name)}</td><td>${esc(r.p.unit||'')}</td><td class="r">${fq(r.awal)}</td><td class="r" style="color:var(--ok)">${r.masuk?'+'+fq(r.masuk):'-'}</td><td class="r" style="color:var(--bad)">${r.keluar?'-'+fq(r.keluar):'-'}</td><td class="r">${r.koreksi?(r.koreksi>0?'+':'')+fq(r.koreksi):'-'}</td><td class="r"><b>${fq(r.akhir)}</b></td></tr>`).join('')}</table><div class="hint" style="margin-top:6px">Masuk: stok masuk, retur, dan mutasi masuk. Keluar: penjualan, pemakaian, dan mutasi keluar. Koreksi: hasil opname. Semua dalam satuan dasar barang.${LKS.g?'':' Mutasi antar gudang tidak muncul di pilihan Semua gudang karena total tidak berubah.'}</div>`;
+}
+function lkRender(){const e=document.getElementById('lkt');if(e)e.innerHTML=lkTable()}
+function lkCsv(){csv('Laporan-Stok'+(LKS.g?'-'+gdNm(LKS.g):''),[['Barang','Kategori','Satuan','Stok awal','Masuk','Keluar','Koreksi','Stok akhir'],...lkData().map(r=>[r.p.name,r.p.cat||'',r.p.unit||'',r.awal,r.masuk,r.keluar,r.koreksi,r.akhir])])}
 function lsGroups(){
  const L=(D.products||[]).filter(p=>p.trackStock!==false&&p.active!==false||p.trackStock!==false&&(+p.stock||0)!==0);
  const g=p=>p.bahan?((p.recipe||[]).length?'semi':'mentah'):'jadi';
