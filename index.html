@@ -1500,10 +1500,13 @@ function lpCsv(){const d=lpData(LPJ.k);let bal=d.B.open;csv('Laporan-'+(LPJ.k===
 
 /* ---------- Laporan Persediaan ---------- */
 const LS={k:'all',q:'',nol:false};
+const BGD='g0';
+function gdList(){const l=(D&&D.outlet&&Array.isArray(D.outlet.gudang))?D.outlet.gudang.filter(x=>x&&x.id&&x.name):[];return l.length>1?l:[]}
+function gdQty(p,gid){const L=gdList(),st=+p.stock||0;if(!L.length)return st;if(gid===BGD)return Math.round((st-L.filter(g=>g.id!==BGD).reduce((a,g)=>a+(+(p.wh&&p.wh[g.id])||0),0))*1000)/1000;return +(p.wh&&p.wh[gid])||0}
 function lsGroups(){
  const L=(D.products||[]).filter(p=>p.trackStock!==false&&p.active!==false||p.trackStock!==false&&(+p.stock||0)!==0);
  const g=p=>p.bahan?((p.recipe||[]).length?'semi':'mentah'):'jadi';
- const rows=L.map(p=>{const st=+p.stock||0,h=+p.cogs||0;return{id:p.id,n:p.name||'',cat:p.cat||'Umum',u:p.unit||'',st,h,v:Math.round(st*h),g:g(p)}});
+ const rows=L.map(p=>{const st=+p.stock||0,h=+p.cogs||0;return{id:p.id,n:p.name||'',cat:p.cat||'Umum',u:p.unit||'',st,h,v:Math.round(st*h),g:g(p),gd:gdList().map(x=>gdQty(p,x.id))}});
  return rows;
 }
 function lsFiltered(){const q=LS.q.toLowerCase();return lsGroups().filter(r=>(LS.k==='all'||r.g===LS.k)&&(!LS.nol||r.st!==0)&&(!q||(r.n+' '+r.cat).toLowerCase().includes(q)))}
@@ -1522,14 +1525,14 @@ function vLapStok(){
 function lsTable(){
  const l=lsFiltered().sort((a,b)=>a.g.localeCompare(b.g)||b.v-a.v);
  if(!l.length)return'<div class="empty">Tidak ada data persediaan.</div>';
- let h='<table><tr><th>Nama</th><th>Kelompok</th><th>Kategori</th><th class="r">Stok</th><th class="r">HPP / satuan</th><th class="r">Nilai</th></tr>',cur='';
+ const GL=gdList();let h='<table><tr><th>Nama</th><th>Kelompok</th><th>Kategori</th><th class="r">Stok</th>'+GL.map(x=>`<th class="r">${esc(x.name)}</th>`).join('')+'<th class="r">HPP / satuan</th><th class="r">Nilai</th></tr>',cur='';
  const gs={};l.forEach(r=>{gs[r.g]=(gs[r.g]||0)+r.v});
- l.forEach(r=>{if(r.g!==cur){cur=r.g;h+=`<tr style="background:var(--bg2,#f1f5f9)"><td colspan="5"><b>${LSN[r.g]}</b></td><td class="r"><b>${rp(gs[r.g])}</b></td></tr>`}
-  h+=`<tr><td>${esc(r.n)}</td><td>${LSN[r.g]}</td><td>${esc(r.cat)}</td><td class="r" style="${r.st<0?'color:var(--bad)':''}">${fq(r.st)} ${esc(r.u)}</td><td class="r">${rp(r.h)}</td><td class="r"><b>${rp(r.v)}</b></td></tr>`});
- return h+`<tr><td colspan="5"><b>Total</b></td><td class="r"><b>${rp(sum(l,r=>r.v))}</b></td></tr></table>`;
+ l.forEach(r=>{if(r.g!==cur){cur=r.g;h+=`<tr style="background:var(--bg2,#f1f5f9)"><td colspan="${5+GL.length}"><b>${LSN[r.g]}</b></td><td class="r"><b>${rp(gs[r.g])}</b></td></tr>`}
+  h+=`<tr><td>${esc(r.n)}</td><td>${LSN[r.g]}</td><td>${esc(r.cat)}</td><td class="r" style="${r.st<0?'color:var(--bad)':''}">${fq(r.st)} ${esc(r.u)}</td>${GL.map((x,i)=>`<td class="r">${fq(r.gd[i])}</td>`).join('')}<td class="r">${rp(r.h)}</td><td class="r"><b>${rp(r.v)}</b></td></tr>`});
+ return h+`<tr><td colspan="${5+GL.length}"><b>Total</b></td><td class="r"><b>${rp(sum(l,r=>r.v))}</b></td></tr></table>`;
 }
 function lsRows(){const e=document.getElementById('lst');if(e)e.innerHTML=lsTable()}
-function lsCsv(){csv('Laporan-Persediaan',[['Nama','Kelompok','Kategori','Satuan','Stok','HPP','Nilai'],...lsFiltered().sort((a,b)=>a.g.localeCompare(b.g)||b.v-a.v).map(r=>[r.n,LSN[r.g],r.cat,r.u,r.st,r.h,r.v])])}
+function lsCsv(){const GL=gdList();csv('Laporan-Persediaan',[['Nama','Kelompok','Kategori','Satuan','Stok',...GL.map(x=>x.name),'HPP','Nilai'],...lsFiltered().sort((a,b)=>a.g.localeCompare(b.g)||b.v-a.v).map(r=>[r.n,LSN[r.g],r.cat,r.u,r.st,...r.gd,r.h,r.v])])}
 
 /* ---------- Produk & Stok ---------- */
 function vMProduk(){
@@ -1886,7 +1889,7 @@ function slList(){
  const q=SL.q.toLowerCase();
  return[...D.stocklog].sort((a,b)=>b.ts-a.ts).filter(x=>(!SL.type||x.type===SL.type)&&(!q||((x.name||nameOf(x.id))+' '+(x.note||'')+' '+(x.by||'')).toLowerCase().includes(q)));
 }
-const slType=x=>x.type==='out'?'<span class="badge v">Keluar (faktur)</span>':x.type==='set'?'<span class="badge k">Koreksi</span>':x.type==='init'?'<span class="badge">Stok awal</span>':x.type==='sale'?'<span class="badge v">Terjual</span>':x.type==='refund'?'<span class="badge">Refund</span>':x.type==='adj'?'<span class="badge k">Koreksi kasir</span>':'<span class="badge g">Masuk</span>';
+const slType=x=>x.type==='out'?'<span class="badge v">Keluar (faktur)</span>':x.type==='set'?'<span class="badge k">Koreksi</span>':x.type==='init'?'<span class="badge">Stok awal</span>':x.type==='sale'?'<span class="badge v">Terjual</span>':x.type==='refund'?'<span class="badge">Refund</span>':x.type==='adj'?'<span class="badge k">Koreksi kasir</span>':x.type==='mv'?'<span class="badge">Mutasi gudang</span>':'<span class="badge g">Masuk</span>';
 function vMStok(){
  const l=slList(),inn=sum(l.filter(x=>x.type==='add'||x.type==='init'),x=>+x.qty||0);
  return`<div class="kg"><div class="kc"><small>Jumlah catatan</small><b>${l.length}</b></div><div class="kc"><small>Total stok masuk (tampil)</small><b>${fq(inn)}</b></div></div>
