@@ -121,7 +121,9 @@ tr.ft td{font-weight:800;border-top:2px solid var(--bd);background:var(--soft)}
 #dlgb h3{margin:0 0 8px}
 .sumbox div{display:flex;justify-content:space-between;padding:2px 0;font-size:14px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
-.acts2{display:flex;gap:8px;margin-top:16px}.acts2 .btn{flex:1}
+.acts2{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.acts2 .btn{min-width:calc(50% - 4px)}
+@media(min-width:700px){.acts2 .btn{min-width:0}}.acts2 .btn{flex:1}
 .hint{font-size:12.5px;color:var(--mut);margin-top:4px}
 .strk{background:#fff;color:#111;border:1px dashed #bbb;border-radius:8px;padding:14px;font:12px/1.45 'Courier New',monospace;white-space:pre-wrap;margin:12px auto 0;max-width:300px}
 .strk.w80{max-width:380px}
@@ -492,7 +494,8 @@ const OWNER=(()=>{try{if(/[?&]app=full\b/.test(location.search))localStorage.rem
 const OWN_OK=['home','lapgudang','lapmutasi','lapkartu','ring','analisa','rsum','lappen','detail','lapabsen','lapdiskon','laprefund','lapbanding','lapjualgd','lapputar','lapdead','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok','mexp','lapstok','lappajak','aset'];
 const NAV_ALL=[
  ['Ringkasan','home',[['ring','Ringkasan','home','L'],['analisa','Analisa Bisnis','trend','L']]],
- ['Transaksi','file',[['fakturjual','Faktur Penjualan','file','T'],['fakturbeli','Faktur Pembelian','file','T'],['pesanan','Pesanan & DP','wallet','T'],['jasa','Order Jasa','clock','T']]],
+ ['Transaksi','file',[['penawaran','Penawaran','file','T'],['sjalan','Surat Jalan','file','T'],['fakturjual','Faktur Penjualan','file','T'],['pesanan','Pesanan & DP','wallet','T'],['jasa','Order Jasa','clock','T']]],
+ ['Pembelian','store',[['pbeli','Pesanan Pembelian','file','T'],['tbarang','Penerimaan Barang','box','T'],['fakturbeli','Faktur Pembelian','file','T']]],
  ['Laporan Penjualan','trend',[['rsum','Ringkasan Penjualan','file','L'],['lappen','Laporan Penjualan','trend','L'],['detail','Detail Penjualan','file','L'],['lapdiskon','Laporan Diskon','tag','L'],['laprefund','Laporan Refund','hist','L'],['produk','Penjualan per Produk','box','L'],['kasir','Penjualan per Kasir','user','L'],['pkasir','Produk per Kasir','layers','L'],['plglap','Penjualan per Pelanggan','users','L'],['lapjualgd','Penjualan per Gudang','box','L'],['lapbanding','Perbandingan Periode','trend','L'],['lappajak','Laporan Pajak','file','L'],['shift','Laporan Shift','clock','L']]],
  ['Stok & Gudang','box',[['mproduk','Produk & Stok','plus','D'],['mpaket','Paket','gift','D'],['mkat','Kategori','tag','D'],['monline','Harga Online','ponsel','D'],['lapmutasi','Mutasi Stok','layers','T'],['mexp','Expired','clock','D'],['opname','Stok Opname','file','T']]],
  ['Laporan Stok','layers',[['lapstok','Nilai Persediaan','box','L'],['lapgudang','Laporan Gudang','box','L'],['lapkartu','Kartu Stok (Awal-Akhir)','file','L'],['lapputar','Perputaran Stok','refresh','L'],['lapdead','Barang Tidak Laku','clock','L'],['mstok','Riwayat Stok','hist','L']]],
@@ -500,7 +503,7 @@ const NAV_ALL=[
  ['Akuntansi','hist',[['coa','Daftar Akun (COA)','layers','D'],['jurnal','Jurnal Umum','file','T'],['buku','Buku Besar','hist','L'],['lapkeu','Laporan Keuangan','trend','L'],['aset','Aset & Biaya di Muka','box','D']]],
  ['Karyawan','user',[['karyawan','Data Karyawan','staff','D'],['komisi','Komisi','tag','L'],['lapabsen','Laporan Absensi','clock','L'],['gaji','Penggajian','gaji','T']]],
  ['Pelanggan & Pemasok','users',[['pelanggan','Pelanggan','users','D'],['pemasok','Pemasok','store','D']]],
- ['Pengaturan','gear',[['mpromo','Diskon & Promo','tag','P'],['moutlet','Outlet & Struk','store','P'],['mbayar','Biaya & Metode Bayar','wallet','P'],['mstaf','Akun Kasir','user','P'],['mkeamanan','Keamanan','user','P']]]
+ ['Pengaturan','gear',[['mpromo','Diskon & Promo','tag','P'],['moutlet','Outlet & Struk','store','P'],['mbayar','Biaya & Metode Bayar','wallet','P'],['mstaf','Akun Kasir','user','P'],['mhak','Hak Akses','user','P'],['mkeamanan','Keamanan','user','P']]]
 ];
 const NAV=(OWNER?NAV_ALL.map(([g,gi,l])=>[g,gi,l.filter(x=>OWN_OK.includes(x[0]))]).filter(x=>x[2].length):NAV_ALL).map(([g,gi,l])=>[g,gi,l]);
 let NAVOPEN={};try{NAVOPEN=JSON.parse(localStorage.getItem('twinsbo_nav')||'{}')||{}}catch(e){}
@@ -614,7 +617,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#dlg')&&$('#dlg'
 function closeDlg(){$('#dlg').classList.remove('on')}
 function dlg(html,wide){$('#dlgb').className=wide?'wide':'';$('#dlgb').innerHTML=html;$('#dlg').classList.add('on')}
 function toggleSide(f){const s=$('#side');if(s)s.classList.toggle('open',f===undefined?!s.classList.contains('open'):f)}
-function go(k){if(isLocked(k)){upsell(k);return}try{freqHit(k)}catch(e){}tab=k;render();window.scrollTo(0,0)}
+function go(k){if(!canTab(k)){alert('Peran akun ini tidak punya akses ke menu itu.');return}if(isLocked(k)){upsell(k);return}try{freqHit(k)}catch(e){}tab=k;render();window.scrollTo(0,0)}
 
 /* ---------- Cache lokal (IndexedDB) + penarikan data bertahap: Backoffice tampil instan, lalu hanya mengambil yang berubah ---------- */
 const IDB={_d:null,
@@ -622,7 +625,7 @@ const IDB={_d:null,
  async get(k){try{const d=await this._o();return await new Promise((res,rej)=>{const r=d.transaction('c').objectStore('c').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){return null}},
  async set(k,v){try{const d=await this._o();await new Promise((res,rej)=>{const t=d.transaction('c','readwrite');t.objectStore('c').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}}
 };
-const KEYS=['tx','refunds','shifts','cash','products','promos','customers','cgroups','employees','payroll','stocklog','banks','cf','settings','suppliers','purchases','sinvoices','pesanan','jobs','absen'];
+const KEYS=['tx','refunds','shifts','cash','products','promos','customers','cgroups','employees','payroll','stocklog','banks','cf','settings','suppliers','purchases','sinvoices','pesanan','jobs','absen','docs'];
 const idOf=(k,o)=>k==='stocklog'?(o.ts+'|'+o.name+'|'+o.type+'|'+o.delta+'|'+o.after):o.id;
 let RAW=null,SINCE=0,FULLTS=0,SAVET=0;
 const ckey=()=>baseUrl()+'|'+(cfg.hp||'');
@@ -644,8 +647,8 @@ const AC=new Map();
 function buildD(){
  const o={},L=k=>RAW[k]?[...RAW[k].values()]:[],emp=hasF('karyawan')||hasF('komisi')||hasF('gaji')||hasF('bep');
  ['tx','refunds','shifts','cash','products','promos','customers','cgroups','stocklog','banks','cf','pesanan','jobs'].forEach(k=>o[k]=L(k));
- o.absen=emp?L('absen'):[];o.employees=emp?L('employees'):[];o.payroll=emp?L('payroll'):[];const pm=hasF('pembelian');o.suppliers=pm?L('suppliers'):[];o.purchases=pm?L('purchases'):[];o.sinvoices=hasF('fakturjual')?L('sinvoices'):[];if(o.sinvoices.length)o.tx=o.tx.concat(o.sinvoices.map(sinTx));
- const st=L('settings');o.outlet=st.find(x=>x.id==='outlet')||{};o.receipt=st.find(x=>x.id==='receipt')||{};o.commission=st.find(x=>x.id==='commission')||null;o.cfmap=st.find(x=>x.id==='cfmap')||{};o.akun=st.find(x=>x.id==='akun')||{};o.staff=st.find(x=>x.id==='staff')||{};try{bxApply(o.outlet);(o.tx||[]).forEach(t=>(t.payments||[]).forEach(p=>{if(p&&p.mn&&/^m_[a-z0-9]{3,12}$/.test(String(p.m))&&!METHODS[p.m])METHODS[p.m]=String(p.mn).slice(0,30)}))}catch(e){};
+ o.absen=emp?L('absen'):[];o.employees=emp?L('employees'):[];o.payroll=emp?L('payroll'):[];const pm=hasF('pembelian');o.suppliers=pm?L('suppliers'):[];o.purchases=pm?L('purchases'):[];o.sinvoices=hasF('fakturjual')?L('sinvoices'):[];o.docs=(hasF('fakturjual')||pm)?L('docs'):[];if(o.sinvoices.length)o.tx=o.tx.concat(o.sinvoices.map(sinTx));
+ const st=L('settings');o.outlet=st.find(x=>x.id==='outlet')||{};o.receipt=st.find(x=>x.id==='receipt')||{};o.commission=st.find(x=>x.id==='commission')||null;o.cfmap=st.find(x=>x.id==='cfmap')||{};o.akses=st.find(x=>x.id==='akses')||{roles:{}};o.akun=st.find(x=>x.id==='akun')||{};o.staff=st.find(x=>x.id==='staff')||{};try{bxApply(o.outlet);(o.tx||[]).forEach(t=>(t.payments||[]).forEach(p=>{if(p&&p.mn&&/^m_[a-z0-9]{3,12}$/.test(String(p.m))&&!METHODS[p.m])METHODS[p.m]=String(p.mn).slice(0,30)}))}catch(e){};
  AC.clear();return o;
 }
 async function load(){
@@ -664,7 +667,7 @@ async function load(){
   let changed=full;KEYS.forEach(k=>{if((dat[k]||[]).length||(gone[k]||[]).length)changed=true});
   mergeIn(dat,gone);
   SINCE=j.now||Date.now();
-  D=buildD();cfg.nm=j.name||'';loadedAt=Date.now();busy=false;
+  MEPERAN=j.peran||'';try{localStorage.setItem('twinsbo_peran',MEPERAN)}catch(e){}D=buildD();akApply();cfg.nm=j.name||'';loadedAt=Date.now();busy=false;
   if(changed)saveCache();
   return true;
  }catch(e){busy=false;throw e}
@@ -934,9 +937,10 @@ function render(){
   return;
  }
  CUR=calc();
- const V={lapabsen:vLapAbsen,lapbanding:vLapBanding,lapjualgd:vLapJualGd,lapputar:vLapPutar,lapdead:vLapDead,opname:vOpname,laprefund:vLapRefund,lapdiskon:vLapDiskon,home:vHome,lapgudang:vLapGudang,lapmutasi:vLapMutasi,lapkartu:vLapKartu,ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar};
+ const V={lapabsen:vLapAbsen,lapbanding:vLapBanding,lapjualgd:vLapJualGd,lapputar:vLapPutar,lapdead:vLapDead,opname:vOpname,laprefund:vLapRefund,lapdiskon:vLapDiskon,home:vHome,lapgudang:vLapGudang,lapmutasi:vLapMutasi,lapkartu:vLapKartu,ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:vMProduk,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar,penawaran:()=>dcPage('s','qt'),sjalan:()=>dcPage('s','sj'),pbeli:()=>dcPage('b','po'),tbarang:()=>dcPage('b','gr'),mhak:akCard};
  if(OWNER&&!OWN_OK.includes(tab))tab='ring';
  if(D&&isLocked(tab))tab='ring';
+ if(D&&!canTab(tab))tab=akFirst();
  const ti=TITLE[tab]||TITLE.ring,isM=MG.includes(tab);
  $('#app').innerHTML=`<div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">TWINS<span>POS</span></div><small>${esc((D.outlet&&D.outlet.name)||cfg.nm||'Laporan pusat')}</small></div>
  <div class="oldnav">${NAV.map(([g,gi,l],n)=>{const open=l.some(x=>x[0]===tab)||(NAVOPEN[g]!==undefined?NAVOPEN[g]:g==='Ringkasan');return`<div class="gp ${open?'':'shut'}" id="gp${n}"><div class="ng" onclick="navTog(${n})">${g}<i class="chv"></i></div>${mmItems(l).map(([k,nm,i])=>`<button class="ni ${tab===k?'on':''}" onclick="go('${k}');toggleSide(false)" style="${isLocked(k)?'opacity:.6':''}">${icc(i,19,1.3)}<span>${nm}</span>${isLocked(k)?`<span style="margin-left:auto">${ic('lock',15)}</span>`:''}</button>`).join('')}</div>`}).join('')}</div>
@@ -3140,7 +3144,7 @@ const dts=s=>s?new Date(s+'T12:00:00').getTime():Date.now();
 const FB={st:''};
 function purNo(){
  const n=new Date(),pre='FB-'+n.getFullYear()+p2(n.getMonth()+1)+'-';let mx=0;
- PUR().forEach(f=>{if(String(f.no).indexOf(pre)===0)mx=Math.max(mx,parseInt(String(f.no).slice(pre.length),10)||0)});
+ PUR().forEach(f=>{if(String(f.no).indexOf(pre)===0)mx=Math.max(mx,parseInt(String(f.no).slice(pre.length),10)||0)});DCDOCS().filter(d=>d.side==='b'&&String(d.base).indexOf(pre.slice(3))===0).forEach(d=>{mx=Math.max(mx,parseInt(String(d.base).slice(pre.length-3),10)||0)});
  return pre+String(mx+1).padStart(3,'0');
 }
 
@@ -3246,6 +3250,7 @@ function purTot(){const c=purCalc(),e=$('#p_tot'),d=$('#p_det');if(e)e.textConte
 function purTerm(){const t=+v('p_term');if(t>0){const d=new Date(dts(v('p_date')));d.setDate(d.getDate()+t);$('#p_due').value=dk(d.getTime())}else if(t===0)$('#p_due').value=''}
 function purPayUi(){const m=v('p_pay'),w=$('#p_amtw'),h=$('#p_payh');if(!w)return;w.style.display=m==='sebagian'?'':'none';const t=purCalc().total;if(h)h.textContent=m==='lunas'?'Dibayar '+rp(t)+' dan tercatat sebagai pengeluaran kas.':m==='dp'?'Memakai saldo uang muka pemasok. Tidak ada uang keluar lagi. Sisanya tetap hutang.':m==='hutang'?'Belum ada uang keluar. Tercatat sebagai hutang ke pemasok.':'Sisa hutang mengikuti jumlah yang belum dibayar.'}
 function purForm(supId,ed){
+ if(!window.SIN_PRE)window.SIN_LINK=null;
  const sp=SUP().filter(s=>s.active!==false||(ed&&s.id===ed.supplierId));
  if(!sp.length){alert('Tambahkan pemasok dulu di menu Pemasok.');return}
  if(!D.products.some(p=>p.trackStock!==false)){alert('Belum ada produk dengan hitung stok.');return}
@@ -3259,7 +3264,7 @@ function purForm(supId,ed){
  <div><label>Akun pembelian (COA)</label>${acctSel('p_acct',ed&&ed.acct,['P','X','H'],'Persediaan Barang Dagang (bawaan)')}</div><div class="hint">Barang dagang atau bahan baku: biarkan bawaan. Pilih akun beban hanya untuk belanja yang langsung jadi biaya.</div>
  ${fld('p_note','Catatan',ed?ed.note:'')}${ed?'':chk('p_stk','Tambah stok produk otomatis (HPP dihitung rata-rata)',true)}
  <div class="acts2"><button class="btn pri" onclick="${ed?`purEditSave('${ed.id}',this)`:'purSave(this)'}">${ed?'Simpan Perubahan':'Simpan Faktur'}</button><button class="btn" onclick="closeDlg()">Batal</button></div>`,true);
- purPayUi();if(ed)purTot();purBx();
+ purPayUi();if(ed)purTot();purBx();dcPreApply('b');
 }
 async function purSave(btn){
  const sp=SUP().find(x=>x.id===v('p_sup'));if(!sp){alert('Pilih pemasok');return}
@@ -3280,6 +3285,7 @@ async function purSave(btn){
    for(const pid of Object.keys(g)){const pr=D.products.find(z=>z.id===pid);if(pr)try{await pushPost('product',{id:pid,name:pr.name,bt:(pr.bt||[]).concat(g[pid])})}catch(e){alert('Faktur tersimpan, tetapi batch '+pr.name+' gagal dicatat: '+e.message+'\nCatat manual di Atur Stok.')}}
   }
   await pushPost('purchase',rec);
+  if(window.SIN_LINK){try{await dcFinish(window.SIN_LINK,'b',rec)}catch(e){}window.SIN_LINK=null}
   if(rec.payments[0]&&rec.payments[0].acc){try{await cfBuy(rec.payments[0].acc,rec.payments[0].amount,'Faktur '+no+' · '+sp.name,'fb:'+rec.id,rec.payments[0].ts);scheduleLoad()}catch(e){alert('Faktur tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
   closeDlg();render();
  }catch(e){
@@ -3678,7 +3684,7 @@ function sinTx(f){
 }
 function sinNo(){
  const n=new Date(),pre='FJ-'+n.getFullYear()+p2(n.getMonth()+1)+'-';let mx=0;
- SIN().forEach(f=>{if(String(f.no).indexOf(pre)===0)mx=Math.max(mx,parseInt(String(f.no).slice(pre.length),10)||0)});
+ SIN().forEach(f=>{if(String(f.no).indexOf(pre)===0)mx=Math.max(mx,parseInt(String(f.no).slice(pre.length),10)||0)});DCDOCS().filter(d=>d.side==='s'&&String(d.base).indexOf(pre.slice(3))===0).forEach(d=>{mx=Math.max(mx,parseInt(String(d.base).slice(pre.length-3),10)||0)});
  return pre+String(mx+1).padStart(3,'0');
 }
 async function cfIn(acc,amount,note,ref,ts){
@@ -3705,6 +3711,7 @@ function sinTot(){const c=sinCalc(),e=$('#j_tot'),d=$('#j_det');if(e)e.textConte
 function sinTerm(){const t=+v('j_term');if(t>0){const d=new Date(dts(v('j_date')));d.setDate(d.getDate()+t);$('#j_due').value=dk(d.getTime())}else if(t===0)$('#j_due').value=''}
 function sinPayUi(){const m=v('j_pay'),w=$('#j_amtw'),h=$('#j_payh');if(!w)return;w.style.display=m==='sebagian'?'':'none';if(h)h.textContent=m==='lunas'?'Diterima '+rp(sinCalc().total)+' dan masuk ke rekening yang dipilih.':m==='hutang'?'Belum ada uang masuk. Tercatat sebagai piutang pelanggan.':'Sisanya tercatat sebagai piutang.'}
 function sinForm(custId,ed){
+ if(!window.SIN_PRE)window.SIN_LINK=null;
  const cs=(D.customers||[]).filter(c=>c.active!==false||(ed&&c.id===ed.customerId));
  if(!cs.length){alert('Tambahkan pelanggan dulu di menu Pelanggan.');return}
  if(!activeBanks().length){alert('Buat rekening dulu di Arus Kas & Rekening, supaya pembayaran faktur bisa dicatat.');return}
@@ -3717,7 +3724,7 @@ function sinForm(custId,ed){
  <div id="j_amtw" style="display:none">${fld('j_amt','Jumlah diterima sekarang (Rp)','','number')}</div><div class="hint" id="j_payh"></div>`}
  ${fld('j_note','Catatan',ed?ed.note:'')}${ed?'':chk('j_stk','Kurangi stok produk otomatis',true)}
  <div class="acts2"><button class="btn pri" onclick="${ed?`sinEditSave('${ed.id}',this)`:'sinSave(this)'}">${ed?'Simpan Perubahan':'Simpan Faktur'}</button><button class="btn" onclick="closeDlg()">Batal</button></div>`,true);
- sinPayUi();if(ed)sinTot();
+ sinPayUi();if(ed)sinTot();dcPreApply('s');
 }
 async function sinSave(btn){
  const cu=(D.customers||[]).find(x=>x.id===v('j_cust'));if(!cu){alert('Pilih pelanggan');return}
@@ -3736,6 +3743,7 @@ async function sinSave(btn){
   const st=items.filter(x=>x.trackStock);
   if(rec.stock&&st.length){await pushPost('stock_bulk',{mode:'out',note:'[FJ] '+no,items:st.map(x=>({id:x.pid,qty:x.qty,note:('[FJ] '+no+' · '+cu.name).slice(0,100)}))});stokOk=true}
   await pushPost('sinvoice',rec);
+  if(window.SIN_LINK){try{await dcFinish(window.SIN_LINK,'s',rec)}catch(e){}window.SIN_LINK=null}
   if(rec.payments[0]){try{await cfIn(acc,amt,'Pelunasan '+no+' · '+cu.name,'fj:'+rec.id,rec.payments[0].ts);scheduleLoad()}catch(e){alert('Faktur tersimpan, tetapi catatan arus kas gagal: '+e.message+'\nCatat manual di Arus Kas & Rekening.')}}
   closeDlg();render();
  }catch(e){
@@ -3746,7 +3754,7 @@ async function sinSave(btn){
 function sinSum(f){const sub=f.sub!=null?f.sub:Math.round(sum(f.items||[],i=>i.qty*i.price)),r=(l,n,b)=>`<tr${b?' class="ft"':''}><td colspan="3">${l}</td><td class="r">${n}</td></tr>`;return(f.disc||f.ship||f.tax?r('Subtotal',rp(sub))+(f.disc?r('Diskon','− '+rp(f.disc)):'')+(f.ship?r('Ongkos kirim',rp(f.ship)):'')+(f.tax?r('PPN '+(f.taxPct||'')+'%',rp(f.tax)):''):'')+r('Total',rp(f.total),1)}
 function sinView(id){
  const f=SIN().find(x=>x.id===id);if(!f)return;const st=sinSt(f),left=sinLeft(f);
- dlg(`<h3>Faktur ${esc(f.no)}</h3><div class="mut" style="margin-bottom:8px">${esc(f.customerName||'-')} · ${dk(f.ts)}${f.due?' · jatuh tempo '+dk(f.due):''} <span class="badge ${SPST[st][1]}">${SPST[st][0]}</span></div>
+ dlg(`<h3>Faktur ${esc(f.no)}</h3>${dcChainHtml('s',f.no)}<div class="mut" style="margin-bottom:8px">${esc(f.customerName||'-')} · ${dk(f.ts)}${f.due?' · jatuh tempo '+dk(f.due):''} <span class="badge ${SPST[st][1]}">${SPST[st][0]}</span></div>
  <div class="tw"><table><tr><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>${(f.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${itQ(i)}</td><td class="r">${itP(i)}</td><td class="r">${rp(Math.round(i.qty*i.price))}</td></tr>`).join('')}${sinSum(f)}</table></div>
  <b style="display:block;margin-top:12px">Pembayaran</b><div class="tw">${(f.payments||[]).length?`<table><tr><th>Tanggal</th><th>Rekening</th><th class="r">Jumlah</th></tr>${f.payments.map(p=>`<tr><td>${fmtT(p.ts)}</td><td>${esc(p.acc?accName(p.acc):(p.method||'-'))}</td><td class="r">${rp(p.amount)}</td></tr>`).join('')}<tr class="ft"><td colspan="2">Sisa piutang</td><td class="r">${rp(left)}</td></tr></table>`:'<div class="mut" style="padding:8px">Belum ada pembayaran.</div>'}</div>
  ${f.note?`<div class="mut" style="margin-top:8px">Catatan: ${esc(f.note)}</div>`:''}
@@ -3785,6 +3793,223 @@ function sinPrint(id){
  ${pays?`<table><tr><th colspan="2">Pembayaran diterima</th><th colspan="2">Rekening</th><th class="r">Jumlah</th></tr>${pays}${sr('Sisa tagihan',rp(left),1)}</table>`:`<p><b>Sisa tagihan: ${rp(left)}</b></p>`}
  ${f.note?'<p><small>Catatan: '+esc(f.note)+'</small></p>':''}<p style="margin-top:40px"><button onclick="print()">Cetak / Simpan PDF</button></p>`);
  w.document.close();w.focus();setTimeout(()=>w.print(),300);
+}
+
+
+/* ======================= DOKUMEN: Penawaran → Surat Jalan → Faktur (dan sisi pembelian) ======================= */
+/* Nomor dasar (mis. 202611-003) dibawa dari awal sampai faktur: PNW-202611-003 → SJ-202611-003 → FJ-202611-003.
+   Penawaran/Surat Jalan/PO/Penerimaan tidak menyentuh stok maupun pembukuan; stok dan akuntansi baru berjalan saat Faktur disimpan. */
+const DCDOCS=()=>D.docs||[];
+const DCDT={s:{qt:['Penawaran','PNW'],sj:['Surat Jalan','SJ'],inv:['Faktur Penjualan','FJ']},b:{po:['Pesanan Pembelian','PO'],gr:['Penerimaan Barang','PB'],inv:['Faktur Pembelian','FB']}};
+const DCDFLOW={s:['qt','sj','inv'],b:['po','gr','inv']};
+const DCDST={open:['Baru','k'],done:['Diteruskan','g'],cancel:['Batal','v']};
+function dcBase(side){
+ const n=new Date(),pre=n.getFullYear()+p2(n.getMonth()+1)+'-';let mx=0;
+ const bump=s=>{const m=/(\d{6})-(\d+)$/.exec(String(s||''));if(m&&m[1]+'-'===pre)mx=Math.max(mx,+m[2])};
+ DCDOCS().filter(d=>d.side===side).forEach(d=>bump(d.base));
+ (side==='s'?SIN():PUR()).forEach(f=>bump(f.no));
+ return pre+String(mx+1).padStart(3,'0');
+}
+const dcNo=(side,type,base)=>DCDT[side][type][1]+'-'+base;
+const dcBaseOfNo=no=>{const m=/(\d{6}-\d+)$/.exec(String(no||''));return m?m[1]:''};
+function dcChain(side,base){
+ if(!base)return{docs:[],inv:null};
+ const out=DCDOCS().filter(d=>d.side===side&&d.base===base).sort((a,b)=>DCDFLOW[side].indexOf(a.type)-DCDFLOW[side].indexOf(b.type));
+ const inv=(side==='s'?SIN():PUR()).find(f=>dcBaseOfNo(f.no)===base&&String(f.no).indexOf(DCDT[side].inv[1]+'-')===0);
+ return{docs:out,inv};
+}
+const DCTAB={s:{qt:'penawaran',sj:'sjalan'},b:{po:'pbeli',gr:'tbarang'}};
+Object.assign(TITLE,{penawaran:['Penawaran','Penawaran harga ke pelanggan. Bisa diteruskan ke Surat Jalan atau Faktur'],sjalan:['Surat Jalan','Pengiriman barang ke pelanggan. Bisa diteruskan ke Faktur Penjualan'],pbeli:['Pesanan Pembelian','Pesanan barang ke pemasok. Bisa diteruskan ke Penerimaan Barang atau Faktur'],tbarang:['Penerimaan Barang','Barang yang diterima dari pemasok. Bisa diteruskan ke Faktur Pembelian'],mhak:['Hak Akses','Atur menu yang boleh dibuka tiap peran akun']});
+Object.assign(FG,{penawaran:'fakturjual',sjalan:'fakturjual',pbeli:'pembelian',tbarang:'pembelian'});
+Object.assign(FTN,{penawaran:'Penawaran',sjalan:'Surat Jalan',pbeli:'Pesanan Pembelian',tbarang:'Penerimaan Barang'});
+MG.push('penawaran','sjalan','pbeli','tbarang','mhak');
+function dcPage(side,type){
+ const nm=DCDT[side][type][0],flow=DCDFLOW[side].map(k=>DCDT[side][k][0]).join(' → ');
+ return dcList(side,type)+`<div class="hint" style="margin-top:8px">Alur: ${flow}. Buka dokumen lalu tekan “Teruskan ke…”. Nomor dasar yang sama dibawa sampai faktur.</div>`;
+}
+function dcList(side,type){
+ const l=DCDOCS().filter(d=>d.side===side&&d.type===type).sort((a,b)=>b.ts-a.ts),nm=DCDT[side][type][0],party=side==='s'?'Pelanggan':'Pemasok';
+ const open=l.filter(d=>d.st==='open');
+ return`<div class="kg"><div class="kc"><small>${nm} berjalan</small><b>${open.length}</b></div><div class="kc"><small>Nilai berjalan</small><b>${rp(sum(open,d=>+d.total||0))}</b></div><div class="kc"><small>Sudah diteruskan</small><b>${l.filter(d=>d.st==='done').length}</b></div></div>
+ <div class="card"><div class="tool"><b>${nm}</b><span style="margin-left:auto"><button class="btn pri" onclick="dcForm('${side}','${type}')">${ic('plus',16)} ${nm} baru</button></span></div>
+ <div class="tw">${l.length?`<table><tr><th>No.</th><th>Tanggal</th><th>${party}</th><th class="r">Total</th><th>Alur</th><th>Status</th></tr>${l.map(d=>{const ch=dcChain(side,d.base);const nx=DCDFLOW[side].map(k=>{const has=k==='inv'?!!ch.inv:ch.docs.some(z=>z.type===k),t=DCDT[side][k][1];return k===d.type?'<b>'+t+'</b>':has?t:'<span style="opacity:.35">'+t+'</span>'}).join(' › ');return`<tr class="cl" onclick="dcView('${d.id}')"><td><b>${esc(d.no)}</b></td><td>${dk(d.ts)}</td><td>${esc(d.partyName||'-')}</td><td class="r">${rp(d.total||0)}</td><td><small>${nx}</small></td><td><span class="badge ${DCDST[d.st||'open'][1]}">${DCDST[d.st||'open'][0]}</span></td></tr>`}).join('')}</table>`:`<div class="empty">Belum ada ${nm.toLowerCase()}. Tekan “${nm} baru”.</div>`}</div></div>`;
+}
+let DCDPRE=null;
+function dcForm(side,type,pre,ed){
+ const sales=side==='s',parties=sales?(D.customers||[]).filter(c=>c.active!==false||(ed&&c.id===ed.partyId)):SUP().filter(s=>s.active!==false||(ed&&s.id===ed.partyId));
+ if(!parties.length){alert(sales?'Tambahkan pelanggan dulu di menu Pelanggan.':'Tambahkan pemasok dulu di menu Pemasok.');return}
+ const P_=sales?'j':'p',src=ed||pre||null,base=ed?ed.base:(pre?pre.base:dcBase(side)),no=ed?ed.no:dcNo(side,type,base),nm=DCDT[side][type][0];
+ const row=sales?sinRow:purRow,rows=src?(src.items||[]).map(i=>row(i)).join(''):row()+row();
+ DCDPRE={side,type,pre:pre||null,ed:ed||null,base};
+ dlg(`<h3>${ed?'Edit '+esc(ed.no):nm+' Baru'}${pre&&!ed?' <small class="mut">dari '+esc(pre.no)+'</small>':''}</h3>
+ <div class="g2"><div><label>${sales?'Pelanggan':'Pemasok'}</label><select id="${P_}_${sales?'cust':'sup'}">${parties.map(c=>`<option value="${esc(c.id)}" ${c.id===(src?src.partyId:'')?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>${fld(P_+'_no','No. dokumen',no)}${fld(P_+'_date','Tanggal',dk(src&&ed?ed.ts:Date.now()),'date')}${type==='qt'||type==='po'?fld('d_valid',type==='qt'?'Berlaku sampai (opsional)':'Dibutuhkan tanggal (opsional)',src&&src.valid?dk(src.valid):'','date'):''}</div>
+ <label>Barang</label><div id="${P_}_rows">${rows}</div><button class="btn sm" onclick="${sales?'sinAdd()':'purAdd()'}">${ic('plus',14)} Tambah barang</button>
+ ${type==='sj'||type==='gr'?'':`<div class="g2" style="margin-top:8px"><div><label>Diskon (Rp)</label><input id="${P_}_disc" type="number" inputmode="numeric" min="0" placeholder="0" value="${src&&src.disc||''}" oninput="${sales?'sinTot':'purTot'}()"></div><div><label>Ongkos kirim (Rp)</label><input id="${P_}_ship" type="number" inputmode="numeric" min="0" placeholder="0" value="${src&&src.ship||''}" oninput="${sales?'sinTot':'purTot'}()"></div><div><label>PPN (%) opsional</label><input id="${P_}_tax" type="number" inputmode="decimal" min="0" step="any" placeholder="0" value="${src&&src.taxPct||''}" oninput="${sales?'sinTot':'purTot'}()"></div></div>
+ <div style="text-align:right;margin:10px 0 2px"><div class="mut" id="${P_}_det" style="font-size:12px"></div><span class="mut">Total</span> <b id="${P_}_tot" style="font-size:20px">${rp(0)}</b></div>`}
+ ${fld(P_+'_note','Catatan',src?src.note:'')}
+ <div class="hint">${nm} tidak mengubah stok dan pembukuan. Itu baru terjadi saat Faktur disimpan.</div>
+ <div class="acts2"><button class="btn pri" onclick="dcSave(this)">${ed?'Simpan Perubahan':'Simpan'}</button><button class="btn" onclick="closeDlg()">Batal</button></div>`,true);
+ (sales?sinTot:purTot)();
+}
+async function dcSave(btn){
+ const x=DCDPRE;if(!x)return;const sales=x.side==='s',P_=sales?'j':'p';
+ const pid=v(sales?'j_cust':'p_sup'),pt=sales?(D.customers||[]).find(c=>c.id===pid):SUP().find(s=>s.id===pid);if(!pt){alert(sales?'Pilih pelanggan':'Pilih pemasok');return}
+ const items=(sales?sinItems():purItems());if(!items.length){alert('Isi minimal satu barang (pilih produk dan jumlah)');return}
+ if(items.length>60){alert('Maksimal 60 barang');return}
+ const noDoc=(sales?x.type==='sj':x.type==='gr'),C=noDoc?(()=>{const sub=Math.round(sum(items,i=>i.qty*i.price)),sr=x.ed||x.pre||{},disc=Math.min(sub,+sr.disc||0),ship=+sr.ship||0,pct=+sr.taxPct||0,tax=Math.round((sub-disc)*pct/100);return{sub,disc,ship,pct,tax,total:sub-disc+ship+tax}})():(sales?sinCalc(items):purCalc(items));
+ const no=v(P_+'_no').trim();if(!no){alert('Isi nomor dokumen');return}
+ if(DCDOCS().some(d=>d.no===no&&(!x.ed||d.id!==x.ed.id))){alert('Nomor dokumen sudah dipakai');return}
+ const strip=i=>({pid:i.pid,name:i.name,unit:i.unit,cat:i.cat,cogs:i.cogs,qty:i.qty,price:i.price,...(i.un?{uq:i.uq,un:i.un,uqty:i.uqty,uprice:i.uprice}:{}),...(i.ex?{ex:i.ex,bn:i.bn}:{})});
+ const rec=Object.assign({},x.ed||{},{id:x.ed?x.ed.id:'dc'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),side:x.side,type:x.type,base:x.base,no,ts:dts(v(P_+'_date')),partyId:pt.id,partyName:pt.name,items:items.map(strip),sub:C.sub,disc:C.disc,ship:C.ship,taxPct:C.pct,tax:C.tax,total:C.total,note:v(P_+'_note').trim(),st:x.ed?x.ed.st:'open',from:x.ed?x.ed.from:(x.pre?x.pre.id:''),valid:$('#d_valid')&&v('d_valid')?dts(v('d_valid')):0});
+ await safe(async()=>{
+  await pushPost('bodoc',rec);
+  if(x.pre&&!x.ed){await pushPost('bodoc',Object.assign({},x.pre,{st:'done',nxt:Object.assign({},x.pre.nxt||{},{[x.type]:rec.id})}))}
+  closeDlg();if(DCTAB[x.side]&&DCTAB[x.side][x.type])tab=DCTAB[x.side][x.type];render();
+ },btn);
+}
+function dcView(id){
+ const d=DCDOCS().find(x=>x.id===id);if(!d)return;const side=d.side,nm=DCDT[side][d.type][0],ch=dcChain(side,d.base),sj=d.type==='sj'||d.type==='gr';
+ const nexts=DCDFLOW[side].slice(DCDFLOW[side].indexOf(d.type)+1);
+ const chain=DCDFLOW[side].map(k=>{const h=k==='inv'?ch.inv:ch.docs.find(z=>z.type===k);return`<span class="badge ${h?'g':'k'}">${DCDT[side][k][0]}${h?' · '+esc(h.no):''}</span>`}).join(' › ');
+ dlg(`<h3>${nm} ${esc(d.no)}</h3><div class="mut" style="margin-bottom:6px">${esc(d.partyName||'-')} · ${dk(d.ts)}${d.valid?' · '+(d.type==='qt'?'berlaku sampai ':'dibutuhkan ')+dk(d.valid):''} <span class="badge ${DCDST[d.st||'open'][1]}">${DCDST[d.st||'open'][0]}</span></div>
+ <div style="margin-bottom:10px">${chain}</div>
+ <div class="tw"><table><tr><th>Barang</th><th class="r">Jumlah</th>${sj?'':'<th class="r">Harga</th><th class="r">Subtotal</th>'}</tr>${(d.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${itQ(i)}</td>${sj?'':`<td class="r">${itP(i)}</td><td class="r">${rp(Math.round(i.qty*i.price))}</td>`}</tr>`).join('')}${sj?'':`<tr class="ft"><td colspan="3">Total${d.tax?' (termasuk PPN '+rp(d.tax)+')':''}</td><td class="r">${rp(d.total||0)}</td></tr>`}</table></div>
+ ${d.note?`<div class="mut" style="margin-top:8px">Catatan: ${esc(d.note)}</div>`:''}
+ <div class="acts2">${d.st==='open'?nexts.map(k=>`<button class="btn pri" onclick="dcNext('${d.id}','${k}')">Teruskan ke ${DCDT[side][k][0]}</button>`).join(''):''}${d.st==='open'?`<button class="btn" onclick="dcEdit('${d.id}')">Edit</button>`:''}<button class="btn" onclick="dcPrint('${d.id}')">Cetak / PDF</button>${d.st==='open'?`<button class="btn" onclick="dcCancel('${d.id}')">Batalkan</button>`:''}<button class="btn del" onclick="dcDel('${d.id}')">Hapus</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
+}
+function dcEdit(id){const d=DCDOCS().find(x=>x.id===id);if(d)dcForm(d.side,d.type,null,d)}
+function dcNext(id,to){
+ const d=DCDOCS().find(x=>x.id===id);if(!d)return;
+ if(to!=='inv'){const ex=dcChain(d.side,d.base).docs.find(z=>z.type===to);if(ex){alert(DCDT[d.side][to][0]+' untuk nomor ini sudah dibuat ('+ex.no+')');return}dcForm(d.side,to,d);return}
+ // teruskan ke faktur: buka form faktur lama dengan isian terisi
+ const ch=dcChain(d.side,d.base);if(ch.inv){alert('Faktur untuk nomor ini sudah dibuat ('+ch.inv.no+')');return}
+ window.SIN_PRE=d;if(d.side==='s')sinForm(d.partyId);else purForm(d.partyId);
+}
+function dcPreApply(side){
+ const d=window.SIN_PRE;window.SIN_PRE=null;if(!d)return;window.SIN_LINK=d.id;
+ const P_=side==='s'?'j':'p',row=side==='s'?sinRow:purRow;
+ const set=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null)e.value=val};
+ set(P_+(side==='s'?'_cust':'_sup'),d.partyId);set(P_+'_no',DCDT[side].inv[1]+'-'+d.base);
+ $('#'+P_+'_rows').innerHTML=(d.items||[]).map(i=>row(i)).join('');
+ set(P_+'_disc',d.disc||'');set(P_+'_ship',d.ship||'');set(P_+'_tax',d.taxPct||'');set(P_+'_note',d.note||'');
+ const chk_=document.getElementById(P_==='j'?'j_stk':'p_stk');
+ if(chk_&&dcChain(side,d.base).docs.some(z=>z.type==='sj'||z.type==='gr'))chk_.checked=true;
+ (side==='s'?sinTot:purTot)();
+}
+async function dcFinish(link,side,rec){
+ const d=DCDOCS().find(x=>x.id===link);if(!d)return;
+ const ch=dcChain(side,d.base);
+ for(const z of ch.docs){if(z.st!=='done')await pushPost('bodoc',Object.assign({},z,{st:'done',inv:rec.no}))}
+}
+async function dcCancel(id){const d=DCDOCS().find(x=>x.id===id);if(!d||!confirm('Batalkan '+d.no+'?'))return;await safe(async()=>{await pushPost('bodoc',Object.assign({},d,{st:'cancel'}));closeDlg();render()})}
+async function dcDel(id){const d=DCDOCS().find(x=>x.id===id);if(!d||!confirm('Hapus '+d.no+' permanen?'))return;await safe(async()=>{await pushPost('bodoc_del',{id});closeDlg();render()})}
+function dcHdrCss(){return'body{font:13px/1.5 Arial,sans-serif;color:#111;margin:28px auto;max-width:760px}h1{font-size:22px;margin:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}th{background:#f3f4f6}.r{text-align:right}.b td{font-weight:700;border-top:2px solid #111}.hd{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px}.bx{display:flex;justify-content:space-between;gap:20px}small{color:#555}.sg{display:flex;justify-content:space-around;margin-top:60px;text-align:center}.sg div{width:30%;border-top:1px solid #111;padding-top:4px}@media print{button{display:none}}'}
+function dcPrint(id){
+ const d=DCDOCS().find(x=>x.id===id);if(!d)return;const side=d.side,o=D.outlet||{},nm=DCDT[side][d.type][0],sj=d.type==='sj'||d.type==='gr';
+ const pt=(side==='s'?(D.customers||[]).find(x=>x.id===d.partyId):SUP().find(x=>x.id===d.partyId))||{};
+ const w=window.open('','_blank');if(!w){alert('Pop-up diblokir browser');return}
+ const sub=d.sub!=null?d.sub:Math.round(sum(d.items||[],i=>i.qty*i.price)),sr=(l,n,b)=>`<tr${b?' class="b"':''}><td colspan="4" class="r">${l}</td><td class="r">${n}</td></tr>`;
+ const rows=(d.items||[]).map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.name)}</td><td class="r">${itQ(i)}</td>${sj?'':`<td class="r">${itP(i)}</td><td class="r">${rp(Math.round(i.qty*i.price))}</td>`}</tr>`).join('');
+ w.document.write(`<!doctype html><meta charset="utf-8"><title>${nm} ${esc(d.no)}</title><style>${dcHdrCss()}</style>
+ <div class="hd"><div><h1>${esc(o.name||cfg.nm||'')}</h1><small>${esc(o.address||'')}${o.phone?'<br>Telp. '+esc(o.phone):''}</small></div><div style="text-align:right"><h1>${nm.toUpperCase()}</h1><b>${esc(d.no)}</b><br><small>${dk(d.ts)}${d.valid?'<br>'+(d.type==='qt'?'Berlaku sampai: ':'Dibutuhkan: ')+dk(d.valid):''}</small></div></div>
+ <div class="bx"><div><small>${side==='s'?(sj?'Dikirim kepada':'Kepada'):'Pemasok'}</small><br><b>${esc(d.partyName||'-')}</b>${pt.wa||pt.phone?'<br>'+esc(pt.wa||pt.phone):''}${pt.address?'<br>'+esc(pt.address):''}</div><div style="text-align:right"><small>Referensi</small><br><b>${esc(d.base)}</b></div></div>
+ <table><tr><th>#</th><th>Barang</th><th class="r">Jumlah</th>${sj?'':'<th class="r">Harga</th><th class="r">Subtotal</th>'}</tr>${rows}${sj?'':((d.disc||d.ship||d.tax)?sr('Subtotal',rp(sub))+(d.disc?sr('Diskon','− '+rp(d.disc)):'')+(d.ship?sr('Ongkos kirim',rp(d.ship)):'')+(d.tax?sr('PPN '+(d.taxPct||'')+'%',rp(d.tax)):''):'')+sr('TOTAL',rp(d.total||0),1)}</table>
+ ${d.note?'<p><small>Catatan: '+esc(d.note)+'</small></p>':''}
+ ${sj?`<div class="sg"><div>${side==='s'?'Pengirim':'Pemeriksa'}</div><div>${side==='s'?'Penerima':'Pengirim'}</div></div>`:(d.type==='qt'?'<p><small>Penawaran ini berlaku sesuai tanggal di atas. Harga dapat berubah setelah masa berlaku.</small></p>':'')}
+ <p style="margin-top:40px"><button onclick="print()">Cetak / Simpan PDF</button></p>`);
+ w.document.close();w.focus();setTimeout(()=>w.print(),300);
+}
+/* ---- PDF untuk semua laporan: cetak isi halaman yang sedang dibuka ---- */
+function repPrint(){
+ const c=document.querySelector('.content');if(!c)return;const n=c.cloneNode(true),ti=TITLE[tab]||['Laporan',''];
+ n.querySelectorAll('button,select,input,textarea,script,.pbar,.chips,.hint,.acts2,.bnr,.bn,[data-nopr]').forEach(e=>e.remove());
+ n.querySelectorAll('.tool').forEach(e=>{if(!e.textContent.trim())e.remove()});
+ n.querySelectorAll('[onclick]').forEach(e=>e.removeAttribute('onclick'));
+ const o=D.outlet||{},w=window.open('','_blank');if(!w){alert('Pop-up diblokir browser');return}
+ w.document.write(`<!doctype html><meta charset="utf-8"><title>${esc(ti[0])}</title><style>body{font:12px/1.45 Arial,sans-serif;color:#111;margin:22px auto;max-width:1000px}h1{font-size:20px;margin:0}h4{margin:14px 0 2px;font-size:14px}p{margin:2px 0 6px;color:#555}table{width:100%;border-collapse:collapse;margin:6px 0 12px}th,td{padding:5px 7px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}th{background:#f3f4f6}.r,td.r,th.r{text-align:right}.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0}.kc{border:1px solid #ddd;border-radius:8px;padding:8px 10px}.kc small{display:block;color:#555}.kc b{font-size:15px}.hd{border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;gap:16px}.card{margin-bottom:10px}.tw{overflow:visible}tr{break-inside:avoid}small{color:#555}@media print{button{display:none}}</style>
+ <div class="hd"><div><h1>${esc(ti[0])}</h1><small>${esc(o.name||cfg.nm||'')}${MG.includes(tab)?'':' · '+esc(perLabel())}</small></div><div style="text-align:right"><small>Dicetak ${fmtT(Date.now())}</small></div></div>${n.innerHTML}
+ <p style="margin-top:20px"><button onclick="print()">Cetak / Simpan PDF</button></p>`);
+ w.document.close();w.focus();setTimeout(()=>w.print(),400);
+}
+const NOPDF=['mstaf','mkeamanan','moutlet','mbayar','mpromo','mkat','monline','mpaket'];
+(function(){
+ const _r=render;render=function(){_r.apply(this,arguments);try{
+  if(OWNER||!D||NOPDF.includes(tab))return;const tb=document.querySelector('.tb');if(!tb||tb.querySelector('.pdfb'))return;
+  const b=document.createElement('button');b.className='btn pdfb';b.style.cssText='margin-left:auto;margin-right:8px;white-space:nowrap';b.title='Simpan halaman ini sebagai PDF';b.innerHTML=ic('dl',16)+' PDF';b.setAttribute('onclick','repPrint()');
+  const r=tb.querySelector('.r');if(r)tb.insertBefore(b,r);else tb.appendChild(b);
+ }catch(e){}};
+})();
+
+function dcChainHtml(side,no){
+ const b=dcBaseOfNo(no),ch=dcChain(side,b);if(!ch.docs||!ch.docs.length)return'';
+ return`<div style="margin:0 0 8px">${DCDFLOW[side].map(k=>{const h=k==='inv'?ch.inv:ch.docs.find(z=>z.type===k);return`<span class="badge ${h?'g':'k'}">${DCDT[side][k][0]}${h?' · '+esc(h.no):''}</span>`}).join(' › ')}</div>`;
+}
+
+
+/* ======================= HAK AKSES PER PERAN =======================
+   Peran akun diisi di kolom "peran" sheet Staf. Kosong / admin / belum punya profil = akses penuh.
+   Profil menentukan grup menu yang boleh dibuka dan apakah boleh mengubah data. Server ikut menolak simpan
+   dan menahan data karyawan/gaji/pembelian bila menunya tidak diizinkan. */
+let MEPERAN=(()=>{try{return localStorage.getItem('twinsbo_peran')||''}catch(e){return''}})();
+function AKP(d){
+ if(OWNER)return null;const x=d||D;if(!x)return null;
+ const r=String(MEPERAN||'').trim().toLowerCase();if(!r||r==='admin')return null;
+ const roles=(x.akses&&x.akses.roles)||{},k=Object.keys(roles).find(z=>z.trim().toLowerCase()===r);
+ return k?roles[k]:null;
+}
+const akGroups=()=>NAV_ALL.map(x=>x[0]);
+function canTab(k,d){
+ const p=AKP(d);if(!p)return true;
+ const g=NAV_ALL.find(x=>x[2].some(i=>i[0]===k));
+ if(!g)return true;
+ return (p.tabs||[]).includes(g[0]);
+}
+function akApply(d){
+ const p=AKP(d),base=(OWNER?NAV_ALL.map(([g,gi,l])=>[g,gi,l.filter(x=>OWN_OK.includes(x[0]))]).filter(x=>x[2].length):NAV_ALL).map(([g,gi,l])=>[g,gi,l]);
+ const nv=p?base.filter(x=>(p.tabs||[]).includes(x[0])):base;
+ NAV.length=0;nv.forEach(x=>NAV.push(x));
+}
+const akFirst=()=>{const g=NAV[0];return g&&g[2][0]?g[2][0][0]:'home'};
+(function(){
+ const w=f=>async function(){const p=AKP();if(p&&p.write===false)throw new Error('Peran akun ini hanya boleh melihat, tidak boleh mengubah data');return f.apply(this,arguments)};
+ pushPost=w(pushPost);pushQuiet=w(pushQuiet);
+})();
+const AKNEED={employees:['karyawan','komisi','gaji','lapabsen','bep'],payroll:['gaji','komisi'],absen:['lapabsen','karyawan','gaji'],
+ suppliers:['pemasok','fakturbeli','pbeli','tbarang','hutang','mproduk','jurnal','buku','lapkeu','aset','coa','analisa'],purchases:['pemasok','fakturbeli','hutang','jurnal','buku','lapkeu','aset','coa','analisa','lapstok','arus']};
+function akDeny(tabs){
+ const ok=new Set(['home']);NAV_ALL.forEach(([g,gi,l])=>{if(tabs.includes(g))l.forEach(i=>ok.add(i[0]))});
+ return Object.keys(AKNEED).filter(k=>!AKNEED[k].some(t=>ok.has(t)));
+}
+function akCard(){
+ if(AKP())return`<div class="card"><h4>Hak Akses</h4><p>Peran akun ini: <b>${esc(MEPERAN)}</b>. Pengaturan hak akses hanya bisa diubah oleh admin.</p></div>`;
+ const roles=(D.akses&&D.akses.roles)||{},names=Object.keys(roles);
+ return`<div class="card"><h4>Hak Akses per Peran</h4><p>Atur menu apa yang boleh dibuka tiap peran. Peran dipasang di kolom <b>peran</b> sheet <b>Staf</b> (sejajar dengan nomor HP dan PIN akun). Kosong atau <b>admin</b> = akses penuh. Akun yang peran-nya belum diatur di sini juga akses penuh.</p>
+ <div class="tool"><span style="margin-left:auto"><button class="btn pri" onclick="akForm()">${ic('plus',16)} Tambah peran</button></span></div>
+ <div class="tw">${names.length?`<table><tr><th>Peran</th><th>Menu yang boleh</th><th>Ubah data</th><th></th></tr>${names.map(n=>{const r=roles[n];return`<tr><td><b>${esc(n)}</b></td><td><small>${(r.tabs||[]).length?(r.tabs||[]).map(esc).join(', '):'(tidak ada)'}</small></td><td>${r.write===false?'<span class="badge k">Hanya lihat</span>':'<span class="badge g">Boleh</span>'}</td><td class="r"><button class="btn sm" onclick="akForm('${esc(n).replace(/'/g,"\\'")}')">Atur</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada peran. Contoh: “gudang” hanya boleh Stok &amp; Gudang, “keuangan” hanya Akuntansi.</div>'}</div>
+ <div class="hint">Penahanan data (karyawan, gaji, pembelian) berlaku di server. Menu lain disembunyikan di tampilan dan simpan data ditolak server bila perannya “hanya lihat”.</div></div>`;
+}
+function akForm(name){
+ const roles=(D.akses&&D.akses.roles)||{},r=name?roles[name]:null,gs=akGroups();
+ dlg(`<h3>${name?'Atur peran '+esc(name):'Peran baru'}</h3>
+ ${name?`<input type="hidden" id="ak_old" value="${esc(name)}">`:''}${fld('ak_n','Nama peran (sama dengan isi kolom “peran” di sheet Staf)',name||'')}
+ <label>Menu yang boleh dibuka</label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 12px">${gs.map((g,i)=>chk('ak_g'+i,esc(g),r?(r.tabs||[]).includes(g):i===0)).join('')}</div>
+ <div style="margin-top:10px"><label>Ubah data</label><select id="ak_w"><option value="1" ${!r||r.write!==false?'selected':''}>Boleh mengubah data</option><option value="0" ${r&&r.write===false?'selected':''}>Hanya melihat</option></select></div>
+ <div class="acts2"><button class="btn pri" onclick="akSave(this)">Simpan</button>${name?`<button class="btn del" onclick="akDel('${esc(name).replace(/'/g,"\\'")}')">Hapus peran</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`,true);
+}
+async function akSave(btn){
+ const n=v('ak_n').trim().toLowerCase();if(!n){alert('Isi nama peran');return}
+ if(n==='admin'){alert('“admin” sudah otomatis akses penuh. Pakai nama lain.');return}
+ const gs=akGroups(),tabs=gs.filter((g,i)=>ck('ak_g'+i));
+ const roles=Object.assign({},(D.akses&&D.akses.roles)||{}),old=$('#ak_old')&&v('ak_old');
+ if(old&&old!==n)delete roles[old];
+ if(!old&&roles[n]){alert('Peran itu sudah ada');return}
+ roles[n]={tabs,write:v('ak_w')!=='0',deny:akDeny(tabs)};
+ await safe(async()=>{await pushPost('akses',{roles});closeDlg();render()},btn);
+}
+async function akDel(n){
+ if(!confirm('Hapus peran “'+n+'”? Akun dengan peran ini kembali ke akses penuh.'))return;
+ const roles=Object.assign({},(D.akses&&D.akses.roles)||{});delete roles[n];
+ await safe(async()=>{await pushPost('akses',{roles});closeDlg();render()});
 }
 
 /* piutang */
@@ -3911,7 +4136,7 @@ function hutCard(id,name){
 function hutCardCsv(id,name){csv('Kartu-Hutang-'+name,[['Tanggal','Keterangan','Hutang +','Bayar −','Saldo'],...hutLedger(id,name).map(x=>[dk(x.ts),x.d,x.plus,x.minus,x.bal])])}
 function purView(id){
  const f=PUR().find(x=>x.id===id);if(!f)return;const st=purSt(f),left=purLeft(f);
- dlg(`<h3>Faktur ${esc(f.no)}</h3><div class="mut" style="margin-bottom:8px">${esc(f.supplierName||'-')} · ${dk(f.ts)}${f.due?' · jatuh tempo '+dk(f.due):''} <span class="badge ${PST[st][1]}">${PST[st][0]}</span></div>
+ dlg(`<h3>Faktur ${esc(f.no)}</h3>${dcChainHtml('b',f.no)}<div class="mut" style="margin-bottom:8px">${esc(f.supplierName||'-')} · ${dk(f.ts)}${f.due?' · jatuh tempo '+dk(f.due):''} <span class="badge ${PST[st][1]}">${PST[st][0]}</span></div>
  <div class="tw"><table><tr><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga beli</th><th class="r">Subtotal</th></tr>${(f.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${itQ(i)}</td><td class="r">${itP(i)}</td><td class="r">${rp(Math.round(i.qty*i.price))}</td></tr>`).join('')}${purSum(f)}</table></div>
  <b style="display:block;margin-top:12px">Pembayaran</b><div class="tw">${(f.payments||[]).length?`<table><tr><th>Tanggal</th><th>Rekening</th><th class="r">Jumlah</th></tr>${f.payments.map(p=>`<tr><td>${fmtT(p.ts)}</td><td>${esc(p.acc?accName(p.acc):(p.method||'-'))}</td><td class="r">${rp(p.amount)}</td></tr>`).join('')}<tr class="ft"><td colspan="2">Sisa hutang</td><td class="r">${rp(left)}</td></tr></table>`:'<div class="mut" style="padding:8px">Belum ada pembayaran.</div>'}</div>
  ${f.note?`<div class="mut" style="margin-top:8px">Catatan: ${esc(f.note)}</div>`:''}
@@ -4546,7 +4771,7 @@ function jsView(id){
   $('#app').innerHTML='<div class="lock"><div class="lockbox" style="text-align:center">Memuat data…</div></div>';
   const c=await readCache();
   if(c){
-   await loadFitur(baseUrl(),true);D=buildD();start();
+   await loadFitur(baseUrl(),true);D=buildD();akApply();start();
    load().then(()=>{if(!$('#dlg').classList.contains('on')&&!MG.includes(tab))render()}).catch(e=>{if(/salah|dikunci|Terlalu|Ditolak/i.test(String(e&&e.message))){cfg.pin='';saveCfg();D=null;render()}});
    return;
   }
