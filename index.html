@@ -4578,15 +4578,20 @@ function ipPrev(){
  if(go)go.disabled=!IP.ok.length;
 }
 async function ipApply(btn){
- if(!IP.ok.length)return;btn.disabled=true;let n=0;
+ if(!IP.ok.length)return;btn.disabled=true;let n=0;const tot=IP.ok.length;
+ const mk=r=>{const st=r.trk?(r.stock||0):0;return{id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:r.name,sku:r.sku,barcode:r.sku,cat:r.cat,unit:r.unit,price:r.price||0,cogs:r.cogs||0,stock:st,minStock:r.min||0,trackStock:r.trk,active:true,bahan:false,recipe:[],paket:[],recAuto:true,variants:r.v.list,toppings:r.t.list,vabs:!!r.vabs,chp:r.chp||{},updated:Date.now(),initStock:st}};
  try{
-  for(const r of IP.ok){
-   btn.textContent='Membuat '+n+'/'+IP.ok.length+'…';
-   const st=r.trk?(r.stock||0):0;
-   await pushQuiet('product',{id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:r.name,sku:r.sku,barcode:r.sku,cat:r.cat,unit:r.unit,price:r.price||0,cogs:r.cogs||0,stock:st,minStock:r.min||0,trackStock:r.trk,active:true,bahan:false,recipe:[],paket:[],recAuto:true,variants:r.v.list,toppings:r.t.list,vabs:!!r.vabs,chp:r.chp||{},updated:Date.now(),initStock:st});
-   n++;
+  const all=IP.ok.map(mk);let fast=true;
+  for(let i=0;i<all.length;){
+   btn.textContent='Membuat '+n+'/'+tot+'…';
+   const part=all.slice(i,i+50);
+   if(fast){
+    try{await pushPost('product_bulk',{items:part})}
+    catch(e){if(/tidak dikenal/i.test(e.message)){fast=false;continue}throw e}   // Code.gs lama: pakai cara 1 per 1
+   }else{for(const x of part){await pushQuiet('product',x);n++;btn.textContent='Membuat '+n+'/'+tot+'…'}i+=part.length;continue}
+   n+=part.length;i+=part.length;
   }
-  closeDlg();scheduleLoad();render();alert(n+' produk dibuat.');
+  closeDlg();scheduleLoad();render();alert(n+' produk dibuat.'+(fast?'':'\n\nCatatan: Code.gs di Apps Script belum versi terbaru, jadi prosesnya lambat. Pasang Code.gs terbaru agar impor 50 produk sekali kirim.'));
  }catch(e){btn.disabled=false;btn.textContent='Buat Produk';alert('Berhenti setelah '+n+' produk: '+e.message+'\n\nProduk yang sudah terbuat tidak akan dobel kalau Anda unggah ulang (nama yang sama dilewati).');scheduleLoad()}
 }
 
