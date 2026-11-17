@@ -2561,7 +2561,42 @@ function promoSched(p){
  const d=(p.days&&p.days.length&&p.days.length<7)?p.days.map(i=>DN[i]).join(', '):'';
  return[(p.start||p.end)?esc(p.start||'…')+' s/d '+esc(p.end||'…'):'Tanpa batas tanggal',d,(p.tStart&&p.tEnd)?esc(p.tStart)+'–'+esc(p.tEnd):''].filter(Boolean).join(' · ');
 }
-const scopeTxt=p=>p.scope==='product'?'Per produk: '+esc(nameOf(p.productId)):p.scope==='cat'?'Per kategori: '+esc(p.cat||'-'):'Per total belanja';
+const exN=p=>((p.exProd||[]).length)+((p.exCat||[]).length);
+const prIds=p=>(p.productIds&&p.productIds.length)?p.productIds:(p.productId?[p.productId]:[]);
+const scopeTxt=p=>(p.scope==='product'?'Per produk: '+esc(prIds(p).slice(0,2).map(nameOf).join(', '))+(prIds(p).length>2?' <span class="mut">+'+(prIds(p).length-2)+' lain</span>':''):p.scope==='cat'?'Per kategori: '+esc(p.cat||'-'):'Per total belanja')+(exN(p)?` <span class="mut">· kecuali ${exN(p)}</span>`:'');
+let PKS=new Set();
+function pkBox(p){
+ PKS=new Set(prIds(p));
+ return`<div id="f_pkw" style="margin:6px 0"><label>Produk yang dapat promo <span id="f_pkn" class="mut"></span></label>
+ <input id="f_pkq" placeholder="Cari produk…" oninput="pkList()" style="margin-top:4px">
+ <div style="display:flex;gap:8px;margin:6px 0;flex-wrap:wrap"><button class="btn sm" type="button" onclick="pkAll(true)">Pilih yang tampil</button><button class="btn sm" type="button" onclick="pkAll(false)">Kosongkan</button></div>
+ <div id="f_pkl" style="max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px"></div></div>`;
+}
+function pkShown(){const q=(($('#f_pkq')||{}).value||'').toLowerCase();return D.products.filter(x=>!x.bahan&&(!q||String(x.name).toLowerCase().includes(q))).slice(0,300)}
+function pkList(){
+ const el=$('#f_pkl');if(!el)return;
+ el.innerHTML=pkShown().map(x=>`<label class="ck" style="display:flex;margin:3px 0"><input type="checkbox" ${PKS.has(x.id)?'checked':''} data-v="${esc(x.id)}" onchange="pkTog(this.dataset.v,this.checked)"> ${esc(x.name)} <span class="mut" style="margin-left:auto">${rp(x.price||0)}</span></label>`).join('')||'<div class="mut">Tidak ada produk</div>';pkCount();
+}
+function pkTog(id,on){PKS[on?'add':'delete'](id);pkCount()}
+function pkAll(on){pkShown().forEach(x=>PKS[on?'add':'delete'](x.id));pkList()}
+function pkCount(){const e=$('#f_pkn');if(e)e.textContent=PKS.size?'· '+PKS.size+' dipilih':''}
+let EX={p:new Set(),c:new Set()};
+function exBox(p){
+ EX={p:new Set(p.exProd||[]),c:new Set(p.exCat||[])};
+ const cats=[...new Set(D.products.filter(x=>!x.bahan).map(x=>x.cat).filter(Boolean))].sort();
+ return`<div id="f_exw" style="margin:12px 0 6px"><label>Kecuali (tidak kena diskon) <span id="f_exn" class="mut"></span></label>
+ <div class="mut" style="font-size:12.5px;margin:2px 0 8px">Opsional. Kategori atau produk yang dicentang tidak dipotong dan tidak dihitung ke minimal belanja.</div>
+ <div class="mut" style="font-size:12.5px">Kategori</div><div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin:4px 0 10px">${cats.map(c=>`<label class="ck"><input type="checkbox" ${EX.c.has(c)?'checked':''} data-v="${esc(c)}" onchange="exTog('c',this.dataset.v,this.checked)"> ${esc(c)}</label>`).join('')||'<span class="mut">Belum ada kategori</span>'}</div>
+ <div class="mut" style="font-size:12.5px;margin-bottom:4px">Produk</div><input id="f_exq" placeholder="Cari produk…" oninput="promoExList()">
+ <div id="f_exl" style="max-height:170px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-top:6px"></div></div>`;
+}
+function exTog(k,val,on){EX[k][on?'add':'delete'](val);exCount()}
+function exCount(){const n=EX.p.size+EX.c.size,e=$('#f_exn');if(e)e.textContent=n?'· '+n+' dikecualikan':''}
+function promoExList(){
+ const q=v('f_exq').toLowerCase(),L=D.products.filter(x=>!x.bahan&&(!q||String(x.name).toLowerCase().includes(q))).slice(0,200),el=$('#f_exl');if(!el)return;
+ el.innerHTML=L.map(x=>`<label class="ck" style="display:flex;margin:3px 0"><input type="checkbox" ${EX.p.has(x.id)?'checked':''} data-v="${esc(x.id)}" onchange="exTog('p',this.dataset.v,this.checked)"> ${esc(x.name)}</label>`).join('')||'<div class="mut">Tidak ada produk</div>';exCount();
+}
+const exOut=()=>({exProd:[...EX.p],exCat:[...EX.c]});
 const vUsed=code=>{const c=String(code||'').toUpperCase();return(D.tx||[]).filter(t=>t.status!=='void'&&String(t.voucher||'').toUpperCase()===c).length};
 function ptBal(){const m={};(D.tx||[]).forEach(t=>{if(!t.customerId||t.status==='void')return;m[t.customerId]=(m[t.customerId]||0)+(+t.ptEarn||0)-(+t.ptUsed||0)});return m}
 function vMPromo(){
@@ -2574,7 +2609,7 @@ function vMPromo(){
  <div class="card"><h4>Promo Otomatis</h4><div class="tool"><span class="mut">Per produk, per kategori, atau per total belanja. Dipakai otomatis di kasir sesuai jadwal.</span><button class="btn pri" style="margin-left:auto" onclick="promoForm()">${ic('plus',16)} Tambah Promo</button></div>
  <div class="tw">${au.length?`<table><tr><th>Promo</th><th>Berlaku untuk</th><th>Potongan</th><th class="r">Min. belanja</th><th>Jadwal</th><th>Status</th><th></th></tr>${au.map(p=>{const s=promoState(p);return`<tr><td><b>${esc(p.name)}</b></td><td>${scopeTxt(p)}</td><td>${promoTxt(p)}</td><td class="r">${rp(p.minBuy||0)}</td><td>${promoSched(p)}</td><td><span class="badge ${s[1]}">${s[0]}</span></td><td style="text-align:right"><button class="btn sm" onclick="promoForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada promo. Tekan “Tambah Promo”.</div>'}</div></div>
  <div class="card"><h4>Voucher</h4><div class="tool"><span class="mut">Kasir memasukkan kode voucher saat transaksi. Pemakaian dihitung dari nota.</span><button class="btn pri" style="margin-left:auto" onclick="voucherForm()">${ic('plus',16)} Tambah Voucher</button></div>
- <div class="tw">${vc.length?`<table><tr><th>Kode</th><th>Keterangan</th><th>Potongan</th><th class="r">Min. belanja</th><th>Periode</th><th class="r">Terpakai</th><th>Status</th><th></th></tr>${vc.map(p=>{const s=promoState(p),u=vUsed(p.code),full=+p.quota>0&&u>=+p.quota;return`<tr><td><b>${esc(p.code)}</b></td><td>${esc(p.name||'')}</td><td>${promoTxt(p)}</td><td class="r">${rp(p.minBuy||0)}</td><td>${promoSched(p)}</td><td class="r">${u}${+p.quota>0?' / '+p.quota:''}</td><td><span class="badge ${full?'v':s[1]}">${full?'Habis':s[0]}</span></td><td style="text-align:right"><button class="btn sm" onclick="voucherForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada voucher. Tekan “Tambah Voucher”.</div>'}</div></div>
+ <div class="tw">${vc.length?`<table><tr><th>Kode</th><th>Keterangan</th><th>Potongan</th><th class="r">Min. belanja</th><th>Periode</th><th class="r">Terpakai</th><th>Status</th><th></th></tr>${vc.map(p=>{const s=promoState(p),u=vUsed(p.code),full=+p.quota>0&&u>=+p.quota;return`<tr><td><b>${esc(p.code)}</b></td><td>${esc(p.name||'')}${exN(p)?` <span class="mut">· kecuali ${exN(p)}</span>`:''}</td><td>${promoTxt(p)}</td><td class="r">${rp(p.minBuy||0)}</td><td>${promoSched(p)}</td><td class="r">${u}${+p.quota>0?' / '+p.quota:''}</td><td><span class="badge ${full?'v':s[1]}">${full?'Habis':s[0]}</span></td><td style="text-align:right"><button class="btn sm" onclick="voucherForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada voucher. Tekan “Tambah Voucher”.</div>'}</div></div>
  <div class="card"><h4>Poin Pelanggan</h4><div class="tool"><span class="mut">${lo&&lo.active?'Aktif: setiap belanja '+rp(lo.earnPer)+' dapat 1 poin · 1 poin = '+rp(lo.pointValue)+(+lo.minRedeem?' · minimal tukar '+lo.minRedeem+' poin':'')+(+lo.maxPct&&+lo.maxPct<100?' · maks '+lo.maxPct+'% dari belanja':''):'Belum diaktifkan.'}</span><button class="btn pri" style="margin-left:auto" onclick="loyaltyForm()">Atur Poin</button></div>
  <div class="tw">${top.length?`<table><tr><th>Pelanggan</th><th class="r">Saldo poin</th><th class="r">Nilai</th></tr>${top.slice(0,15).map(e=>`<tr><td><b>${esc(cn(e[0]))}</b></td><td class="r">${fq(e[1])}</td><td class="r">${lo?rp(e[1]*(+lo.pointValue||0)):'—'}</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada saldo poin. Poin muncul setelah pelanggan dipilih di kasir saat transaksi.</div>'}</div></div>`;
 }
@@ -2583,18 +2618,19 @@ function promoForm(id){
  dlg(`<h3>${id?'Ubah':'Tambah'} Promo Otomatis</h3>${fld('f_name','Nama promo',p.name,'text','mis. Happy Hour Sore')}
  <label>Berlaku untuk</label><select id="f_scope" onchange="promoScope()"><option value="all" ${p.scope==='all'||!p.scope?'selected':''}>Total belanja (seluruh keranjang)</option><option value="cat" ${p.scope==='cat'?'selected':''}>Per kategori</option><option value="product" ${p.scope==='product'?'selected':''}>Per produk</option></select>
  <div id="f_sc"></div>
+ ${exBox(p)}
  <div class="g2"><div><label>Jenis potongan</label><select id="f_type"><option value="percent" ${p.type==='percent'?'selected':''}>Persen (%)</option><option value="nominal" ${p.type==='nominal'?'selected':''}>Nominal (Rp)</option></select></div>${fld('f_val','Nilai potongan',p.value,'number')}
  ${fld('f_max','Maks. potongan Rp (0 = tanpa batas)',p.maxDisc||0,'number')}${fld('f_min','Minimal belanja Rp',p.minBuy||0,'number')}
  ${fld('f_s','Mulai tanggal',p.start,'date')}${fld('f_e','Berakhir tanggal',p.end,'date')}${fld('f_ts','Jam mulai (kosongkan = seharian)',p.tStart,'time')}${fld('f_te','Jam berakhir',p.tEnd,'time')}</div>
  <label>Hari berlaku</label><div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:6px">${DN.map((n,i)=>chk('f_d'+i,n,days.includes(i))).join('')}</div>
- <div class="mut" style="font-size:12.5px;margin:6px 0 10px">Nominal per produk/kategori dihitung per item (dikali jumlah). Nominal per total belanja dipotong sekali per transaksi. Kalau ada beberapa promo total belanja (misalnya bertingkat 100rb dan 200rb), kasir memakai yang paling besar saja.</div>
+ <div class="mut" style="font-size:12.5px;margin:6px 0 10px">Nominal per produk/kategori dihitung per item (dikali jumlah). Per produk bisa memilih beberapa produk sekaligus. Nominal per total belanja dipotong sekali per transaksi. Kalau ada beberapa promo total belanja (misalnya bertingkat 100rb dan 200rb), kasir memakai yang paling besar saja.</div>
  ${chk('f_act','Aktifkan promo ini',p.active)}
  <div class="acts2"><button class="btn pri" onclick="savePromo('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delPromo('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
- window._pp=p;window._cats=cats;promoScope();
+ window._pp=p;window._cats=cats;promoScope();promoExList();
 }
 function promoScope(){
- const s=v('f_scope'),p=window._pp||{},h=$('#f_sc');
- h.innerHTML=s==='cat'?`<label>Kategori</label><select id="f_cat">${window._cats.map(c=>`<option ${p.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`:s==='product'?`<label>Produk</label><select id="f_prod">${D.products.map(x=>`<option value="${x.id}" ${p.productId===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`:'';
+ const s=v('f_scope'),p=window._pp||{},h=$('#f_sc'),xw=$('#f_exw');if(xw)xw.style.display=s==='product'?'none':'';
+ h.innerHTML=s==='cat'?`<label>Kategori</label><select id="f_cat">${window._cats.map(c=>`<option ${p.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`:s==='product'?pkBox(p):'';if(s==='product')pkList();
 }
 function savePromo(id,btn){
  const val=+v('f_val'),type=v('f_type'),s=v('f_s'),e=v('f_e'),scope=v('f_scope'),ts=v('f_ts'),te=v('f_te');
@@ -2602,12 +2638,12 @@ function savePromo(id,btn){
  if(!(val>0)||(type==='percent'&&val>100)){alert('Nilai potongan tidak valid');return}
  if(s&&e&&e<s){alert('Tanggal berakhir harus setelah tanggal mulai');return}
  if(!!ts!==!!te){alert('Isi jam mulai dan jam berakhir sekaligus, atau kosongkan keduanya');return}
- if(scope==='product'&&!v('f_prod')){alert('Pilih produk');return}
+ if(scope==='product'&&!PKS.size){alert('Pilih minimal satu produk');return}
  if(scope==='cat'&&!v('f_cat')){alert('Pilih kategori');return}
  let days=[0,1,2,3,4,5,6].filter(i=>ck('f_d'+i));
  if(!days.length){alert('Pilih minimal satu hari');return}
  if(days.length===7)days=[];
- safe(()=>push('promo',{id:id||'pr'+Date.now().toString(36),kind:'auto',name:v('f_name').trim(),type,value:val,maxDisc:+v('f_max')||0,minBuy:+v('f_min')||0,start:s,end:e,days,tStart:ts,tEnd:te,scope,cat:scope==='cat'?v('f_cat'):'',productId:scope==='product'?v('f_prod'):'',active:ck('f_act')}),btn);
+ safe(()=>push('promo',{id:id||'pr'+Date.now().toString(36),kind:'auto',name:v('f_name').trim(),type,value:val,maxDisc:+v('f_max')||0,minBuy:+v('f_min')||0,start:s,end:e,days,tStart:ts,tEnd:te,scope,cat:scope==='cat'?v('f_cat'):'',productId:scope==='product'?[...PKS][0]:'',productIds:scope==='product'?[...PKS]:[],...(scope==='product'?{exProd:[],exCat:[]}:exOut()),active:ck('f_act')}),btn);
 }
 function delPromo(id){if(confirm('Hapus data ini?'))safe(()=>push('promo_del',{id}))}
 function voucherForm(id){
@@ -2618,9 +2654,10 @@ function voucherForm(id){
  ${fld('f_max','Maks. potongan Rp (0 = tanpa batas)',p.maxDisc||0,'number')}${fld('f_min','Minimal belanja Rp',p.minBuy||0,'number')}
  ${fld('f_s','Mulai tanggal',p.start,'date')}${fld('f_e','Berakhir tanggal',p.end,'date')}${fld('f_q','Kuota pemakaian (0 = tanpa batas)',p.quota||0,'number')}</div>
  ${id?`<div class="mut" style="margin:8px 0">Sudah dipakai: <b>${vUsed(p.code)}</b> kali</div>`:''}
+ ${exBox(p)}
  <div class="mut" style="font-size:12.5px;margin:6px 0 10px">Satu voucher untuk satu transaksi, dan dipotong dari belanja setelah promo otomatis. Kuota dihitung dari nota semua kasir yang sudah tersinkron.</div>
  ${chk('f_act','Aktifkan voucher ini',p.active)}
- <div class="acts2"><button class="btn pri" onclick="saveVoucher('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delPromo('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
+ <div class="acts2"><button class="btn pri" onclick="saveVoucher('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delPromo('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);promoExList();
 }
 function saveVoucher(id,btn){
  const code=v('f_code').trim().toUpperCase().replace(/\s+/g,''),val=+v('f_val'),type=v('f_type'),s=v('f_s'),e=v('f_e');
@@ -2628,7 +2665,7 @@ function saveVoucher(id,btn){
  if(D.promos.some(x=>x.kind==='voucher'&&x.id!==id&&String(x.code).toUpperCase()===code)){alert('Kode voucher sudah dipakai voucher lain');return}
  if(!(val>0)||(type==='percent'&&val>100)){alert('Nilai potongan tidak valid');return}
  if(s&&e&&e<s){alert('Tanggal berakhir harus setelah tanggal mulai');return}
- safe(()=>push('promo',{id:id||'vc'+Date.now().toString(36),kind:'voucher',code,name:v('f_name').trim()||code,type,value:val,maxDisc:+v('f_max')||0,minBuy:+v('f_min')||0,start:s,end:e,quota:Math.max(0,Math.floor(+v('f_q')||0)),scope:'all',active:ck('f_act')}),btn);
+ safe(()=>push('promo',{id:id||'vc'+Date.now().toString(36),kind:'voucher',code,name:v('f_name').trim()||code,type,value:val,maxDisc:+v('f_max')||0,minBuy:+v('f_min')||0,start:s,end:e,quota:Math.max(0,Math.floor(+v('f_q')||0)),scope:'all',...exOut(),active:ck('f_act')}),btn);
 }
 function loyaltyForm(){
  const p=D.promos.find(x=>x.kind==='loyalty')||{active:true,earnPer:10000,pointValue:100,minRedeem:10,maxPct:50};
