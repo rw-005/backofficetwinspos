@@ -27,6 +27,7 @@ svg{flex-shrink:0;vertical-align:middle}
 .btn:disabled{opacity:.6;cursor:wait}
 .mut{color:var(--mut)}
 .logo{font-weight:800;letter-spacing:.2em;font-size:19px}.logo span{font-weight:300;margin-left:.3em}
+@media(max-width:900px){.tbbrand{display:none}}
 .shell{display:flex;min-height:100vh}
 .side{width:256px;flex-shrink:0;background:var(--side);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;z-index:60}
 .side .brand{padding:22px 22px 12px}.side .brand small{display:block;opacity:.65;font-size:12px;margin-top:2px;letter-spacing:.04em}
@@ -3973,11 +3974,11 @@ function repPrint(){
  <p style="margin-top:20px"><button onclick="print()">Cetak / Simpan PDF</button></p>`);
  w.document.close();w.focus();setTimeout(()=>w.print(),400);
 }
-const NOPDF=['mstaf','mkeamanan','moutlet','mbayar','mpromo','mkat','monline','mpaket'];
+const NOPDF=['home','mstaf','mkeamanan','moutlet','mbayar','mpromo','mkat','monline','mpaket'];
 (function(){
  const _r=render;render=function(){_r.apply(this,arguments);try{
   const dataPg=NOPDF.includes(tab)||NAV_ALL.some(g=>g[2].some(x=>x[0]===tab&&(x[3]==='D'||x[3]==='P')));
-  if(D&&dataPg){const tb0=document.querySelector('.tb');if(tb0&&!tb0.querySelector('.tbbrand')){const g=document.createElement('div');g.className='logo tbbrand';g.style.cssText='margin-left:auto;margin-right:12px;font-size:16px;white-space:nowrap;color:var(--pri)';g.innerHTML='TWINS<span>POS</span>';const r0=tb0.querySelector('.r');if(r0)tb0.insertBefore(g,r0);else tb0.appendChild(g)}}
+  if(D){const tb0=document.querySelector('.tb');if(tb0&&!tb0.querySelector('.tbbrand')){const g=document.createElement('div');g.className='logo tbbrand';g.style.cssText='margin-left:auto;margin-right:12px;font-size:16px;white-space:nowrap;color:var(--pri)';g.innerHTML='TWINS<span>POS</span>';const r0=tb0.querySelector('.r');if(r0)tb0.insertBefore(g,r0);else tb0.appendChild(g)}}
   if(OWNER||!D||dataPg)return;const tb=document.querySelector('.tb');if(!tb||tb.querySelector('.pdfb'))return;
   const b=document.createElement('button');b.className='btn pdfb';b.style.cssText='margin-left:12px;margin-right:4px;white-space:nowrap';b.title='Simpan halaman ini sebagai PDF';b.innerHTML=ic('dl',16)+' PDF';b.setAttribute('onclick','repPrint()');
   const r=tb.querySelector('.r');if(r&&r.nextSibling)tb.insertBefore(b,r.nextSibling);else if(r)tb.appendChild(b);else tb.appendChild(b);
