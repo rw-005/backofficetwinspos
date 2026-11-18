@@ -1228,10 +1228,14 @@ function dtRender(){
   t.innerHTML=l.length?`<table><tr><th>Nota</th><th>Waktu</th><th>Kasir</th><th>Produk</th><th>Kategori</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Subtotal</th><th class="r">Laba</th></tr>${l.slice(0,300).map(r=>`<tr class="cl" onclick="txDetail('${r.t.id}')"><td><b>${esc(r.t.no)}</b></td><td>${fmtT(r.t.ts)}</td><td>${esc(r.t.cashier)}</td><td>${esc(r.i.name)}${r.i.refQty?' <span class="badge k">refund '+fq(r.i.refQty)+'</span>':''}</td><td>${esc(r.i.cat||'')}</td><td class="r">${fq(r.i.qty)} ${esc(r.i.unit)}</td><td class="r">${rp(r.i.price)}</td><td class="r"><b>${rp(r.i.qty*r.i.price)}</b></td><td class="r">${rp(r.i.qty*(r.i.price-(r.i.cogs||0)))}</td></tr>`).join('')}</table>`:'<div class="empty">Tidak ada item</div>';
  }
 }
+/* Kode/SKU untuk laporan: cocokkan lewat id produk, lalu nama (varian "Nama (Varian)" dicocokkan ke nama dasar) */
+let _SK=null,_SKn=-1;
+function skuMap(){const P=D.products||[];if(!_SK||_SKn!==P.length){_SK={id:{},nm:{}};P.forEach(p=>{const k=p.sku||p.barcode||'';if(!k)return;_SK.id[p.id]=k;_SK.nm[String(p.name).trim().toLowerCase()]=k});_SKn=P.length}return _SK}
+function skuOf(pid,name){const m=skuMap(),n=String(name||'').trim().toLowerCase();return m.id[pid]||m.nm[n]||m.nm[n.replace(/\s*\([^)]*\)\s*$/,'')]||''}
 function exportDetail(){
  const f=dtFilter();
  if(f.nota)csv('Detail-Penjualan-Nota',[['No Nota','Tanggal','Kasir','Tipe','Meja','Pelanggan','Subtotal','Diskon Promo','Diskon Manual','Service','Pajak','Pembulatan','Total','Pembayaran','Status','Total Refund'],...f.nota.map(t=>[t.no,fmtDT(t.ts),t.cashier,typeLabel(t.type,t.channel),t.table||'',t.custName||'',(t.subtotal||0)+(t.custDisc||0),(t.custDisc||0)+(t.autoDisc||0)+(t.voucherDisc||0)+(t.ptDisc||0),t.manualDisc,t.service,t.tax,t.rounding,t.total,t.payments.map(p=>(METHODS[p.m]||p.m)+' '+p.ap).join(' + '),stTxt(t),t.refunded||0])]);
- else csv('Detail-Penjualan-Item',[['No Nota','Tanggal','Kasir','Produk','Kategori','Satuan','Qty','Qty Refund','Harga','Subtotal','HPP/unit','Laba'],...f.rows.map(r=>[r.t.no,fmtDT(r.t.ts),r.t.cashier,r.i.name,r.i.cat||'',r.i.unit,r.i.qty,r.i.refQty||0,r.i.price,r.i.qty*r.i.price,r.i.cogs||0,r.i.qty*(r.i.price-(r.i.cogs||0))])]);
+ else csv('Detail-Penjualan-Item',[['No Nota','Tanggal','Kasir','Produk','Kode','Kategori','Satuan','Qty','Qty Refund','Harga','Subtotal','HPP/unit','Laba'],...f.rows.map(r=>[r.t.no,fmtDT(r.t.ts),r.t.cashier,r.i.name,skuOf(r.i.pid,r.i.name),r.i.cat||'',r.i.unit,r.i.qty,r.i.refQty||0,r.i.price,r.i.qty*r.i.price,r.i.cogs||0,r.i.qty*(r.i.price-(r.i.cogs||0))])]);
 }
 function txDetail(id){
  const t=D.tx.find(x=>x.id===id);if(!t)return;
@@ -1264,7 +1268,7 @@ function ppRender(){
  c.textContent=l.length+' produk · penjualan '+rp(sum(l,x=>x.rev))+' · laba kotor '+rp(sum(l,x=>x.profit))+' · klik baris untuk rincian per kasir';
  t.innerHTML=l.length?`<table><tr><th>#</th>${th('n','Produk')}${th('cat','Kategori')}${th('q','Terjual',1)}${th('rev','Penjualan',1)}${th('cogs','HPP',1)}${th('profit','Laba kotor',1)}${th('m','Margin',1)}${th('share','Porsi',1)}</tr>${l.map((x,i)=>`<tr class="cl" data-n="${esc(x.n)}" onclick="prodDetail(this.dataset.n)"><td>${i+1}</td><td><b>${esc(x.n)}</b></td><td>${esc(x.cat)}</td><td class="r">${fq(x.q)} ${esc(x.unit)}</td><td class="r"><b>${rp(x.rev)}</b></td><td class="r">${rp(x.cogs)}</td><td class="r">${rp(x.profit)}</td><td class="r" style="color:var(--${x.m<=0?'bad':x.m<10?'warn':'ok'})">${pct(x.m)}</td><td class="r">${pct(x.share)}</td></tr>`).join('')}<tr class="ft"><td colspan="3">Total</td><td class="r"></td><td class="r">${rp(sum(l,x=>x.rev))}</td><td class="r">${rp(sum(l,x=>x.cogs))}</td><td class="r">${rp(sum(l,x=>x.profit))}</td><td class="r">${pct(sum(l,x=>x.rev)?sum(l,x=>x.profit)/sum(l,x=>x.rev)*100:0)}</td><td></td></tr></table>`:noData;
 }
-function exportProduk(){const l=ppList();csv('Penjualan-per-Produk',[['Produk','Kategori','Satuan','Qty Terjual','Penjualan','HPP','Laba Kotor','Margin %','Porsi %'],...l.map(x=>[x.n,x.cat,x.unit,+x.q.toFixed(3),Math.round(x.rev),Math.round(x.cogs),Math.round(x.profit),+x.m.toFixed(1),+x.share.toFixed(1)])])}
+function exportProduk(){const l=ppList();csv('Penjualan-per-Produk',[['Produk','Kode','Kategori','Satuan','Qty Terjual','Penjualan','HPP','Laba Kotor','Margin %','Porsi %'],...l.map(x=>[x.n,skuOf(null,x.n),x.cat,x.unit,+x.q.toFixed(3),Math.round(x.rev),Math.round(x.cogs),Math.round(x.profit),+x.m.toFixed(1),+x.share.toFixed(1)])])}
 function prodDetail(n){
  const rows=Object.entries(CUR.kprod).map(([k,m])=>[k,m[n]]).filter(x=>x[1]).sort((a,b)=>b[1].rev-a[1].rev),o=CUR.prod[n];if(!o)return;
  dlg(`<h3>${esc(n)}</h3><div class="mut" style="margin-bottom:10px">${esc(o.cat)} · ${esc(perLabel())}</div><div class="kg" style="margin-bottom:10px"><div class="kc"><small>Terjual</small><b>${fq(o.q)} ${esc(o.unit)}</b></div><div class="kc"><small>Penjualan</small><b>${rp(o.rev)}</b></div><div class="kc"><small>Laba kotor</small><b>${rp(o.profit)}</b></div></div>
@@ -2857,8 +2861,13 @@ function psView(id){
 }
 function psCsv(){csv('Pesanan-DP',[['No','Pelanggan','WA','Dibuat','Ambil','Total','DP','Sisa','Status','Nota'],...psRows().map(q=>[q.no,q.name,q.wa||'',fmtDT(q.ts),q.pickup||'',q.total,psDpB(q),q.status==='open'?Math.max(0,q.total-psDpB(q)):0,(PSB[q.status]||['-'])[0],q.txNo||''])])}
 function vMKeamanan(){
- return`<div class="card"><h4>Keamanan Sesi</h4><p>Keluar otomatis bila back office tidak dipakai (berlaku untuk perangkat ini)</p><div class="tool"><select onchange="setIdle(this.value)">${[[15,'15 menit'],[30,'30 menit'],[60,'1 jam'],[120,'2 jam'],[0,'Nonaktif']].map(([v,l])=>`<option value="${v}" ${idleMin()===v?'selected':''}>${l}</option>`).join('')}</select><span class="mut" id="idle_ok"></span></div></div>`;
+ return`<div class="card"><h4>Keamanan Sesi</h4><p>Keluar otomatis bila back office tidak dipakai (berlaku untuk perangkat ini)</p><div class="tool"><select onchange="setIdle(this.value)">${[[15,'15 menit'],[30,'30 menit'],[60,'1 jam'],[120,'2 jam'],[0,'Nonaktif']].map(([v,l])=>`<option value="${v}" ${idleMin()===v?'selected':''}>${l}</option>`).join('')}</select><span class="mut" id="idle_ok"></span></div></div>
+  <div class="card" style="margin-top:16px"><h4>Order Tersimpan</h4><p>Atur apakah order yang sudah disimpan (open bill) boleh dihapus langsung oleh kasir. Berlaku di semua kasir setelah sinkronisasi.</p>
+  ${chk('o_vf','Order tersimpan harus di-void dulu (tombol Hapus di kasir diganti Void)',!!(D.outlet||{}).voidFirst)}
+  <div class="hint">Saat Void, kasir wajib mengisi alasan dan meminta persetujuan PIN Supervisor / Owner (Supervisor dan Owner tidak perlu PIN). Setiap void dicatat di kasir.</div>
+  <button class="btn pri" style="margin-top:12px" onclick="saveVoidFirst(this)">Simpan</button></div>`;
 }
+function saveVoidFirst(btn){safe(()=>push('outlet',{...(D.outlet||{}),voidFirst:ck('o_vf'),vts:Date.now()}),btn)}
 function vRekening(){
  const l=BANKS(),mp=CMAP();
  const mrow=k=>`<tr><td>${mLabel(k)}</td><td>${/^ch_/.test(k)?(CMAP()[k]&&BANKS().some(x=>x.id===CMAP()[k])?esc(accName(CMAP()[k])):'<span class="mut">Ikut metode bayarnya</span>'):esc(accName(accOf(k)))}</td></tr>`;
