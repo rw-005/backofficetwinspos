@@ -978,11 +978,11 @@ function dnLegend(segs,fmt){
  return segs.map(x=>`<div class="dn-r"><i style="background:${x.c}"></i><span>${esc(x.l)}</span><b>${fmt?fmt(x):rp(x.v)}</b><small>${tot>0?Math.round(x.v/tot*100)+'%':''}</small></div>`).join('');
 }
 function ringLaba(){
- const y=new Date().getFullYear(),a=new Date(y,0,1).getTime(),b=new Date(y+1,0,1).getTime(),d=agg(a,b),lb=d.net-d.cogs-d.fees-d.opex;
+ const R=range(),d=agg(R[0],R[1]),lb=d.net-d.cogs-d.fees-d.opex;
  const segs=[{l:'HPP (modal barang)',v:d.cogs,c:'var(--warn)'},{l:'Biaya layanan & platform',v:d.fees,c:'var(--pri)'},{l:'Biaya operasional',v:d.opex,c:'var(--bad)'}];
  if(lb>0)segs.push({l:'Laba bersih',v:lb,c:'var(--ok)'});
  const has=d.net>0||d.cogs>0||d.opex>0;
- return`<div class="card"><h4>Laba Rugi Tahun ${y}</h4><p>Dari tiap rupiah penjualan bersih, ke mana perginya</p>${has?`<div class="dn">${donut(segs,lb>=0?cfmt(lb):'-'+cfmt(-lb),lb>=0?'Laba bersih':'Rugi')}<div class="dn-l">${dnLegend(segs)}<div class="dn-n">Penjualan bersih ${rp(d.net)} · ${d.net>0?(lb>=0?'margin laba ':'margin ')+Math.round(lb/d.net*100)+'%':'belum ada penjualan'}${lb<0?'<br><b style="color:var(--bad)">Biaya lebih besar dari penjualan: rugi '+rp(-lb)+'</b>':''}</div></div></div>`:noData}</div>`;
+  return`<div class="card"><h4>Laba Rugi · ${esc(perLabel())}</h4><p>Dari tiap rupiah penjualan bersih, ke mana perginya</p>${has?`<div class="dn">${donut(segs,lb>=0?cfmt(lb):'-'+cfmt(-lb),lb>=0?'Laba bersih':'Rugi')}<div class="dn-l">${dnLegend(segs)}<div class="dn-n">Penjualan bersih ${rp(d.net)} · ${d.net>0?(lb>=0?'margin laba ':'margin ')+Math.round(lb/d.net*100)+'%':'belum ada penjualan'}${lb<0?'<br><b style="color:var(--bad)">Biaya lebih besar dari penjualan: rugi '+rp(-lb)+'</b>':''}</div></div></div>`:noData}</div>`;
 }
 function ringFaktur(judul,sub,list,left,ket,goto){
  const y=new Date().getFullYear(),a=new Date(y,0,1).getTime(),b=new Date(y+1,0,1).getTime(),L=list.filter(f=>f.ts>=a&&f.ts<b);
