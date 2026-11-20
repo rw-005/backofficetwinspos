@@ -141,6 +141,8 @@ tr.ft td{font-weight:800;border-top:2px solid var(--bd);background:var(--soft)}
 .rs-h.g{background:rgba(18,161,80,.13)}.rs-h.y{background:rgba(217,138,6,.15)}.rs-h.b{background:rgba(36,87,245,.12)}.rs-h.p{background:rgba(124,58,237,.13)}
 .rs-r{display:flex;justify-content:space-between;gap:12px;padding:13px 14px;border-top:1px solid var(--bd);font-size:14px}
 .rs-r span:last-child{text-align:right;white-space:nowrap}
+.opsub{display:none}.opsub.on{display:block}.opar{display:inline-block;width:14px;color:var(--pri)}
+@media print{.opsub{display:block!important}}
 .rs-r.tot{font-weight:800}
 .rs-k .kc{border-bottom-width:4px}
 .kc.k1{border-bottom-color:#00c897}.kc.k2{border-bottom-color:#f5c518}.kc.k3{border-bottom-color:#0b84e5}.kc.k4{border-bottom-color:#6cb8f5}.kc.k5{border-bottom-color:#7c3aed}.kc.k6{border-bottom-color:#12a150}
@@ -1094,7 +1096,7 @@ function vRsum(d){
  <div class="rs-s">${H('Penjualan Bersih','b')}${R('Total Penjualan',d.gross,0,'gross')}${R('Pengembalian',d.refAmt,1,'ref')}${T('TOTAL PENJUALAN BERSIH',d.omzet,0,'omzet')}</div>
  <div class="rs-s">${H('Laba Kotor','p')}${R('Total Penjualan Bersih',d.omzet,0,'omzet')}${N('Pajak, service dan pembulatan (bukan laba)',lain,'lain')}${R('Penjualan setelah diskon',d.net,0,'net')}${R('HPP (harga pokok penjualan)',d.cogs,1,'cogs')}${T('TOTAL LABA KOTOR',lk,0,'lk')}${R('Margin laba kotor',0).replace(rp(0),pct(d.net?lk/d.net*100:0))}</div>
  <div class="rs-s">${H('Biaya Layanan &amp; Platform','y')}${R('MDR Metode Bayar',d.fMdr,1,'fMdr')}${R('Biaya Layanan / Komisi Platform',d.fSvc,1,'fSvc')}${R('Biaya Administrasi Platform',d.fAdm,1,'fAdm')}${R('Ongkir Ditanggung Toko',d.fShip,1,'fShip')}${T('TOTAL BIAYA LAYANAN &amp; PLATFORM',d.fees,1,'fees')}</div>
- <div class="rs-s">${H('Biaya Operasional','o')}${oc.map(([k,v])=>{const sb=Object.entries((d.cbysub||{})[k]||{}).sort((a,b)=>b[1]-a[1]),rest=v-sum(sb,x=>x[1]);return opR(esc(k),v,k,null)+sb.map(([n,x])=>opR('&nbsp;&nbsp;&nbsp;› '+esc(n),x,k,n)).join('')+(sb.length&&rest>0?opR('&nbsp;&nbsp;&nbsp;› (tanpa item)',rest,k,''):'')}).join('')}${d.gaji?R('Gaji Karyawan',d.gaji,1,'gaji'):''}${d.komisi?R('Komisi Karyawan',d.komisi,1,'komisi'):''}${d.opex?'':'<div class="rs-r"><span class="mut">Belum ada pengeluaran pada periode ini</span><span></span></div>'}${T('TOTAL BIAYA OPERASIONAL',d.opex,1,'opex')}</div>
+ <div class="rs-s">${H('Biaya Operasional','o')}${oc.map(([k,v])=>{const sb=Object.entries((d.cbysub||{})[k]||{}).sort((a,b)=>b[1]-a[1]),rest=v-sum(sb,x=>x[1]);if(!sb.length)return opR(esc(k),v,k,null);const subs=sb.map(([n,x])=>opR('&nbsp;&nbsp;&nbsp;› '+esc(n),x,k,n)).join('')+(rest>0?opR('&nbsp;&nbsp;&nbsp;› (tanpa item)',rest,k,''):'');return opG(esc(k),v,k,sb.length+(rest>0?1:0))+'<div class="opsub">'+subs+'</div>'}).join('')}${d.gaji?R('Gaji Karyawan',d.gaji,1,'gaji'):''}${d.komisi?R('Komisi Karyawan',d.komisi,1,'komisi'):''}${d.opex?'':'<div class="rs-r"><span class="mut">Belum ada pengeluaran pada periode ini</span><span></span></div>'}${T('TOTAL BIAYA OPERASIONAL',d.opex,1,'opex')}</div>
  ${d.cin?`<div class="rs-s">${H('Uang Masuk Lain (bukan laba)','y')}${Object.entries(d.cincat).map(([k,v])=>R(esc(k),v,0,'cin:'+k)).join('')}${T('TOTAL UANG MASUK LAIN',d.cin,0,'cin')}</div>`:''}
  ${d.nonop?`<div class="rs-s">${H('Pengeluaran Non-Operasional (tidak mengurangi laba)','o')}${Object.entries(d.nonopcat).map(([k,v])=>R(esc(k),v,1,'nop:'+k)).join('')}${T('TOTAL NON-OPERASIONAL',d.nonop,1,'nop')}</div>`:''}
  <div class="rs-s">${H('Laba Bersih','g')}${R('Total Laba Kotor',lk,0,'lk')}${R('Total Biaya Layanan &amp; Platform',d.fees,1,'fees')}${R('Total Biaya Operasional',d.opex,1,'opex')}${T('TOTAL LABA BERSIH',lb)}${R('Margin laba bersih',0).replace(rp(0),pct(d.net?lb/d.net*100:0))}</div>
@@ -1791,6 +1793,8 @@ function vCash(d){
 }
 
 /* ---------- Telusur biaya operasional (seperti buku besar) ---------- */
+function opG(l,v,cat,n){return`<div class="rs-r" style="cursor:pointer" onclick="opTog(this)" title="Klik untuk membuka atau menutup rincian"><span><b class="opar">▸</b> ${l} <small class="mut">(${n} item)</small> <a class="mut" style="margin-left:8px;text-decoration:underline" onclick="event.stopPropagation();opDrill(${esc(JSON.stringify(cat)).replace(/"/g,'&quot;')},null)">riwayat ›</a></span><span>( ${rp(v)} )</span></div>`}
+function opTog(el){const b=el.nextElementSibling;if(!b)return;const on=b.classList.toggle('on');const a=el.querySelector('.opar');if(a)a.textContent=on?'▾':'▸'}
 function opR(l,v,cat,sub){return`<div class="rs-r" style="cursor:pointer" onclick="opDrill(${esc(JSON.stringify(cat)).replace(/"/g,'&quot;')},${sub===null?'null':esc(JSON.stringify(sub)).replace(/"/g,'&quot;')})" title="Klik untuk melihat riwayatnya"><span>${l} <small class="mut">›</small></span><span>( ${rp(v)} )</span></div>`}
 function opList(cat,sub){
  const[a,b]=range(),d=agg(a,b);
