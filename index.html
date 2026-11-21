@@ -2369,7 +2369,7 @@ function psDelRun(btn){
  const ids=Object.keys(PSEL).filter(id=>D.products.some(p=>p.id===id));
  if(ids.length>1&&v('ps_t').trim()!=='HAPUS'){alert('Ketik HAPUS dengan huruf besar.');return}
  safe(async()=>{
-  try{await pushPost('product_del_bulk',{ids})}
+  try{for(let i=0;i<ids.length;i+=1000){btn.textContent='Menghapus '+Math.min(i+1000,ids.length)+' dari '+ids.length+'…';await pushPost('product_del_bulk',{ids:ids.slice(i,i+1000)})}}
   catch(e){
    if(!/tidak dikenal|tidak lengkap/i.test(e.message))throw e;   // Code.gs lama: hapus satu per satu
    for(let i=0;i<ids.length;i++){btn.textContent='Menghapus '+(i+1)+' dari '+ids.length+'…';await pushPost('product_del',{id:ids[i]})}
