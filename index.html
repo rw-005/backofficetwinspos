@@ -2563,7 +2563,8 @@ function slRows(){
 function exportStok(){csv('Riwayat-Stok',[['Waktu','Produk','Jenis','Jumlah','Sebelum','Sesudah','Harga Beli','HPP Sebelum','HPP Sesudah','Catatan','Oleh'],...slList().map(x=>[fmtDT(x.ts),x.name||nameOf(x.id),x.type,x.delta!=null?x.delta:x.qty,x.before==null?'':x.before,x.after==null?'':x.after,x.buyPrice||'',x.hppBefore==null?'':x.hppBefore,x.hppAfter==null?'':x.hppAfter,x.note||'',x.by||''])])}
 
 /* ---------- Promo ---------- */
-const promoTxt=p=>(p.type==='percent'?fq(p.value)+'%':rp(p.value))+(p.maxDisc?' (maks '+rp(p.maxDisc)+')':'');
+const giftTxt=p=>(p.giftItems||[]).map(g=>fq(g.qty)+'× '+esc(nameOf(g.pid))).join(', ')||'-';
+const promoTxt=p=>p.type==='gift'?'Beli '+fq(+p.buyQty||1)+' → bonus '+giftTxt(p)+(p.repeat===false?'':' <span class="mut">(kelipatan)</span>'):p.type==='giftspend'?'Bonus '+giftTxt(p)+(p.repeat===false?'':' <span class="mut">(tiap kelipatan)</span>'):p.type==='bogo'?'Beli '+(+p.buyQty||1)+' Gratis '+(+p.freeQty||1):(p.type==='percent'?fq(p.value)+'%':rp(p.value))+(p.maxDisc?' (maks '+rp(p.maxDisc)+')':'');
 const DN=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 const isAuto=p=>(p.kind||'auto')==='auto';
 function promoState(p){
@@ -2619,8 +2620,8 @@ function vMPromo(){
  const cn=id=>{const c=(D.customers||[]).find(x=>x.id===id);return c?c.name:'(pelanggan dihapus)'};
  return`<div class="note">Semua pengaturan di halaman ini disimpan ke server dan otomatis ikut ke kasir saat kasir menyinkronkan data (otomatis tiap 30 detik bila ada internet).</div>
  <div class="kg"><div class="kc"><small>Promo berlaku</small><b style="color:var(--ok)">${on}</b><small>dari ${au.length} promo</small></div><div class="kc"><small>Voucher berlaku</small><b style="color:var(--ok)">${von}</b><small>dari ${vc.length} voucher</small></div><div class="kc"><small>Poin beredar</small><b>${fq(tot)}</b><small>${lo?'≈ '+rp(tot*(+lo.pointValue||0)):'Poin belum diaktifkan'}</small></div></div>
- <div class="card"><h4>Promo Otomatis</h4><div class="tool"><span class="mut">Per produk, per kategori, atau per total belanja. Dipakai otomatis di kasir sesuai jadwal.</span><button class="btn pri" style="margin-left:auto" onclick="promoForm()">${ic('plus',16)} Tambah Promo</button></div>
- <div class="tw">${au.length?`<table><tr><th>Promo</th><th>Berlaku untuk</th><th>Potongan</th><th class="r">Min. belanja</th><th>Jadwal</th><th>Status</th><th></th></tr>${au.map(p=>{const s=promoState(p);return`<tr><td><b>${esc(p.name)}</b></td><td>${scopeTxt(p)}</td><td>${promoTxt(p)}</td><td class="r">${rp(p.minBuy||0)}</td><td>${promoSched(p)}</td><td><span class="badge ${s[1]}">${s[0]}</span></td><td style="text-align:right"><button class="btn sm" onclick="promoForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada promo. Tekan “Tambah Promo”.</div>'}</div></div>
+ <div class="card"><h4>Promo</h4><div class="tool"><span class="mut">Potongan harga, Beli X Gratis Y, atau produk bonus. Tiap promo bisa Otomatis (langsung dipakai kasir) atau Manual (kasir memilih saat pembayaran). Beberapa promo boleh aktif bersamaan.</span><button class="btn pri" style="margin-left:auto" onclick="promoForm()">${ic('plus',16)} Tambah Promo</button></div>
+ <div class="tw">${au.length?`<table><tr><th>Promo</th><th>Berlaku untuk</th><th>Potongan</th><th class="r">Min. belanja</th><th>Jadwal</th><th>Status</th><th></th></tr>${au.map(p=>{const s=promoState(p);return`<tr><td><b>${esc(p.name)}</b> <span class="badge ${p.mode==='manual'?'k':'g'}">${p.mode==='manual'?'Manual':'Otomatis'}</span></td><td>${scopeTxt(p)}</td><td>${promoTxt(p)}</td><td class="r">${rp(p.minBuy||0)}</td><td>${promoSched(p)}</td><td><span class="badge ${s[1]}">${s[0]}</span></td><td style="text-align:right"><button class="btn sm" onclick="promoForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada promo. Tekan “Tambah Promo”.</div>'}</div></div>
  <div class="card"><h4>Voucher</h4><div class="tool"><span class="mut">Kasir memasukkan kode voucher saat transaksi. Pemakaian dihitung dari nota.</span><button class="btn pri" style="margin-left:auto" onclick="voucherForm()">${ic('plus',16)} Tambah Voucher</button></div>
  <div class="tw">${vc.length?`<table><tr><th>Kode</th><th>Keterangan</th><th>Potongan</th><th class="r">Min. belanja</th><th>Periode</th><th class="r">Terpakai</th><th>Status</th><th></th></tr>${vc.map(p=>{const s=promoState(p),u=vUsed(p.code),full=+p.quota>0&&u>=+p.quota;return`<tr><td><b>${esc(p.code)}</b></td><td>${esc(p.name||'')}${exN(p)?` <span class="mut">· kecuali ${exN(p)}</span>`:''}</td><td>${promoTxt(p)}</td><td class="r">${rp(p.minBuy||0)}</td><td>${promoSched(p)}</td><td class="r">${u}${+p.quota>0?' / '+p.quota:''}</td><td><span class="badge ${full?'v':s[1]}">${full?'Habis':s[0]}</span></td><td style="text-align:right"><button class="btn sm" onclick="voucherForm('${p.id}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada voucher. Tekan “Tambah Voucher”.</div>'}</div></div>
  <div class="card"><h4>Poin Pelanggan</h4><div class="tool"><span class="mut">${lo&&lo.active?'Aktif: setiap belanja '+rp(lo.earnPer)+' dapat 1 poin · 1 poin = '+rp(lo.pointValue)+(+lo.minRedeem?' · minimal tukar '+lo.minRedeem+' poin':'')+(+lo.maxPct&&+lo.maxPct<100?' · maks '+lo.maxPct+'% dari belanja':''):'Belum diaktifkan.'}</span><button class="btn pri" style="margin-left:auto" onclick="loyaltyForm()">Atur Poin</button></div>
@@ -2628,27 +2629,44 @@ function vMPromo(){
 }
 function promoForm(id){
  const p=D.promos.find(x=>x.id===id)||{type:'percent',scope:'all',active:true},cats=[...new Set(D.products.map(x=>x.cat).filter(Boolean))].sort(),days=(p.days&&p.days.length)?p.days:[0,1,2,3,4,5,6];
- dlg(`<h3>${id?'Ubah':'Tambah'} Promo Otomatis</h3>${fld('f_name','Nama promo',p.name,'text','mis. Happy Hour Sore')}
+ dlg(`<h3>${id?'Ubah':'Tambah'} Promo</h3>${fld('f_name','Nama promo',p.name,'text','mis. Happy Hour Sore')}
+ <label>Cara dipakai</label><select id="f_mode"><option value="auto" ${p.mode!=='manual'?'selected':''}>Otomatis (langsung dipakai kasir bila syarat terpenuhi)</option><option value="manual" ${p.mode==='manual'?'selected':''}>Manual (kasir memilih promo ini saat pembayaran)</option></select>
  <label>Berlaku untuk</label><select id="f_scope" onchange="promoScope()"><option value="all" ${p.scope==='all'||!p.scope?'selected':''}>Total belanja (seluruh keranjang)</option><option value="cat" ${p.scope==='cat'?'selected':''}>Per kategori</option><option value="product" ${p.scope==='product'?'selected':''}>Per produk</option></select>
  <div id="f_sc"></div>
  ${exBox(p)}
- <div class="g2"><div><label>Jenis potongan</label><select id="f_type"><option value="percent" ${p.type==='percent'?'selected':''}>Persen (%)</option><option value="nominal" ${p.type==='nominal'?'selected':''}>Nominal (Rp)</option></select></div>${fld('f_val','Nilai potongan',p.value,'number')}
+ ${giBox(p)}
+ <div class="g2"><div><label>Jenis promo</label><select id="f_type" onchange="promoScope()"><option value="percent" ${p.type==='percent'?'selected':''}>Persen (%)</option><option value="nominal" ${p.type==='nominal'?'selected':''}>Nominal (Rp)</option><option value="bogo" ${p.type==='bogo'?'selected':''}>Beli X Gratis Y (hadiah produk yang sama)</option><option value="gift" ${p.type==='gift'?'selected':''}>Beli produk → dapat produk bonus</option><option value="giftspend" ${p.type==='giftspend'?'selected':''}>Belanja sekian → dapat produk bonus</option></select></div><div id="f_valw">${fld('f_val','Nilai potongan',p.value,'number')}</div>
+ <div id="f_buyw" style="display:none">${fld('f_buy','Beli (jumlah)',p.buyQty||1,'number')}</div><div id="f_freew" style="display:none">${fld('f_free','Gratis (jumlah)',p.freeQty||1,'number')}</div><div id="f_repw" style="display:none;align-self:end">${chk('f_rep','Berlaku kelipatan',p.repeat!==false)}</div>
  ${fld('f_max','Maks. potongan Rp (0 = tanpa batas)',p.maxDisc||0,'number')}${fld('f_min','Minimal belanja Rp',p.minBuy||0,'number')}
  ${fld('f_s','Mulai tanggal',p.start,'date')}${fld('f_e','Berakhir tanggal',p.end,'date')}${fld('f_ts','Jam mulai (kosongkan = seharian)',p.tStart,'time')}${fld('f_te','Jam berakhir',p.tEnd,'time')}</div>
  <label>Hari berlaku</label><div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:6px">${DN.map((n,i)=>chk('f_d'+i,n,days.includes(i))).join('')}</div>
- <div class="mut" style="font-size:12.5px;margin:6px 0 10px">Nominal per produk/kategori dihitung per item (dikali jumlah). Per produk bisa memilih beberapa produk sekaligus. Nominal per total belanja dipotong sekali per transaksi. Kalau ada beberapa promo total belanja (misalnya bertingkat 100rb dan 200rb), kasir memakai yang paling besar saja.</div>
+ <div class="mut" style="font-size:12.5px;margin:6px 0 10px">Nominal per produk/kategori dihitung per item (dikali jumlah). Per produk bisa memilih beberapa produk sekaligus. Nominal per total belanja dipotong sekali per transaksi. Kalau ada beberapa promo total belanja (misalnya bertingkat 100rb dan 200rb), kasir memakai yang paling besar saja. Produk bonus: pilih produk hadiah beserta jumlahnya. “Beli produk → bonus”: beli jumlah tertentu dari produk/kategori yang dipilih. “Belanja sekian → bonus”: isi Minimal belanja (sebelum diskon). Bila “kelipatan” aktif, belanja 2× kelipatan dapat bonus 2×. Untuk bonus bertingkat (misalnya 100rb dapat 2 produk, 200rb dapat 5 produk) buat beberapa promo, dan matikan kelipatan bila perlu. Stok produk bonus berkurang dan HPP-nya tercatat. Beli X Gratis Y: contoh Beli 1 Gratis 1 berarti beli 2 bayar 1, beli 4 bayar 2. Berlaku per produk (untuk kategori, tiap produk dihitung sendiri) dan barang gratis dicatat sebagai potongan promo.</div>
  ${chk('f_act','Aktifkan promo ini',p.active)}
  <div class="acts2"><button class="btn pri" onclick="savePromo('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delPromo('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
  window._pp=p;window._cats=cats;promoScope();promoExList();
 }
+let GI=[];
+function giBox(p){
+ GI=(p.giftItems||[]).map(g=>({pid:g.pid,qty:+g.qty||1}));
+ return`<div id="f_gw" style="display:none;margin:10px 0"><label>Produk bonus (gratis) <span id="f_gn" class="mut"></span></label>
+ <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><select id="f_gp" style="flex:2;min-width:180px">${D.products.filter(x=>!x.bahan).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select><input id="f_gq" type="number" min="1" value="1" style="width:80px" title="Jumlah"><button class="btn sm" type="button" onclick="giAdd()">Tambah</button></div>
+ <div id="f_gl" style="margin-top:6px"></div></div>`;
+}
+function giAdd(){const id=v('f_gp'),q=Math.max(1,+v('f_gq')||1);if(!id)return;const e=GI.find(x=>x.pid===id);e?e.qty+=q:GI.push({pid:id,qty:q});giList()}
+function giDel(i){GI.splice(i,1);giList()}
+function giList(){const el=$('#f_gl');if(!el)return;el.innerHTML=GI.map((g,i)=>`<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line)"><span style="flex:1">${esc(nameOf(g.pid))}</span><b>${fq(g.qty)}×</b><button class="btn sm del" type="button" onclick="giDel(${i})">Hapus</button></div>`).join('')||'<div class="mut">Belum ada produk bonus</div>';const n=$('#f_gn');if(n)n.textContent=GI.length?'· '+GI.length+' produk':''}
 function promoScope(){
+ const _t=v('f_type'),_bg=_t==='bogo',_gf=_t==='gift',_gs=_t==='giftspend',_g=_gf||_gs,_vw=$('#f_valw'),_bw=$('#f_buyw'),_fw=$('#f_freew'),_rw=$('#f_repw'),_gw=$('#f_gw');
+ if(_vw)_vw.style.display=(_bg||_g)?'none':'';if(_bw)_bw.style.display=(_bg||_gf)?'':'none';if(_fw)_fw.style.display=_bg?'':'none';if(_rw)_rw.style.display=_g?'':'none';if(_gw){_gw.style.display=_g?'':'none';if(_g)giList()}
+ if((_bg||_gf)&&v('f_scope')==='all'&&$('#f_scope'))$('#f_scope').value='product';
+ if(_gs&&$('#f_scope'))$('#f_scope').value='all';
  const s=v('f_scope'),p=window._pp||{},h=$('#f_sc'),xw=$('#f_exw');if(xw)xw.style.display=s==='product'?'none':'';
  h.innerHTML=s==='cat'?`<label>Kategori</label><select id="f_cat">${window._cats.map(c=>`<option ${p.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`:s==='product'?pkBox(p):'';if(s==='product')pkList();
 }
 function savePromo(id,btn){
- const val=+v('f_val'),type=v('f_type'),s=v('f_s'),e=v('f_e'),scope=v('f_scope'),ts=v('f_ts'),te=v('f_te');
+ const type=v('f_type'),val=(type==='bogo'||type==='gift'||type==='giftspend')?0:+v('f_val'),buyQty=Math.floor(+v('f_buy'))||1,freeQty=Math.floor(+v('f_free'))||1,s=v('f_s'),e=v('f_e'),scope=v('f_scope'),ts=v('f_ts'),te=v('f_te');
  if(!v('f_name').trim()){alert('Isi nama promo');return}
- if(!(val>0)||(type==='percent'&&val>100)){alert('Nilai potongan tidak valid');return}
+ if(type==='gift'||type==='giftspend'){if(!GI.length){alert('Pilih minimal satu produk bonus');return}if(type==='gift'&&scope==='all'){alert('Promo beli produk → bonus dipilih per produk atau per kategori');return}if(type==='giftspend'&&!(+v('f_min')>0)){alert('Isi Minimal belanja untuk promo bonus');return}}else if(type==='bogo'){if(scope==='all'){alert('Promo Beli X Gratis Y dipilih per produk atau per kategori');return}}else if(!(val>0)||(type==='percent'&&val>100)){alert('Nilai potongan tidak valid');return}
  if(s&&e&&e<s){alert('Tanggal berakhir harus setelah tanggal mulai');return}
  if(!!ts!==!!te){alert('Isi jam mulai dan jam berakhir sekaligus, atau kosongkan keduanya');return}
  if(scope==='product'&&!PKS.size){alert('Pilih minimal satu produk');return}
@@ -2656,7 +2674,7 @@ function savePromo(id,btn){
  let days=[0,1,2,3,4,5,6].filter(i=>ck('f_d'+i));
  if(!days.length){alert('Pilih minimal satu hari');return}
  if(days.length===7)days=[];
- safe(()=>push('promo',{id:id||'pr'+Date.now().toString(36),kind:'auto',name:v('f_name').trim(),type,value:val,maxDisc:+v('f_max')||0,minBuy:+v('f_min')||0,start:s,end:e,days,tStart:ts,tEnd:te,scope,cat:scope==='cat'?v('f_cat'):'',productId:scope==='product'?[...PKS][0]:'',productIds:scope==='product'?[...PKS]:[],...(scope==='product'?{exProd:[],exCat:[]}:exOut()),active:ck('f_act')}),btn);
+ safe(()=>push('promo',{id:id||'pr'+Date.now().toString(36),kind:'auto',mode:v('f_mode')==='manual'?'manual':'auto',name:v('f_name').trim(),type,value:val,...(type==='bogo'?{buyQty,freeQty}:{}),...(type==='gift'?{buyQty}:{}),...((type==='gift'||type==='giftspend')?{giftItems:GI.map(g=>({pid:g.pid,qty:g.qty})),repeat:ck('f_rep')}:{}),maxDisc:+v('f_max')||0,minBuy:+v('f_min')||0,start:s,end:e,days,tStart:ts,tEnd:te,scope,cat:scope==='cat'?v('f_cat'):'',productId:scope==='product'?[...PKS][0]:'',productIds:scope==='product'?[...PKS]:[],...(scope==='product'?{exProd:[],exCat:[]}:exOut()),active:ck('f_act')}),btn);
 }
 function delPromo(id){if(confirm('Hapus data ini?'))safe(()=>push('promo_del',{id}))}
 function voucherForm(id){
