@@ -508,7 +508,7 @@ const NAV_ALL=[
  ['Karyawan','user',[['karyawan','Data Karyawan','staff','D'],['komisi','Komisi','tag','L'],['lapabsen','Laporan Absensi','clock','L'],['gaji','Penggajian','gaji','T']]],
  ['Pelanggan','users',[['pelanggan','Pelanggan','users','D']]],
  ['Promosi','gift',[['mpromo','Diskon & Promo','tag','P']]],
- ['Pengaturan','gear',[['moutlet','Outlet & Struk','store','P'],['mbayar','Biaya & Metode Bayar','wallet','P'],['mstaf','Akun Kasir','user','P'],['mhak','Hak Akses','user','P'],['mkeamanan','Keamanan','user','P']]]
+ ['Pengaturan','gear',[['moutlet','Outlet & Struk','store','P'],['mbayar','Biaya & Metode Bayar','wallet','P'],['mstaf','Akun Kasir','user','P'],['mhak','Hak Akses','user','P'],['mperkasir','Hak Akses Kasir','user','P'],['mbostaf','Akun Backoffice','user','P'],['mkeamanan','Keamanan','user','P']]]
 ];
 const NAV=(OWNER?NAV_ALL.map(([g,gi,l])=>[g,gi,l.filter(x=>OWN_OK.includes(x[0]))]).filter(x=>x[2].length):NAV_ALL).map(([g,gi,l])=>[g,gi,l]);
 let NAVOPEN={};try{NAVOPEN=JSON.parse(localStorage.getItem('twinsbo_nav')||'{}')||{}}catch(e){}
@@ -942,7 +942,7 @@ function render(){
   return;
  }
  CUR=calc();
- const V={lapabsen:vLapAbsen,lapbanding:vLapBanding,lapjualgd:vLapJualGd,lapputar:vLapPutar,lapdead:vLapDead,opname:vOpname,laprefund:vLapRefund,lapdiskon:vLapDiskon,home:vHome,lapgudang:vLapGudang,lapmutasi:vLapMutasi,lapkartu:vLapKartu,ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:()=>pmView('jual'),mbahan:()=>pmView('bahan'),mresep:()=>pmView('resep'),mgudang:vGudang,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar,penawaran:()=>dcPage('s','qt'),sjalan:()=>dcPage('s','sj'),pbeli:()=>dcPage('b','po'),tbarang:()=>dcPage('b','gr'),mhak:akCard};
+ const V={lapabsen:vLapAbsen,lapbanding:vLapBanding,lapjualgd:vLapJualGd,lapputar:vLapPutar,lapdead:vLapDead,opname:vOpname,laprefund:vLapRefund,lapdiskon:vLapDiskon,home:vHome,lapgudang:vLapGudang,lapmutasi:vLapMutasi,lapkartu:vLapKartu,ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:()=>pmView('jual'),mbahan:()=>pmView('bahan'),mresep:()=>pmView('resep'),mgudang:vGudang,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar,penawaran:()=>dcPage('s','qt'),sjalan:()=>dcPage('s','sj'),pbeli:()=>dcPage('b','po'),tbarang:()=>dcPage('b','gr'),mhak:akCard,mperkasir:vPerKasir,mbostaf:vBoStaf};
  if(OWNER&&!OWN_OK.includes(tab))tab='ring';
  if(D&&isLocked(tab))tab='ring';
  if(D&&!canTab(tab))tab=akFirst();
@@ -3906,7 +3906,8 @@ const DCTAB={s:{qt:'penawaran',sj:'sjalan'},b:{po:'pbeli',gr:'tbarang'}};
 Object.assign(TITLE,{mproduk:['Produk','Tambah, ubah, dan isi stok produk'],mbahan:['Bahan Baku','Daftar bahan baku, stok, dan HPP per satuan'],mresep:['Resep & Produksi','Resep produk dan pemakaian bahan baku'],mgudang:['Gudang','Tambah dan atur gudang untuk memisahkan stok'],penawaran:['Penawaran','Penawaran harga ke pelanggan. Bisa diteruskan ke Surat Jalan atau Faktur'],sjalan:['Surat Jalan','Pengiriman barang ke pelanggan. Bisa diteruskan ke Faktur Penjualan'],pbeli:['Pesanan Pembelian','Pesanan barang ke pemasok. Bisa diteruskan ke Penerimaan Barang atau Faktur'],tbarang:['Penerimaan Barang','Barang yang diterima dari pemasok. Bisa diteruskan ke Faktur Pembelian'],mhak:['Hak Akses','Atur menu yang boleh dibuka tiap peran akun']});
 Object.assign(FG,{penawaran:'fakturjual',sjalan:'fakturjual',pbeli:'pembelian',tbarang:'pembelian'});
 Object.assign(FTN,{penawaran:'Penawaran',sjalan:'Surat Jalan',pbeli:'Pesanan Pembelian',tbarang:'Penerimaan Barang'});
-MG.push('penawaran','sjalan','pbeli','tbarang','mhak','mbahan','mresep','mgudang');
+MG.push('penawaran','sjalan','pbeli','tbarang','mhak','mbahan','mresep','mgudang','mperkasir','mbostaf');
+Object.assign(TITLE,{mperkasir:['Hak Akses Kasir','Atur apa saja yang boleh dilakukan tiap peran di aplikasi kasir'],mbostaf:['Akun Backoffice','Buat karyawan yang bisa login Backoffice, lengkap dengan perannya']});
 function dcPage(side,type){
  const nm=DCDT[side][type][0],flow=DCDFLOW[side].map(k=>DCDT[side][k][0]).join(' → ');
  return dcList(side,type)+`<div class="hint" style="margin-top:8px">Alur: ${flow}. Buka dokumen lalu tekan “Teruskan ke…”. Nomor dasar yang sama dibawa sampai faktur.</div>`;
@@ -4015,7 +4016,7 @@ function repPrint(){
  <p style="margin-top:20px"><button onclick="print()">Cetak / Simpan PDF</button></p>`);
  w.document.close();w.focus();setTimeout(()=>w.print(),400);
 }
-const NOPDF=['home','mstaf','mkeamanan','moutlet','mbayar','mpromo','mkat','monline','mpaket'];
+const NOPDF=['home','mperkasir','mbostaf','mstaf','mkeamanan','moutlet','mbayar','mpromo','mkat','monline','mpaket'];
 (function(){
  const _r=render;render=function(){_r.apply(this,arguments);try{
   const dataPg=NOPDF.includes(tab)||NAV_ALL.some(g=>g[2].some(x=>x[0]===tab&&(x[3]==='D'||x[3]==='P')));
@@ -4070,7 +4071,7 @@ function akCard(){
  if(AKP())return`<div class="card"><h4>Hak Akses</h4><p>Peran akun ini: <b>${esc(MEPERAN)}</b>. Pengaturan hak akses hanya bisa diubah oleh admin.</p></div>`;
  const roles=(D.akses&&D.akses.roles)||{},names=Object.keys(roles);
  return`<div class="card"><h4>Hak Akses per Peran</h4><p>Atur menu apa yang boleh dibuka tiap peran. Peran dipasang di kolom <b>peran</b> sheet <b>Staf</b> (sejajar dengan nomor HP dan PIN akun). Kosong atau <b>admin</b> = akses penuh. Akun yang peran-nya belum diatur di sini juga akses penuh.</p>
- <div class="tool"><span style="margin-left:auto"><button class="btn pri" onclick="akForm()">${ic('plus',16)} Tambah peran</button></span></div>
+ <div class="tool"><span style="margin-left:auto"><button class="btn" onclick="akPreset()">Isi peran standar</button> <button class="btn pri" onclick="akForm()">${ic('plus',16)} Tambah peran</button></span></div>
  <div class="tw">${names.length?`<table><tr><th>Peran</th><th>Menu yang boleh</th><th>Ubah data</th><th></th></tr>${names.map(n=>{const r=roles[n];return`<tr><td><b>${esc(n)}</b></td><td><small>${(r.tabs||[]).length?(r.tabs||[]).map(esc).join(', '):'(tidak ada)'}</small></td><td>${r.write===false?'<span class="badge k">Hanya lihat</span>':'<span class="badge g">Boleh</span>'}</td><td class="r"><button class="btn sm" onclick="akForm('${esc(n).replace(/'/g,"\\'")}')">Atur</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada peran. Contoh: “gudang” hanya boleh Stok &amp; Gudang, “keuangan” hanya Akuntansi.</div>'}</div>
  <div class="hint">Penahanan data (karyawan, gaji, pembelian) berlaku di server. Menu lain disembunyikan di tampilan dan simpan data ditolak server bila perannya “hanya lihat”.</div></div>`;
 }
@@ -4091,6 +4092,13 @@ async function akSave(btn){
  if(!old&&roles[n]){alert('Peran itu sudah ada');return}
  roles[n]={tabs,write:v('ak_w')!=='0',deny:akDeny(tabs)};
  await safe(async()=>{await pushPost('akses',{roles});closeDlg();render()},btn);
+}
+async function akPreset(){
+ const all=akGroups(),pick=(...n)=>all.filter(g=>n.includes(g)),P={manager:all.filter(g=>g!=='Pengaturan'),spv:pick('Produk','Inventori','Penjualan','Laporan Penjualan','Laporan Stok','Pelanggan','Promosi'),kasir:pick('Penjualan','Pelanggan'),gudang:pick('Inventori','Pembelian','Laporan Stok')};
+ const roles=Object.assign({},(D.akses&&D.akses.roles)||{});let n=0;
+ Object.keys(P).forEach(k=>{if(roles[k])return;roles[k]={tabs:P[k],write:true,deny:akDeny(P[k])};n++});
+ if(!n){alert('Peran standar (manager, spv, kasir, gudang) sudah ada semua');return}
+ await safe(async()=>{await pushPost('akses',{roles});render()});
 }
 async function akDel(n){
  if(!confirm('Hapus peran “'+n+'”? Akun dengan peran ini kembali ke akses penuh.'))return;
@@ -4800,7 +4808,10 @@ function bxSaveM(id,btn){
 function bxReadFeesSafe(){const f={mdr:{},chan:{}};BXD.mdr.forEach(k=>f.mdr[k]={pct:0,flat:0});BXD.chan.forEach(k=>f.chan[k]={svc:0,adm:0,ship:0});return f}
 
 /* ---------- Akun Kasir (sinkron dengan Staf di POS) ---------- */
-const STR={owner:'Owner',supervisor:'Supervisor',kasir:'Kasir',pelayan:'Pelayan'};
+const STR={owner:'Admin',manager:'Manager',supervisor:'SPV',kasir:'Kasir',pelayan:'Pelayan'};
+const PRM={void:'Void / hapus order & catatan kas tanpa PIN atasan',refund:'Setujui refund',rep:'Buka laporan',set:'Buka pengaturan',staff:'Ubah karyawan & peran',del:'Hapus data (pelanggan)',price:'Ubah harga di kasir'};
+const PRM_DEF={owner:{void:1,refund:1,rep:1,set:1,staff:1,del:1,price:1},manager:{void:1,refund:1,rep:1,set:1,staff:0,del:0,price:1},supervisor:{void:1,refund:1,rep:1,set:0,staff:0,del:1,price:1},kasir:{void:0,refund:0,rep:0,set:0,staff:0,del:0,price:0},pelayan:{void:0,refund:0,rep:0,set:0,staff:0,del:0,price:0}};
+const prmOn=(r,p)=>{if(r==='owner')return true;const x=D.staff&&D.staff.perm&&D.staff.perm[r];return x&&x[p]!==undefined?!!x[p]:!!(PRM_DEF[r]||{})[p]};
 const stList=()=>((D.staff&&Array.isArray(D.staff.list))?D.staff.list:[]);
 function vStaf(){
  const l=stList();
@@ -4813,7 +4824,7 @@ function stForm(id){
  dlg(`<h3>${id?'Ubah':'Tambah'} Akun Kasir</h3><div class="g2">${fld('st_name','Nama',s.name)}<div><label>Peran</label><select id="st_role">${Object.entries(STR).map(([k,t])=>`<option value="${k}" ${s.role===k?'selected':''}>${t}</option>`).join('')}</select></div>${fld('st_pin',id?'PIN baru (kosongkan bila tidak diubah)':'PIN (6 digit angka)','','password','','maxlength="6" inputmode="numeric" autocomplete="new-password"')}</div>
  <div class="acts2"><button class="btn pri" onclick="stSave('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="stDel('${esc(id)}',this)">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
-function stPush(l,btn){return safe(async()=>{try{await push('staff',{id:'staff',list:l,sts:Date.now(),upd:Date.now()})}catch(e){if(/tidak dikenal/i.test(String(e&&e.message)))throw new Error('Server toko ini belum mendukung Akun Kasir dari Backoffice. Kelola lewat kasir (Pengaturan, Staf).');throw e}},btn)}
+function stPush(l,btn){return safe(async()=>{try{await push('staff',{id:'staff',list:l,perm:(D.staff&&D.staff.perm)||undefined,sts:Date.now(),upd:Date.now()})}catch(e){if(/tidak dikenal/i.test(String(e&&e.message)))throw new Error('Server toko ini belum mendukung Akun Kasir dari Backoffice. Kelola lewat kasir (Pengaturan, Staf).');throw e}},btn)}
 function stSave(id,btn){
  const name=v('st_name').trim(),role=v('st_role'),pin=v('st_pin').trim(),l=stList().map(x=>({...x}));
  if(!name){alert('Isi nama');return}
@@ -4829,6 +4840,63 @@ function stDel(id,btn){
  if(!l.some(x=>x.role==='owner')){alert('Owner terakhir tidak bisa dihapus');return}
  if(!confirm('Hapus akun ini? Nota lama tetap menyimpan namanya.'))return;
  stPush(l,btn);
+}
+
+
+/* ---------- Hak akses peran di aplikasi kasir ---------- */
+function vPerKasir(){
+ if(AKP())return`<div class="card"><h4>Hak Akses Kasir</h4><p>Hanya admin yang boleh mengubah.</p></div>`;
+ const roles=Object.keys(STR).filter(r=>r!=='pelayan'),ps=Object.keys(PRM);
+ return`<div class="note">Atur apa yang boleh dilakukan tiap peran di aplikasi kasir. Perubahan ikut ke semua kasir setelah mereka sinkron. Admin selalu boleh semuanya. Peran yang tidak boleh melakukan sesuatu tetap bisa melakukannya bila atasan memasukkan PIN-nya.${stList().length?'':'<br><b>Belum ada data akun dari kasir.</b> Buka kasir dulu (atau tunggu sinkron), lalu muat ulang halaman ini.'}</div>
+ <div class="card"><div class="tw"><table><tr><th>Hak</th>${roles.map(r=>`<th style="text-align:center">${esc(STR[r])}</th>`).join('')}</tr>
+ ${ps.map(p=>`<tr><td>${esc(PRM[p])}</td>${roles.map(r=>`<td style="text-align:center"><input type="checkbox" id="pk_${r}_${p}" ${prmOn(r,p)?'checked':''} ${r==='owner'?'disabled':''}></td>`).join('')}</tr>`).join('')}</table></div>
+ <div class="acts2" style="margin-top:12px"><button class="btn pri" onclick="pkSave(this)">Simpan hak akses</button></div></div>`;
+}
+function pkSave(btn){
+ const l=stList();if(!l.length){alert('Belum ada data akun dari kasir. Buka kasir dulu lalu muat ulang.');return}
+ const perm={};Object.keys(STR).filter(r=>r!=='owner'&&r!=='pelayan').forEach(r=>{perm[r]={};Object.keys(PRM).forEach(p=>{const e=document.getElementById('pk_'+r+'_'+p);perm[r][p]=e?e.checked:!!(PRM_DEF[r]||{})[p]})});
+ safe(async()=>{try{await push('staff',{id:'staff',list:l,perm,sts:Date.now(),upd:Date.now()})}catch(e){if(/tidak dikenal/i.test(String(e&&e.message)))throw new Error('Server toko ini belum mendukung pengaturan dari Backoffice.');throw e}alert('Hak akses tersimpan')},btn);
+}
+
+/* ---------- Akun login Backoffice (sheet Staf) ---------- */
+let BS={list:null,err:'',ld:false};
+async function bsCall(kind,payload){
+ const r=await fetch(baseUrl(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'bopush',hp:cfg.hp||'',pin:cfg.pin||'',kind,payload:payload||{}})});
+ const j=await r.json();if(!j.ok)throw new Error(j.err||'Ditolak server');return j;
+}
+async function bsLoad(){
+ if(BS.ld)return;BS.ld=true;
+ try{const j=await bsCall('bostaf_list');BS.list=j.list||[];BS.err=''}catch(e){BS.list=[];BS.err=String(e&&e.message||e)}
+ BS.ld=false;if(typeof tab!=='undefined'&&tab==='mbostaf')render();
+}
+function vBoStaf(){
+ if(AKP())return`<div class="card"><h4>Akun Backoffice</h4><p>Hanya admin yang boleh mengelola akun.</p></div>`;
+ if(BS.list===null){bsLoad();return`<div class="card"><p>Memuat akun…</p></div>`}
+ const known=Object.keys((D.akses&&D.akses.roles)||{}).map(x=>x.toLowerCase());
+ const l=BS.list;
+ return`<div class="note">Karyawan di sini bisa login ke Backoffice memakai No. HP dan PIN. Peran <b>admin</b> = akses penuh. Peran lain mengikuti menu <b>Hak Akses</b>; peran yang belum diatur di sana juga akses penuh.${BS.err?`<br><b style="color:var(--bad)">${esc(BS.err)}</b>`:''}</div>
+ <div class="card"><div class="tool"><span class="mut">${l.length} akun</span><button class="btn pri" style="margin-left:auto" onclick="bsForm()">${ic('plus',16)} Tambah Akun</button></div>
+ <div class="tw">${l.length?`<table><tr><th>Nama</th><th>No. HP</th><th>Peran</th><th></th></tr>${l.map(s=>{const r=String(s.peran||'').trim().toLowerCase(),adm=!r||r==='admin';return`<tr><td><b>${esc(s.nama)}</b></td><td>${esc(s.hp)}</td><td>${esc(s.peran||'admin')}${adm||known.includes(r)?'':' <span class="badge k">hak akses belum diatur</span>'}</td><td class="r"><button class="btn sm" onclick="bsForm('${esc(s.hp)}')">Ubah</button></td></tr>`}).join('')}</table>`:'<div class="empty">Belum ada akun</div>'}</div></div>`;
+}
+function bsForm(hp){
+ const s=(BS.list||[]).find(x=>String(x.hp)===String(hp))||{nama:'',hp:'',peran:'admin'};
+ const opts=['admin','manager','spv','kasir','gudang',...Object.keys((D.akses&&D.akses.roles)||{})].filter((x,i,a)=>a.findIndex(y=>y.toLowerCase()===x.toLowerCase())===i);
+ dlg(`<h3>${hp?'Ubah':'Tambah'} Akun Backoffice</h3><datalist id="bs_pl">${opts.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>
+ <div class="g2">${fld('bs_nama','Nama',s.nama)}${fld('bs_hp','No. HP (untuk login)',s.hp,'tel','','inputmode="numeric"')}${fld('bs_pin',hp?'PIN baru (kosongkan bila tidak diubah)':'PIN (4-8 angka)','','password','','maxlength="8" inputmode="numeric" autocomplete="new-password"')}${fld('bs_peran','Peran',s.peran||'admin','text','','list="bs_pl"')}</div>
+ <div class="hint">Pilih peran dari daftar atau ketik peran baru, lalu atur menu yang boleh dibuka di menu Hak Akses.</div>
+ <div class="acts2"><button class="btn pri" onclick="bsSave('${hp?esc(hp):''}',this)">Simpan</button>${hp?`<button class="btn del" onclick="bsDel('${esc(hp)}',this)">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+function bsSave(old,btn){
+ const nama=v('bs_nama').trim(),hp=v('bs_hp').replace(/\D/g,''),pin=v('bs_pin').trim(),peran=v('bs_peran').trim();
+ if(!nama){alert('Isi nama');return}
+ if(hp.length<8){alert('No. HP tidak valid');return}
+ if(pin&&!/^\d{4,8}$/.test(pin)){alert('PIN harus 4-8 angka');return}
+ if(!old&&!pin){alert('Isi PIN');return}
+ safe(async()=>{await bsCall('bostaf_save',{oldHp:old,hp,nama,pin,peran});BS.list=null;closeDlg();render()},btn);
+}
+function bsDel(hp,btn){
+ if(!confirm('Hapus akun ini? Orangnya tidak bisa login Backoffice lagi.'))return;
+ safe(async()=>{await bsCall('bostaf_del',{hp});BS.list=null;closeDlg();render()},btn);
 }
 
 /* ---------- Order Jasa (data dari kasir) ---------- */
