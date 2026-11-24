@@ -1959,6 +1959,7 @@ const BILLS=()=>(AKUN().bills||[]);
 const billPaid=b=>sum(b.pays||[],p=>+p.amount||0),billLeft=b=>Math.max(0,Math.round((+b.amount||0)-billPaid(b)));
 function billPays(){const o=[];BILLS().forEach(b=>(b.pays||[]).forEach(p=>o.push({b,p})));return o}
 const BL={st:''};
+const dayTs=(d,keep)=>keep&&dk(keep)===d?keep:(d===dk(Date.now())?Date.now():new Date(d+'T12:00').getTime());   // hari ini: pakai jam sekarang supaya urut di jurnal
 const billSt=b=>billLeft(b)<=0?'Lunas':billPaid(b)>0?'Sebagian':'Belum dibayar';
 const billBadge=b=>{const t=billSt(b);return`<span class="badge ${t==='Lunas'?'g':t==='Sebagian'?'k':'v'}">${t}</span>`};
 function vBeban(){
@@ -1981,7 +1982,7 @@ function billSave(id,btn){
  if(!d||!cat||!(amt>0)){alert('Isi tanggal, kategori, dan nominal');return}
  const ak=AKUN(),list=[...(ak.bills||[])],old=list.find(x=>x.id===id);
  if(old&&amt<billPaid(old)){alert('Nominal tidak boleh kurang dari yang sudah dibayar ('+rp(billPaid(old))+')');return}
- const rec={...(old||{}),id:id||'bl'+Date.now().toString(36),ts:new Date(d+'T12:00').getTime(),due:v('bb_due')?new Date(v('bb_due')+'T12:00').getTime():0,cat,amount:amt,note:v('bb_note').trim(),acct:v('bb_acct')||'',pays:(old&&old.pays)||[]};
+ const rec={...(old||{}),id:id||'bl'+Date.now().toString(36),ts:dayTs(d,old&&+old.ts),due:v('bb_due')?new Date(v('bb_due')+'T12:00').getTime():0,cat,amount:amt,note:v('bb_note').trim(),acct:v('bb_acct')||'',pays:(old&&old.pays)||[]};
  const i=list.findIndex(x=>x.id===id);if(i>=0)list[i]=rec;else list.push(rec);
  safe(()=>push('akun',{...ak,bills:list}),btn);
 }
@@ -2001,7 +2002,7 @@ function billPayGo(id,btn){
  const b=BILLS().find(x=>x.id===id);if(!b)return;const amt=Math.round(+v('bp_amt')||0),d=v('bp_dt');
  if(!d||!(amt>0)){alert('Isi tanggal dan nominal');return}
  if(amt>billLeft(b)){alert('Nominal melebihi sisa ('+rp(billLeft(b))+')');return}
- const ak=AKUN(),list=(ak.bills||[]).map(x=>x.id===id?{...x,pays:[...(x.pays||[]),{id:'bp'+Date.now().toString(36),ts:new Date(d+'T12:00').getTime(),acc:v('bp_acc'),amount:amt}]}:x);
+ const ak=AKUN(),list=(ak.bills||[]).map(x=>x.id===id?{...x,pays:[...(x.pays||[]),{id:'bp'+Date.now().toString(36),ts:dayTs(d),acc:v('bp_acc'),amount:amt}]}:x);
  safe(()=>push('akun',{...ak,bills:list}),btn);
 }
 /* ---------- Pembayaran (Kas & Keuangan): bayar gaji dan beban yang sudah dicatat ---------- */
