@@ -3537,7 +3537,7 @@ function akunNewDel(id,btn){
 }
 function jBuild(){
  if(JC&&JC.src===D)return JC;
- const ak=AKUN(),bs=BANKS(),start=jStart(),ents=[],R=Math.round,bk=id=>'bank:'+(id&&id!=='-'?id:'-');
+ const ak=AKUN(),bs=BANKS(),start=jStart(),ents=[],R=Math.round,bk=id=>'bank:'+(id&&id!=='-'?id:'-'),KAS=ak.basis==='kas';
  const MP=plotMap(),rm=id=>MP[id]||id;
  const add=(ts,src,desc,lines,ref)=>{if(!(ts>=start))return;const L=lines.map(l=>[rm(l[0]),R(l[1]||0),R(l[2]||0)]).filter(l=>l[1]||l[2]);if(L.length)ents.push({ts,src,desc,lines:L,ref:ref||''})};
  const hasCat=pre=>Object.keys(MP).some(k=>k.indexOf(pre)===0);
@@ -3556,17 +3556,17 @@ function jBuild(){
  if(+ak.inv)op.push(['persediaan',+ak.inv,0]);if(+ak.piut)op.push(['piutang',+ak.piut,0]);if(+ak.hut)op.push(['hutang',0,+ak.hut]);
  const NOW=Date.now(),bIds=bs.map(b=>b.id);
  (ak.assets||[]).forEach(a=>{const c=+a.cost||0;if(!(c>0)||!a.date)return;const tet=a.kind!=='muka',sch=asetSched(a),t0=asetTs(a),cA=tet?'asettetap':'sewamuka',dA=tet?'bebansusut':(a.exp&&FXOK(a.exp,ak)?a.exp:'bebansewa'),kA=tet?'akumsusut':'sewamuka';
-  if(t0<start){const done=sch.filter(x=>x.ts<start).reduce((q,x)=>q+x.v,0);if(tet){op.push(['asettetap',c,0]);if(done)op.push(['akumsusut',0,done])}else if(c-done>0)op.push(['sewamuka',c-done,0])}
-  else{const cr=a.src==='hutang'?'hutang':a.src==='modal'?'modal':bIds.indexOf(a.src)>=0?bk(a.src):'bank:-';add(t0,'Aset',(tet?'Beli aset tetap · ':'Bayar di muka · ')+(a.name||''),[[cA,c,0],[cr,0,c]],a.id)}
-  sch.forEach(x=>{if(x.ts>=start&&x.ts<=NOW)add(x.ts,tet?'Penyusutan':'Amortisasi',(tet?'Penyusutan · ':'Beban di muka · ')+(a.name||''),[[dA,x.v,0],[kA,0,x.v]],a.id)});
+  if(t0<start){const done=sch.filter(x=>x.ts<start).reduce((q,x)=>q+x.v,0);if(tet){op.push(['asettetap',c,0]);if(done)op.push(['akumsusut',0,done])}else if(!KAS&&c-done>0)op.push(['sewamuka',c-done,0])}
+  else{const cr=a.src==='hutang'?'hutang':a.src==='modal'?'modal':bIds.indexOf(a.src)>=0?bk(a.src):'bank:-';add(t0,'Aset',(tet?'Beli aset tetap · ':(KAS?'Beban sewa/di muka (basis kas) · ':'Bayar di muka · '))+(a.name||''),[[(KAS&&!tet)?dA:cA,c,0],[cr,0,c]],a.id)}
+  sch.forEach(x=>{if(KAS&&!tet)return;if(x.ts>=start&&x.ts<=NOW)add(x.ts,tet?'Penyusutan':'Amortisasi',(tet?'Penyusutan · ':'Beban di muka · ')+(a.name||''),[[dA,x.v,0],[kA,0,x.v]],a.id)});
  });
  const od=sum(op,l=>l[1]),oc=sum(op,l=>l[2]);if(od!==oc)op.push(['modalawal',oc>od?oc-od:0,od>oc?od-oc:0]);
  add(start,'Saldo Awal','Saldo awal pembukuan',op);
  D.tx.forEach(t=>{
   if(t.inv)return;
-  const no=t.no||t.id||'',cr=cRatio(t),ls=[];let ds=0;
-  (t.payments||[]).forEach(p=>{if(p.m==='komplimen')return;const a=+p.ap||0;ds+=a;ls.push([p.m==='kasbon'?'piutang':p.m==='dp'?'dpl':bk(txAccP(t,p.m)),a,0])});
-  const tax=R((+t.tax||0)*(1-cr)),sv=R((+t.service||0)*(1-cr));
+  const no=t.no||t.id||'',cr=cRatio(t),ls=[];let ds=0,kb=0;
+  (t.payments||[]).forEach(p=>{if(p.m==='komplimen')return;const a=+p.ap||0;if(KAS&&p.m==='kasbon'){kb+=a;return}ds+=a;ls.push([p.m==='kasbon'?'piutang':p.m==='dp'?'dpl':bk(txAccP(t,p.m)),a,0])});
+  const kf=KAS&&kb>0&&(ds+kb)>0?ds/(ds+kb):1,tax=R((+t.tax||0)*(1-cr)*kf),sv=R((+t.service||0)*(1-cr)*kf);
   ls.push(['pajak',0,tax],['svc',0,sv],...salesL(t.items,ds-tax-sv));
   add(t.ts,'Penjualan','Penjualan '+no,ls,no);
   const cg=sum(t.items||[],i=>i.qty*(i.cogs||0));if(cg)add(t.ts,'HPP','HPP '+no,hppL(t.items,cg),no);
@@ -3574,30 +3574,31 @@ function jBuild(){
  });
  D.refunds.forEach(r=>{const a=+r.amount||0;add(r.ts,'Refund','Refund '+(r.txNo||''),[['retur',a,0],[bk(txAccP(txByNo(r.txNo),r.method)),0,a]],r.txNo);const cg=sum(r.items||[],i=>i.qty*(i.cogs||0));if(cg)add(r.ts,'HPP','Retur HPP '+(r.txNo||''),[['persediaan',cg,0],...hppR(r.items,cg)],r.txNo)});
  SIN().forEach(f=>{const it=f.items||[],tax=+f.tax||0,tot=+f.total||0,cg=sum(it,i=>i.qty*(+i.cogs||0)),rv=f.acct&&FXOK(f.acct,ak)?[[f.acct,0,tot-tax]]:salesL(it,tot-tax);
-  add(f.ts,'Faktur Penjualan','Faktur '+f.no+' · '+(f.customerName||'')+(f.komp?' (komplimen)':''),[['piutang',tot,0],['pajak',0,tax],...rv],f.no);
+  if(!KAS)add(f.ts,'Faktur Penjualan','Faktur '+f.no+' · '+(f.customerName||'')+(f.komp?' (komplimen)':''),[['piutang',tot,0],['pajak',0,tax],...rv],f.no);
   if(cg)add(f.ts,'HPP',(f.komp?'HPP komplimen ':'HPP ')+f.no,hppL(it,cg),f.no);
-  (f.returns||[]).forEach(r=>{const a=+r.amount||0,t=+r.tax||0;add(r.ts,'Retur Penjualan','Retur '+f.no+' · '+(f.customerName||''),[['retur',a-t,0],['pajak',t,0],['piutang',0,a]],f.no);const rc=r.stock?sum(r.items||[],i=>i.qty*(+i.cogs||0)):0;if(rc)add(r.ts,'HPP','Retur HPP '+f.no,[['persediaan',rc,0],...hppR(r.items,rc)],f.no)})});
+  (f.returns||[]).forEach(r=>{const a=+r.amount||0,t=+r.tax||0;if(!KAS)add(r.ts,'Retur Penjualan','Retur '+f.no+' · '+(f.customerName||''),[['retur',a-t,0],['pajak',t,0],['piutang',0,a]],f.no);const rc=r.stock?sum(r.items||[],i=>i.qty*(+i.cogs||0)):0;if(rc)add(r.ts,'HPP','Retur HPP '+f.no,[['persediaan',rc,0],...hppR(r.items,rc)],f.no)})});
  D.cash.forEach(x=>{const a=bk(accOf(x.m||(x.src==='luar'?'luar':'tunai'))),m=+x.amount||0,c=x.cat||'Lainnya',n=c+(x.note?' · '+x.note:'');
   if(x.type==='in')add(x.ts,'Kas Kasir','Kas masuk · '+n,[[a,m,0],[c==='DP Pesanan'?'dpl':inAcc(c),0,m]]);else add(x.ts,'Kas Kasir','Kas keluar · '+n,[[c==='Pengembalian DP'?'dpl':x.nonop?(c==='Pembelian stok'?'persediaan':/pinjam/i.test(c)?'pinjam':'prive'):expAcc(c),m,0],[a,0,m]])});
  CFS().forEach(x=>{
   const m=+x.amount||0,c=x.cat||'Lainnya',n=(x.note?' · '+x.note:'');
   if(x.type==='tf')add(x.ts,'Transfer','Transfer '+accName(x.acc)+' → '+accName(x.to)+n,[[bk(x.to),m,0],[bk(x.acc),0,m]]);
-  else if(x.type==='in')add(x.ts,'Arus Kas','Dana masuk · '+c+n,[[bk(x.acc),m,0],[x.acct&&FXOK(x.acct,ak)?x.acct:/^(fj|kb):/.test(x.ref||'')||/^Pelunasan /.test(x.note||'')?'piutang':/^rb:/.test(x.ref||'')?'hutang':inAcc(c),0,m]]);
+  else if(x.type==='in')add(x.ts,'Arus Kas','Dana masuk · '+c+n,[[bk(x.acc),m,0],[x.acct&&FXOK(x.acct,ak)?x.acct:/^(fj|kb):/.test(x.ref||'')||/^Pelunasan /.test(x.note||'')?(KAS?'jual':'piutang'):/^rb:/.test(x.ref||'')?'hutang':inAcc(c),0,m]]);
   else if(x.type==='out'){
-   const fb=String(x.ref||'').indexOf('fb:')===0||/^Faktur /.test(x.note||''),dr=x.nonop?(c==='Pembelian stok'?(fb?'hutang':'persediaan'):c==='Uang muka pemasok'?'hutang':c==='Retur penjualan'?'piutang':/pinjam/i.test(c)?'pinjam':'prive'):expAcc(c);
+   const fb=String(x.ref||'').indexOf('fb:')===0||/^Faktur /.test(x.note||''),dr=x.nonop?(c==='Pembelian stok'?(fb?(KAS?'persediaan':'hutang'):'persediaan'):c==='Uang muka pemasok'?'hutang':c==='Retur penjualan'?'piutang':/pinjam/i.test(c)?'pinjam':'prive'):expAcc(c);
    add(x.ts,'Arus Kas','Dana keluar · '+c+n,[[x.acct&&FXOK(x.acct,ak)?x.acct:dr,m,0],[bk(x.acc),0,m]]);
   }
  });
  (D.stocklog||[]).filter(x=>x.type==='set'&&+x.before>0&&+x.delta&&+x.hppAfter>0).forEach(x=>{const v=Math.round(Math.abs(+x.delta)*(+x.hppAfter));if(!v)return;add(x.ts,'Opname Stok','Selisih opname · '+(x.name||''),+x.delta<0?[[expAcc('Selisih Stok'),v,0],['persediaan',0,v]]:[['persediaan',v,0],[expAcc('Selisih Stok'),0,v]])});
  PUR().forEach(f=>{
   const sub=f.sub!=null?f.sub:sum(f.items||[],i=>i.qty*i.price),tax=+f.tax||0,tot=+f.total||(sub-(f.disc||0)+(f.ship||0)+tax),pa=f.acct&&FXOK(f.acct,ak)?f.acct:'persediaan';
-  add(f.ts,'Faktur Pembelian','Faktur '+f.no+' · '+(f.supplierName||''),[[pa,tot-tax,0],['ppnm',tax,0],['hutang',0,tot]],f.no);
-  (f.returns||[]).forEach(r=>{const a=+r.amount||0,t=+r.tax||0;add(r.ts,'Retur Pembelian','Retur '+f.no+' · '+(f.supplierName||''),[['hutang',a,0],[pa,0,a-t],['ppnm',0,t]],f.no)});
-  (f.payments||[]).filter(p=>!p.acc&&!p.dp).forEach(p=>add(p.ts,'Faktur Pembelian','Bayar '+f.no+' (di luar catatan kas)',[['hutang',+p.amount||0,0],['modal',0,+p.amount||0]],f.no));
+  if(!KAS)add(f.ts,'Faktur Pembelian','Faktur '+f.no+' · '+(f.supplierName||''),[[pa,tot-tax,0],['ppnm',tax,0],['hutang',0,tot]],f.no);
+  (f.returns||[]).forEach(r=>{const a=+r.amount||0,t=+r.tax||0;if(!KAS)add(r.ts,'Retur Pembelian','Retur '+f.no+' · '+(f.supplierName||''),[['hutang',a,0],[pa,0,a-t],['ppnm',0,t]],f.no)});
+  (f.payments||[]).filter(p=>!p.acc&&!p.dp).forEach(p=>add(p.ts,'Faktur Pembelian','Bayar '+f.no+' (di luar catatan kas)',[[KAS?pa:'hutang',+p.amount||0,0],['modal',0,+p.amount||0]],f.no));
  });
- (D.stocklog||[]).filter(x=>x.type==='add'&&+x.buyPrice>0&&/^\[HUTANG\]/i.test(x.note||'')&&!/^\[FB\]/i.test(x.note||'')).forEach(x=>{const v=Math.round((+x.delta||+x.qty||0)*(+x.buyPrice));add(x.ts,'Isi Stok','Isi stok belum dibayar · '+(x.name||''),[['persediaan',v,0],['hutang',0,v]])});
+ (D.stocklog||[]).filter(x=>x.type==='add'&&+x.buyPrice>0&&/^\[HUTANG\]/i.test(x.note||'')&&!/^\[FB\]/i.test(x.note||'')&&!KAS).forEach(x=>{const v=Math.round((+x.delta||+x.qty||0)*(+x.buyPrice));add(x.ts,'Isi Stok','Isi stok belum dibayar · '+(x.name||''),[['persediaan',v,0],['hutang',0,v]])});
  (D.payroll||[]).forEach(p=>{
   const paid=p.status==='paid'&&+p.paidTs>0,c=+p.comm||0,tt=+p.total||0,g=Math.max(0,tt-c);if(!(tt>0))return;
+  if(KAS){if(paid&&+p.paidTs>=start)add(+p.paidTs,'Penggajian','Gaji '+(p.empName||'')+' '+(p.period||'')+' (dibayar)',[['gaji',g,0],['komisi',c,0],[bk(accOf('gaji')),0,g+c]],p.id);return}
   const ym=String(p.period||'').split('-'),pe=ym.length===2?new Date(+ym[0],+ym[1],1).getTime()-1:0;   // akhir bulan slip gaji
   let at=paid?Math.min(+p.paidTs,pe||+p.paidTs):pe;if(!at||at>NOW)return;                          // akrual: beban diakui di bulan slip, bukan saat dibayar
   if(at<start&&paid&&+p.paidTs>=start)at=start;
@@ -3622,13 +3623,14 @@ const jSaldo=(s,id)=>{const m=jBuild().meta[id],o=s[id]||{dr:0,cr:0};return m?(o
 const aSorted=()=>Object.values(jBuild().meta).sort((x,y)=>String(x.code).localeCompare(String(y.code)));
 const asOf=()=>{const b=range()[1];return isFinite(b)?b:Infinity};
 const asLbl=e=>dk(isFinite(e)?Math.min(e-1,Date.now()):Date.now());
-function akNote(){return AKUN().start?'':`<div class="note">Saldo awal pembukuan belum diatur. Sementara dipakai tanggal <b>${dk(jStart())}</b> dan saldo awal rekening dari menu Rekening. Klik <b>Atur Saldo Awal</b> di Daftar Akun.</div>`}
+function basisNote(){const k=AKUN().basis==='kas';return`<div class="hint" style="margin:0 0 8px">Metode pencatatan: <b>${k?'Basis Kas':'Akrual'}</b> · <a href="#" onclick="akunBasis();return false">ubah</a></div>`}
+function akNote(){return basisNote()+(AKUN().start?'':`<div class="note">Saldo awal pembukuan belum diatur. Sementara dipakai tanggal <b>${dk(jStart())}</b> dan saldo awal rekening dari menu Rekening. Klik <b>Atur Saldo Awal</b> di Daftar Akun.</div>`)}
 function jCheck(){const J=jBuild();let bad=0;J.ents.forEach(e=>{if(Math.abs(sum(e.lines,l=>l[1])-sum(e.lines,l=>l[2]))>1)bad++});return bad}
 
 function vCoa(){
  const s=jSums(0,asOf()),l=aSorted(),kids=id=>l.filter(m=>m.parent===id),tot=id=>jSaldo(s,id)+sum(kids(id),k=>tot(k.id));
  const rows=[];l.filter(m=>!m.parent||!jBuild().meta[m.parent]).forEach(m=>{rows.push([m,0]);kids(m.id).forEach(k=>rows.push([k,1]))});
- return`${akNote()}<div class="card"><div class="tool"><span class="mut">Saldo per ${esc(asLbl(asOf()))}</span><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="coaCsv()">${ic('dl',16)} Excel</button><button class="btn pri" onclick="akunNew('','')">+ Akun Induk</button><button class="btn" onclick="plotOpen()">Plot Akun</button><button class="btn pri" onclick="akunSetup()">Atur Saldo Awal</button></span></div>
+ return`${akNote()}<div class="card"><div class="tool"><span class="mut">Saldo per ${esc(asLbl(asOf()))}</span><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="coaCsv()">${ic('dl',16)} Excel</button><button class="btn pri" onclick="akunNew('','')">+ Akun Induk</button><button class="btn" onclick="plotOpen()">Plot Akun</button><button class="btn" onclick="akunBasis()">Metode Pencatatan</button><button class="btn pri" onclick="akunSetup()">Atur Saldo Awal</button></span></div>
  <div class="tw"><table><tr><th>Kode</th><th>Nama akun</th><th>Jenis</th><th class="r">Saldo</th><th></th></tr>${rows.map(([m,d])=>{const hk=kids(m.id).length;return`<tr class="cl" onclick="${m.custom?'akunNew':'akunEdit'}('${esc(m.id)}')"><td><b>${esc(m.code)}</b></td><td style="${d?'padding-left:26px':''}${hk?';font-weight:600':''}">${d?'↳ ':''}${esc(m.name)}</td><td>${m.hpp?'HPP':akKind(m)}</td><td class="r"${hk?' style="font-weight:600"':''}>${rp(hk?tot(m.id):jSaldo(s,m.id))}</td><td style="text-align:right">${!m.parent&&akunPar(m)?`<button class="btn sm" title="Tambah sub akun di bawah ${esc(m.name)}" onclick="event.stopPropagation();akunNew('','${esc(m.id)}')">+ Sub</button>`:''}</td></tr>`}).join('')}</table></div>
  <div class="hint" style="margin-top:8px">Akun rekening mengikuti menu Rekening, dan akun beban mengikuti kategori pengeluaran. Ketuk satu baris untuk mengubah. Pakai <b>+ Akun Induk</b> untuk membuat kelompok akun baru, atau <b>+ Sub</b> di tiap baris untuk menambah sub akunnya; kodenya otomatis mengikuti induknya.</div></div>`;
 }
@@ -3639,6 +3641,17 @@ function akunSetup(){
  ${fld('a_start','Tanggal mulai pembukuan',a.start||dk(jStart()),'date')}${fld('a_inv','Nilai persediaan awal (Rp)',a.inv||'','number')}${fld('a_piut','Piutang awal (Rp)',a.piut||'','number')}${fld('a_hut','Hutang usaha awal (Rp)',a.hut||'','number')}
  <div class="acts2"><button class="btn pri" onclick="akunSave(this)">Simpan</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
+function akunBasis(){
+ const k=AKUN().basis==='kas';
+ dlg(`<h3>Metode Pencatatan</h3><div class="mut" style="margin-bottom:10px">Menentukan kapan transaksi masuk ke jurnal dan laporan keuangan. Data transaksi tidak berubah; hanya cara pencatatannya.</div>
+ <label>Metode</label><select id="a_basis" style="width:100%" onchange="document.getElementById('bs_i').innerHTML=basisInfo(this.value)"><option value="akrual" ${k?'':'selected'}>Akrual (dicatat saat transaksi terjadi)</option><option value="kas" ${k?'selected':''}>Basis Kas (dicatat saat uang masuk/keluar)</option></select>
+ <div id="bs_i" class="hint" style="margin-top:10px">${basisInfo(k?'kas':'akrual')}</div>
+ <div class="acts2"><button class="btn pri" onclick="akunBasisSave(this)">Simpan</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+function basisInfo(b){return b==='kas'
+ ?'<b>Basis Kas:</b><br>• Penjualan faktur diakui saat <b>dilunasi</b>, bukan saat faktur dibuat. Kasbon kasir juga baru diakui saat dibayar.<br>• Pembelian dari pemasok diakui saat <b>dibayar</b>, tanpa hutang usaha.<br>• Gaji diakui saat <b>dibayar</b>.<br>• Biaya dibayar di muka (sewa dsb) langsung jadi beban saat dibayar, tidak diamortisasi.<br>• HPP tetap diakui saat barang terjual. Aset tetap tetap disusutkan.<br>• Tidak ada piutang dan hutang baru di neraca.'
+ :'<b>Akrual:</b><br>• Penjualan diakui saat nota/faktur dibuat; belum dibayar tercatat sebagai <b>piutang</b>.<br>• Pembelian diakui saat faktur; belum dibayar tercatat sebagai <b>hutang</b>.<br>• Gaji diakui di bulan slip, walau dibayar belakangan.<br>• Biaya dibayar di muka diamortisasi per bulan; aset disusutkan.'}
+function akunBasisSave(btn){const b=v('a_basis')==='kas'?'kas':'akrual';safe(()=>push('akun',{...AKUN(),basis:b}),btn)}
 function akunSave(btn){
  if(!v('a_start')){alert('Isi tanggal mulai');return}
  safe(()=>push('akun',{...AKUN(),start:v('a_start'),inv:+v('a_inv')||0,piut:+v('a_piut')||0,hut:+v('a_hut')||0}),btn);
