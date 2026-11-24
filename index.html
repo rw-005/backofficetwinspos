@@ -478,10 +478,10 @@ async function loadFitur(u,fast){
  FT.on=new Set((j&&j.fitur)||[]);FT.kunci=new Set((j&&j.kunci)||[]);FT.wa=(j&&j.wa)||'';FT.msg=(j&&j.pesan)||'';FT.nama=(j&&j.nama)||'';FT.exp=!!(j&&j.exp);FT.sampai=(j&&j.sampai)||'';
  try{bnLoad().then(()=>{if(D&&typeof tab!=='undefined'&&BN.list.length&&!document.getElementById('bn')&&!document.getElementById('dlg').classList.contains('on'))render()})}catch(e){}
 }
-const FG={lapabsen:'karyawan',karyawan:'karyawan',komisi:'komisi',gaji:'gaji',analisa:'analisa',pemasok:'pembelian',fakturbeli:'pembelian',hutang:'pembelian',coa:'akuntansi',fakturjual:'fakturjual',piutang:'fakturjual',jurnal:'akuntansi',buku:'akuntansi',lapkeu:'akuntansi'};
+const FG={lapabsen:'karyawan',karyawan:'karyawan',komisi:'komisi',gaji:'gaji',analisa:'analisa',pemasok:'pembelian',fakturbeli:'pembelian',hutang:'pembelian',coa:'akuntansi',fakturjual:'fakturjual',piutang:'fakturjual',jurnal:'akuntansi',buku:'akuntansi',lapkeu:'akuntansi',beban:'akuntansi'};
 const lockF=k=>FG[k]||(FT.kunci.has(k)?k:'');
 const isLocked=k=>{const f=lockF(k);return !!f&&!hasF(f)};
-const FTN={karyawan:'Data Karyawan',komisi:'Komisi',gaji:'Penggajian',analisa:'Analisa Bisnis',bep:'Analisa BEP',pemasok:'Pemasok',fakturbeli:'Faktur Pembelian',hutang:'Laporan Hutang',coa:'Daftar Akun (COA)',fakturjual:'Faktur Penjualan',piutang:'Laporan Piutang',jurnal:'Jurnal Umum',buku:'Buku Besar',lapkeu:'Laporan Keuangan'};
+const FTN={karyawan:'Data Karyawan',komisi:'Komisi',gaji:'Penggajian',analisa:'Analisa Bisnis',bep:'Analisa BEP',pemasok:'Pemasok',fakturbeli:'Faktur Pembelian',hutang:'Laporan Hutang',coa:'Daftar Akun (COA)',fakturjual:'Faktur Penjualan',piutang:'Laporan Piutang',jurnal:'Jurnal Umum',buku:'Buku Besar',lapkeu:'Laporan Keuangan',beban:'Beban & Biaya'};
 IC.sun='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
 IC.chev='<polyline points="6 9 12 15 18 9"/>';
 IC.lock='<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
@@ -494,7 +494,7 @@ function upsell(k){
 /* Mode Owner (aplikasi Android owner): hanya laporan, tidak bisa mengubah data, tidak bisa unduh/cetak.
    Aktif bila alamat memakai ?app=owner (diingat di perangkat itu); ?app=full mematikannya. */
 const OWNER=(()=>{try{if(/[?&]app=full\b/.test(location.search))localStorage.removeItem('twinsbo_owner');if(/[?&]app=owner\b/.test(location.search))localStorage.setItem('twinsbo_owner','1');return localStorage.getItem('twinsbo_owner')==='1'}catch(e){return /[?&]app=owner\b/.test(location.search)}})();
-const OWN_OK=['home','lapgudang','lapmutasi','lapkartu','ring','analisa','rsum','lappen','detail','lapabsen','lapdiskon','laprefund','lapubah','lapbanding','lapjualgd','lapputar','lapdead','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok','mexp','lapstok','lappajak','aset'];
+const OWN_OK=['home','lapgudang','lapmutasi','lapkartu','ring','analisa','rsum','lappen','detail','lapabsen','lapdiskon','laprefund','lapubah','lapbanding','lapjualgd','lapputar','lapdead','produk','kasir','pkasir','plglap','pesanan','piutang','hutang','cash','arus','shift','jurnal','buku','lapkeu','komisi','mstok','mexp','lapstok','lappajak','aset','beban','bayar'];
 const NAV_ALL=[
  ['Ringkasan','home',[['ring','Ringkasan','home','L'],['analisa','Analisa Bisnis','trend','L']]],
  ['Produk','tag',[['mproduk','Produk','plus','D'],['mpaket','Paket','gift','D'],['mkat','Kategori','tag','D'],['monline','Harga Online','ponsel','D']]],
@@ -503,8 +503,8 @@ const NAV_ALL=[
  ['Pembelian','store',[['pbeli','Pesanan Pembelian','file','T'],['tbarang','Penerimaan Barang','box','T'],['fakturbeli','Faktur Pembelian','file','T'],['pemasok','Pemasok','store','D']]],
  ['Laporan Penjualan','trend',[['rsum','Ringkasan Penjualan','file','L'],['lappen','Laporan Penjualan','trend','L'],['detail','Detail Penjualan','file','L'],['lapdiskon','Laporan Diskon','tag','L'],['laprefund','Laporan Refund','hist','L'],['lapubah','Ubah Metode Bayar','wallet','L'],['produk','Penjualan per Produk','box','L'],['kasir','Penjualan per Kasir','user','L'],['pkasir','Produk per Kasir','layers','L'],['plglap','Penjualan per Pelanggan','users','L'],['lapjualgd','Penjualan per Gudang','box','L'],['lapbanding','Perbandingan Periode','trend','L'],['lappajak','Laporan Pajak','file','L'],['shift','Laporan Shift','clock','L']]],
  ['Laporan Stok','layers',[['lapstok','Nilai Persediaan','box','L'],['lapgudang','Laporan Gudang','box','L'],['lapkartu','Kartu Stok (Awal-Akhir)','file','L'],['lapputar','Perputaran Stok','refresh','L'],['lapdead','Barang Tidak Laku','clock','L'],['mstok','Riwayat Stok','hist','L']]],
- ['Kas & Keuangan','wallet',[['cash','Kas Masuk & Keluar','wallet','T'],['arus','Arus Kas & Rekening','trend','L'],['rekening','Rekening & Akun Kas','wallet','D'],['piutang','Laporan Piutang','wallet','L'],['hutang','Laporan Hutang','wallet','L']]],
- ['Akuntansi','hist',[['coa','Daftar Akun (COA)','layers','D'],['jurnal','Jurnal Umum','file','T'],['buku','Buku Besar','hist','L'],['lapkeu','Laporan Keuangan','trend','L'],['aset','Aset & Biaya di Muka','box','D']]],
+ ['Kas & Keuangan','wallet',[['cash','Kas Masuk & Keluar','wallet','T'],['arus','Arus Kas & Rekening','trend','L'],['rekening','Rekening & Akun Kas','wallet','D'],['piutang','Laporan Piutang','wallet','L'],['hutang','Laporan Hutang','wallet','L'],['bayar','Pembayaran (Gaji & Beban)','wallet','T']]],
+ ['Akuntansi','hist',[['coa','Daftar Akun (COA)','layers','D'],['jurnal','Jurnal Umum','file','T'],['buku','Buku Besar','hist','L'],['lapkeu','Laporan Keuangan','trend','L'],['beban','Beban & Biaya','file','T'],['aset','Aset & Biaya di Muka','box','D']]],
  ['Karyawan','user',[['karyawan','Data Karyawan','staff','D'],['komisi','Komisi','tag','L'],['lapabsen','Laporan Absensi','clock','L'],['gaji','Penggajian','gaji','T']]],
  ['Pelanggan','users',[['pelanggan','Pelanggan','users','D']]],
  ['Promosi','gift',[['mpromo','Diskon & Promo','tag','P']]],
@@ -559,7 +559,7 @@ function mmGo(k){if(isLocked(k)){mmClose();upsell(k);return}MM=-1;MQ='';go(k)}
 const TITLE={lapubah:['Ubah Metode Bayar','Nota yang metode pembayarannya diganti setelah dibayar: siapa, kapan, dan alasannya'],lapabsen:['Laporan Absensi','Kehadiran karyawan, jam masuk dan pulang, beserta foto selfie'],lapbanding:['Perbandingan Periode','Bandingkan dua periode: penjualan, laba, kategori, dan produk'],lapjualgd:['Penjualan per Gudang','Penjualan dan laba dari tiap gudang'],lapputar:['Perputaran Stok','Seberapa cepat stok terjual dan berapa hari stok bertahan'],lapdead:['Barang Tidak Laku','Stok yang mengendap dan tidak terjual'],opname:['Stok Opname','Hitung stok fisik dan koreksi selisih dengan sistem'],laprefund:['Laporan Refund','Pengembalian barang dan uang, alasan, serta yang menyetujui'],lapdiskon:['Laporan Diskon','Diskon, promo, voucher, dan komplimen yang diberikan'],home:['Beranda','Pilih menu yang ingin dibuka'],lapgudang:['Laporan Gudang','Stok dan nilai persediaan di setiap gudang'],lapmutasi:['Mutasi Stok','Perpindahan stok antar gudang'],lapkartu:['Laporan Stok','Stok awal, masuk, keluar, dan stok akhir per barang'],ring:['Ringkasan','Gambaran umum penjualan dan keuangan'],lappen:['Laporan Penjualan','Metode pembayaran, kategori, varian, dan topping'],analisa:['Analisa Bisnis','Tren, margin, dan sorotan performa'],rsum:['Ringkasan Penjualan','Pendapatan, promo, pengembalian, dan laba kotor'],detail:['Detail Penjualan','Rincian setiap nota dan item yang terjual'],produk:['Penjualan per Produk','Performa tiap produk'],kasir:['Penjualan per Kasir','Kinerja masing-masing kasir'],pkasir:['Produk per Kasir','Produk apa saja yang dijual tiap kasir'],shift:['Laporan Shift','Buka-tutup kasir, rekonsiliasi kas, dan presensi'],cash:['Kas Masuk & Keluar','Pengeluaran operasional dan uang masuk lain'],arus:['Arus Kas & Rekening','Mutasi uang masuk dan keluar per rekening, seperti rekening koran'],
  pemasok:['Pemasok','Daftar pemasok dan laporan pembelian per pemasok'],fakturbeli:['Faktur Pembelian','Pembelian dari pemasok, hutang, dan pelunasan'],hutang:['Laporan Hutang','Umur hutang, kartu hutang per pemasok, dan riwayat pembayaran'],coa:['Daftar Akun (COA)','Bagan akun dan saldo tiap akun'],plglap:['Penjualan per Pelanggan','Total pembelian, laba, dan produk tiap pelanggan'],fakturjual:['Faktur Penjualan','Penjualan tempo ke pelanggan, piutang, dan penerimaan'],piutang:['Laporan Piutang','Umur piutang, kartu piutang, dan penerimaan'],jurnal:['Jurnal Umum','Jurnal otomatis dari penjualan, pembelian, kas, dan gaji'],buku:['Buku Besar','Mutasi dan saldo berjalan per akun'],lapkeu:['Laporan Keuangan','Neraca saldo, laba rugi, dan neraca'],
  karyawan:['Data Karyawan','Karyawan yang melayani di kasir, gaji pokok, dan keikutsertaan komisi'],komisi:['Komisi','Komisi penjualan, bertingkat dan dibagi bersama oleh yang melayani'],gaji:['Penggajian','Gaji bulanan, tunjangan, komisi, bonus, potongan, dan slip'],
- pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mbayar:['Biaya & Metode Bayar','Tambah metode bayar, potongan MDR, dan potongan platform online'],mstaf:['Akun Kasir','Akun login kasir: nama, peran, dan PIN. Sama dengan menu Staf di kasir'],jasa:['Order Jasa','Order layanan dari kasir beserta status pengerjaan dan pembayarannya'],mkat:['Kategori','Urutan, nama, dan daftar kategori produk'],mpaket:['Paket','Jual beberapa item sekaligus dengan satu harga; stok dan HPP mengikuti isinya'],monline:['Harga Online','Harga atau markup tiap produk untuk ShopeeFood, GrabFood, dan GoFood'],aset:['Aset & Biaya di Muka','Aset tetap dengan penyusutan otomatis, serta sewa dan biaya yang dibayar di muka'],lappajak:['Laporan Pajak','Pajak dan service charge yang dipungut, sudah disetor, dan belum disetor'],lapstok:['Laporan Persediaan','Nilai stok barang jadi, bahan baku, dan setengah jadi, dicocokkan dengan pembukuan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mexp:['Expired','Batch yang sudah dan akan kedaluwarsa'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
+ pelanggan:['Pelanggan','Data pelanggan, harga spesial, dan penjualan per pelanggan'],mbayar:['Biaya & Metode Bayar','Tambah metode bayar, potongan MDR, dan potongan platform online'],mstaf:['Akun Kasir','Akun login kasir: nama, peran, dan PIN. Sama dengan menu Staf di kasir'],jasa:['Order Jasa','Order layanan dari kasir beserta status pengerjaan dan pembayarannya'],mkat:['Kategori','Urutan, nama, dan daftar kategori produk'],mpaket:['Paket','Jual beberapa item sekaligus dengan satu harga; stok dan HPP mengikuti isinya'],monline:['Harga Online','Harga atau markup tiap produk untuk ShopeeFood, GrabFood, dan GoFood'],beban:['Beban & Biaya','Catat beban dulu (belum dibayar), lalu lunasi lewat menu Pembayaran'],bayar:['Pembayaran (Gaji & Beban)','Bayar gaji dan beban yang sudah dicatat, dari rekening kas atau bank'],aset:['Aset & Biaya di Muka','Aset tetap dengan penyusutan otomatis, serta sewa dan biaya yang dibayar di muka'],lappajak:['Laporan Pajak','Pajak dan service charge yang dipungut, sudah disetor, dan belum disetor'],lapstok:['Laporan Persediaan','Nilai stok barang jadi, bahan baku, dan setengah jadi, dicocokkan dengan pembukuan'],mproduk:['Produk & Stok','Tambah, ubah, dan isi stok produk'],mstok:['Riwayat Stok','Catatan stok masuk dan penyesuaian'],mexp:['Expired','Batch yang sudah dan akan kedaluwarsa'],mpromo:['Diskon & Promo','Promo otomatis, voucher, dan poin pelanggan yang ikut ke kasir'],moutlet:['Outlet & Struk','Info outlet dan tampilan struk'],pesanan:['Pesanan & DP','Pesanan dengan uang muka dari kasir, sisa tagihan, dan pelunasan'],rekening:['Rekening & Akun Kas','Daftar rekening, saldo awal, dan penjualan masuk ke rekening mana'],mkeamanan:['Keamanan','Keluar otomatis saat back office tidak dipakai']};
 if(OWNER){
  const _no=()=>{alert('Aplikasi owner hanya untuk melihat laporan. Unduh, cetak, dan ubah data dinonaktifkan.')};
  csv=_no;csvRaw=_no;bkSave=_no;xlsSave=_no;window.print=_no;
@@ -731,7 +731,7 @@ const dk=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+p2(d.getMonth()+1)
 function agg(a,b){const k=a+'|'+b;let r=AC.get(k);if(!r){r=agg0(a,b);AC.set(k,r);if(AC.size>40)AC.delete(AC.keys().next().value)}return r}
 function agg0(a,b){
  const inR=t=>t>=a&&t<b;
- const tx=D.tx.filter(t=>inR(t.ts)).sort((x,y)=>y.ts-x.ts),rf=D.refunds.filter(r=>inR(r.ts)),cs=[...D.cash,...(D.cf||[]).filter(x=>(x.type==='in'||x.type==='out')&&!x.nonop).map(x=>({...x,src:'arus'}))].filter(x=>inR(x.ts)).sort((x,y)=>y.ts-x.ts),sh=D.shifts.filter(s=>inR(s.openTs)).sort((x,y)=>y.openTs-x.openTs);
+ const tx=D.tx.filter(t=>inR(t.ts)).sort((x,y)=>y.ts-x.ts),rf=D.refunds.filter(r=>inR(r.ts)),cs=[...D.cash,...(D.cf||[]).filter(x=>(x.type==='in'||x.type==='out')&&!x.nonop).map(x=>({...x,src:'arus'})),...billPays().map(({b,p})=>({id:p.id,ts:+p.ts,type:'out',amount:+p.amount||0,cat:b.cat||'Beban',sub:'',note:b.note||'',src:'arus'}))].filter(x=>inR(x.ts)).sort((x,y)=>y.ts-x.ts),sh=D.shifts.filter(s=>inR(s.openTs)).sort((x,y)=>y.openTs-x.openTs);
  const gross=sum(tx,t=>t.total-(t.compAmt||0)),refAmt=sum(rf,r=>r.amount),omzet=gross-refAmt,cmp=sum(tx,t=>t.compAmt||0),fMdr=sum(tx,t=>(t.fee&&t.fee.mdr||0)*(feeNet(t)/(t.feeTot||1))),fSvc=sum(tx,t=>(t.fee&&t.fee.svc||0)*(feeNet(t)/(t.feeTot||1))),fAdm=sum(tx,t=>(t.fee&&t.fee.adm||0)*(feeNet(t)/(t.feeTot||1))),fShip=sum(tx,t=>(t.fee&&t.fee.ship||0)*(feeNet(t)/(t.feeTot||1))),fees=fMdr+fSvc+fAdm+fShip;
  const net=sum(tx,t=>(t.net||0)*(1-cRatio(t)))-sum(rf,r=>r.net||0);
  const cogs=sum(tx,t=>sum(t.items,i=>i.qty*(i.cogs||0)))-sum(rf,r=>sum(r.items,i=>i.qty*(i.cogs||0)));
@@ -942,7 +942,7 @@ function render(){
   return;
  }
  CUR=calc();
- const V={lapabsen:vLapAbsen,lapbanding:vLapBanding,lapjualgd:vLapJualGd,lapputar:vLapPutar,lapdead:vLapDead,opname:vOpname,laprefund:vLapRefund,lapubah:vLapUbah,lapdiskon:vLapDiskon,home:vHome,lapgudang:vLapGudang,lapmutasi:vLapMutasi,lapkartu:vLapKartu,ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:()=>pmView('jual'),mbahan:()=>pmView('bahan'),mresep:()=>pmView('resep'),mgudang:vGudang,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar,penawaran:()=>dcPage('s','qt'),sjalan:()=>dcPage('s','sj'),pbeli:()=>dcPage('b','po'),tbarang:()=>dcPage('b','gr'),mhak:akCard,mperkasir:vPerKasir,mbostaf:vBoStaf};
+ const V={lapabsen:vLapAbsen,lapbanding:vLapBanding,lapjualgd:vLapJualGd,lapputar:vLapPutar,lapdead:vLapDead,opname:vOpname,laprefund:vLapRefund,lapubah:vLapUbah,lapdiskon:vLapDiskon,home:vHome,lapgudang:vLapGudang,lapmutasi:vLapMutasi,lapkartu:vLapKartu,ring:vRing,lappen:vLapPen,rsum:vRsum,analisa:vAnalisa,detail:vDetail,produk:vProduk,kasir:vKasir,pkasir:vPKasir,shift:vShift,cash:vCash,arus:vArus,pelanggan:vPelanggan,pemasok:vPemasok,fakturbeli:vFakturBeli,hutang:vHutang,coa:vCoa,plglap:vPlgLap,fakturjual:vFakturJual,piutang:vPiutang,jurnal:vJurnal,buku:vBuku,lapkeu:vLapKeu,karyawan:vKaryawan,komisi:vKomisi,gaji:vGaji,mproduk:()=>pmView('jual'),mbahan:()=>pmView('bahan'),mresep:()=>pmView('resep'),mgudang:vGudang,lapstok:vLapStok,lappajak:vLapPajak,aset:vAset,beban:vBeban,bayar:vBayar,mkat:katHtml,monline:onlHtml,mpaket:pktHtml,mstok:vMStok,mexp:vMExp,mpromo:vMPromo,moutlet:vMOutlet,rekening:vRekening,mkeamanan:vMKeamanan,pesanan:vPesanan,jasa:vJasa,mstaf:vStaf,mbayar:vMBayar,penawaran:()=>dcPage('s','qt'),sjalan:()=>dcPage('s','sj'),pbeli:()=>dcPage('b','po'),tbarang:()=>dcPage('b','gr'),mhak:akCard,mperkasir:vPerKasir,mbostaf:vBoStaf};
  if(OWNER&&!OWN_OK.includes(tab))tab='ring';
  if(D&&isLocked(tab))tab='ring';
  if(D&&!canTab(tab))tab=akFirst();
@@ -1669,7 +1669,7 @@ function shiftDetail(id){
 const AK={acc:''},BT={tunai:'Kas Tunai (kasir/laci)',penampung:'Bank Penampung (belum cair)',bank:'Bank',ewallet:'E-Wallet'},MKEYS0=['tunai','qris','debit','kredit','transfer','ewallet'];
 const mkeys=()=>[...MKEYS0,...pmxL().filter(x=>x&&METHODS[x.id]).map(x=>x.id),'luar','gaji',...Object.keys(CH).map(k=>'ch_'+k)];
 const mLabel=k=>k==='luar'?'Catatan kas kasir “di luar laci”':k==='gaji'?'Pembayaran gaji & komisi':/^ch_/.test(k)?'Pesanan '+(CH[k.slice(3)]||k)+' (semua pembayaran non-tunai)':(METHODS[k]||k);
-const CFC={out:['Belanja Bahan','Gaji','Sewa','Listrik & Air','Transportasi','Marketing','Peralatan','Pajak','Lainnya'],in:['Setoran Modal','Pinjaman','Pendapatan Lain','Lainnya']};
+const CFC={out:['Belanja Bahan','Gaji','Sewa','Listrik & Air','Transportasi','Marketing','Peralatan','Pajak','Setor PPh 21','Setor BPJS','Kasbon Karyawan','Lainnya'],in:['Setoran Modal','Pinjaman','Pendapatan Lain','Pelunasan Kasbon','Lainnya']};
 const BANKS=()=>(D&&D.banks)||[],CFS=()=>(D&&D.cf)||[],CMAP=()=>(D&&D.cfmap)||{};
 const accName=id=>{const b=BANKS().find(x=>x.id===id);return b?b.name:'Belum diatur'};
 function chAcc(t){
@@ -1685,8 +1685,10 @@ function accOf(m){
  const f=(m==='tunai'||m==='luar'||m==='gaji')?b.find(x=>x.type==='tunai'):(b.find(x=>x.type==='penampung')||b.find(x=>x.type!=='tunai'));
  return f?f.id:'-';
 }
+function payAccOf(p){const id=p&&p.payAcc;return id&&BANKS().some(b=>b.id===id)?id:accOf('gaji')}
 function cfFlows(){
  const L=[],add=(ts,acc,kind,label,inn,out,src,id,x)=>L.push({ts,acc,kind,label,inn,out,src,id,...x});
+ billPays().forEach(({b,p})=>add(+p.ts,p.acc,'pay','Bayar beban · '+(b.cat||'')+(b.note?' · '+b.note:''),0,+p.amount||0,'Otomatis',undefined,{cat:b.cat||'Beban'}));
  const sg={};
  D.tx.forEach(t=>t.payments.forEach(p=>{
   if(p.m==='kasbon'||p.m==='komplimen'||p.m==='dp'||t.inv)return;
@@ -1699,7 +1701,7 @@ function cfFlows(){
  Object.values(fg).forEach(o=>add(o.ts,o.a,'fee','Biaya MDR/platform',0,o.v,'Otomatis'));
  (D.payroll||[]).forEach(p=>{
   if(p.status!=='paid'||!p.paidTs)return;
-  const a=accOf('gaji'),c=+p.comm||0,g=(+p.total||0)-c,nm=(p.empName||'')+' '+(p.period||'');
+  const a=payAccOf(p),c=+p.comm||0,g=(+p.total||0)-c,nm=(p.empName||'')+' '+(p.period||'');
   if(g>0)add(+p.paidTs,a,'pay','Gaji '+nm,0,g,'Otomatis',undefined,{cat:'Gaji'});
   if(c>0)add(+p.paidTs,a,'pay','Komisi '+nm,0,c,'Otomatis',undefined,{cat:'Komisi'});
  });
@@ -1769,7 +1771,7 @@ function cfForm(type,id){
   cats=[...new Set([...(CFC[tp]||[]),...CFS().filter(x=>x.type===tp).map(x=>x.cat)].filter(Boolean))];
  dlg(`<h3>${id?'Ubah':'Catat'} ${tp==='in'?'Dana Masuk':tp==='out'?'Pengeluaran':'Transfer / Pencairan / Setoran'}</h3><datalist id="cl">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>${tp==='tf'?'<div class="mut" style="margin-bottom:8px">Contoh: pencairan dari Bank Penampung ke BCA, atau setoran dari Kas Kasir ke bank.</div>':''}
  <div class="g2">${fld('c_dt','Tanggal',dk(e.ts),'date')}<div><label>${tp==='tf'?'Dari rekening':'Rekening'}</label><select id="c_acc">${opt(e.acc)}</select></div>
- ${tp==='tf'?`<div><label>Ke rekening</label><select id="c_to">${opt(e.to)}</select></div>`:fld('c_cat','Kategori',e.cat,'text','','list="cl" oninput="if(/belanja|peralatan|stok|bahan|prive|cicilan/i.test(this.value)){var c=document.getElementById(\'c_nop\');if(c)c.checked=true}"')}
+ ${tp==='tf'?`<div><label>Ke rekening</label><select id="c_to">${opt(e.to)}</select></div>`:fld('c_cat','Kategori',e.cat,'text','','list="cl" oninput="if(/belanja|peralatan|stok|bahan|prive|cicilan|setor pph|setor bpjs|kasbon/i.test(this.value)){var c=document.getElementById(\'c_nop\');if(c)c.checked=true}"')}
  ${tp==='tf'?'':`<div style="grid-column:1/-1"><label>Akun COA (opsional)</label>${acctSel('c_acct',e.acct,tp==='out'?['X','H','P','T','AL','AT','LP','LJ','E']:['R','LP','LJ','E','AL','AT'],'Otomatis (ikut kategori / Plot Akun)')}</div>`}${tp==='tf'?'':fld('c_sub','Item (beli / bayar apa)',e.sub,'text','mis. Gas, Plastik','list="csl"')}${fld('c_amt','Nominal (Rp)',e.amount,'number')}${fld('c_note','Catatan',e.note)}</div><datalist id="csl">${[...new Set([...CFS().filter(x=>x.sub).map(x=>x.sub),...(D.cash||[]).filter(x=>x.sub).map(x=>x.sub)])].sort().map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
  ${tp==='out'?chk('c_nop','Bukan biaya operasional (belanja stok, peralatan, cicilan pokok, prive): tetap tercatat di Arus Kas, tapi tidak mengurangi laba',e.nonop)+'<div class="hint" id="c_dbl" style="margin-top:6px">Membeli bahan atau barang dagangan dari pemasok? Catat lewat <b>Faktur Pembelian</b> supaya stok, hutang, dan HPP ikut tersambung. Jangan dicatat dua kali di sini.</div>':''}
  <div class="acts2"><button class="btn pri" onclick="saveCf('${id||''}','${tp}',this)">Simpan</button>${id?`<button class="btn del" onclick="delCf('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
@@ -1951,6 +1953,67 @@ function vAset(){
  return`${akNote()}${kpi}<div class="hint">Penyusutan dan beban di muka dijurnal otomatis tiap akhir bulan: <b>Beban Penyusutan</b> / <b>Beban Sewa</b> naik, <b>Akumulasi Penyusutan</b> / <b>Biaya Dibayar di Muka</b> turun. Aset yang dibeli sebelum tanggal mulai pembukuan masuk sebagai saldo awal.</div>
  <div class="card"><div class="tool"><b>Aset Tetap</b><span style="margin-left:auto"><button class="btn pri" onclick="asetForm('tetap')">+ Aset Tetap</button></span></div>${tbl(cT,1)}</div>
  <div class="card" style="margin-top:12px"><div class="tool"><b>Biaya Dibayar di Muka</b> <span class="mut">(sewa, asuransi, dll.)</span><span style="margin-left:auto"><button class="btn pri" onclick="asetForm('muka')">+ Bayar di Muka</button></span></div>${tbl(cM,0)}</div>`;
+}
+/* ---------- Beban & Biaya: dicatat dulu (hutang), dibayar belakangan ---------- */
+const BILLS=()=>(AKUN().bills||[]);
+const billPaid=b=>sum(b.pays||[],p=>+p.amount||0),billLeft=b=>Math.max(0,Math.round((+b.amount||0)-billPaid(b)));
+function billPays(){const o=[];BILLS().forEach(b=>(b.pays||[]).forEach(p=>o.push({b,p})));return o}
+const BL={st:''};
+const billSt=b=>billLeft(b)<=0?'Lunas':billPaid(b)>0?'Sebagian':'Belum dibayar';
+const billBadge=b=>{const t=billSt(b);return`<span class="badge ${t==='Lunas'?'g':t==='Sebagian'?'k':'v'}">${t}</span>`};
+function vBeban(){
+ const all=BILLS().slice().sort((a,b)=>+b.ts-+a.ts),l=all.filter(b=>!BL.st||billSt(b)===BL.st),tot=sum(all,b=>+b.amount||0),pd=sum(all,billPaid),od=all.filter(b=>billLeft(b)>0&&b.due&&+b.due<Date.now());
+ return`${akNote()}<div class="kg"><div class="kc"><small>Total beban dicatat</small><b>${rp(tot)}</b></div><div class="kc"><small>Sudah dibayar</small><b style="color:var(--ok)">${rp(pd)}</b></div><div class="kc"><small>Belum dibayar (hutang)</small><b style="color:var(--${tot-pd>0?'bad':'ok'})">${rp(tot-pd)}</b></div><div class="kc"><small>Lewat jatuh tempo</small><b style="color:var(--${od.length?'bad':'ok'})">${od.length}</b></div></div>
+ <div class="card"><div class="tool"><select onchange="BL.st=this.value;render()"><option value="">Semua status</option>${['Belum dibayar','Sebagian','Lunas'].map(x=>`<option ${BL.st===x?'selected':''}>${x}</option>`).join('')}</select><span style="margin-left:auto"><button class="btn pri" onclick="billForm()">+ Catat Beban</button></span></div>
+ <div class="tw">${l.length?`<table><tr><th>Tanggal</th><th>Jatuh tempo</th><th>Kategori</th><th>Keterangan</th><th class="r">Nominal</th><th class="r">Dibayar</th><th class="r">Sisa</th><th>Status</th><th></th></tr>${l.map(b=>`<tr><td>${dk(+b.ts)}</td><td>${b.due?dk(+b.due):'-'}</td><td>${esc(b.cat||'')}</td><td>${esc(b.note||'')}</td><td class="r">${rp(+b.amount||0)}</td><td class="r">${rp(billPaid(b))}</td><td class="r"><b>${rp(billLeft(b))}</b></td><td>${billBadge(b)}</td><td style="text-align:right;white-space:nowrap">${billLeft(b)>0?`<button class="btn sm pri" onclick="billPayForm('${b.id}')">Bayar</button> `:''}<button class="btn sm" onclick="billForm('${b.id}')">Ubah</button></td></tr>`).join('')}</table>`:'<div class="empty">Belum ada beban. Tekan + Catat Beban, misalnya tagihan listrik yang belum dibayar.</div>'}</div></div>
+ <div class="hint" style="margin-top:8px">Mencatat beban langsung membuat jurnal: <b>Beban</b> bertambah dan <b>Hutang Beban &amp; Biaya</b> bertambah. Saat dibayar (lewat tombol Bayar atau menu Kas &amp; Keuangan → Pembayaran), hutang turun dan saldo rekening berkurang. Jangan catat lagi di Arus Kas agar tidak dobel. Gaji karyawan dicatat di menu Penggajian (tombol Catat).${AKUN().basis==='kas'?' <b>Mode Basis Kas aktif:</b> beban baru masuk jurnal saat dibayar.':''}</div>`;
+}
+function billForm(id){
+ const b=BILLS().find(x=>x.id===id)||{},cats=[...new Set([...(CFC.out||[]).filter(c=>!PAYC.test(c)&&c!=='Gaji'&&c!=='Belanja Bahan'),...BILLS().map(x=>x.cat)].filter(Boolean))];
+ dlg(`<h3>${id?'Ubah':'Catat'} Beban</h3><datalist id="bcl">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+ <div class="g2">${fld('bb_dt','Tanggal beban',dk(b.ts||Date.now()),'date')}${fld('bb_due','Jatuh tempo (opsional)',b.due?dk(+b.due):'','date')}${fld('bb_cat','Kategori beban',b.cat,'text','mis. Listrik & Air','list="bcl"')}${fld('bb_amt','Nominal (Rp)',b.amount,'number')}</div>
+ ${fld('bb_note','Keterangan (tagihan apa, dari siapa)',b.note)}
+ <div style="margin-top:8px"><label>Akun COA (opsional)</label>${acctSel('bb_acct',b.acct,['X'],'Otomatis (ikut kategori / Plot Akun)')}</div>
+ <div class="acts2"><button class="btn pri" onclick="billSave('${id||''}',this)">Simpan</button>${id&&!(b.pays||[]).length?`<button class="btn del" onclick="billDel('${id}',this)">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+function billSave(id,btn){
+ const cat=v('bb_cat').trim(),amt=Math.round(+v('bb_amt')||0),d=v('bb_dt');
+ if(!d||!cat||!(amt>0)){alert('Isi tanggal, kategori, dan nominal');return}
+ const ak=AKUN(),list=[...(ak.bills||[])],old=list.find(x=>x.id===id);
+ if(old&&amt<billPaid(old)){alert('Nominal tidak boleh kurang dari yang sudah dibayar ('+rp(billPaid(old))+')');return}
+ const rec={...(old||{}),id:id||'bl'+Date.now().toString(36),ts:new Date(d+'T12:00').getTime(),due:v('bb_due')?new Date(v('bb_due')+'T12:00').getTime():0,cat,amount:amt,note:v('bb_note').trim(),acct:v('bb_acct')||'',pays:(old&&old.pays)||[]};
+ const i=list.findIndex(x=>x.id===id);if(i>=0)list[i]=rec;else list.push(rec);
+ safe(()=>push('akun',{...ak,bills:list}),btn);
+}
+function billDel(id,btn){
+ if(!confirm('Hapus beban ini? Jurnalnya ikut hilang.'))return;
+ const ak=AKUN();safe(()=>push('akun',{...ak,bills:(ak.bills||[]).filter(x=>x.id!==id)}),btn);
+}
+function billPayForm(id){
+ const b=BILLS().find(x=>x.id===id);if(!b)return;const bk=BANKS().filter(x=>x.active!==false);
+ if(!bk.length){alert('Buat rekening dulu (menu Rekening).');return}
+ dlg(`<h3>Bayar Beban</h3><div class="mut" style="margin-bottom:8px">${esc(b.cat||'')}${b.note?' · '+esc(b.note):''} · sisa <b>${rp(billLeft(b))}</b></div>
+ <div class="g2">${fld('bp_dt','Tanggal bayar',dk(Date.now()),'date')}<div><label>Dibayar dari rekening</label><select id="bp_acc">${bk.map(x=>`<option value="${esc(x.id)}" ${x.id===accOf('tunai')?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>${fld('bp_amt','Nominal dibayar (Rp)',billLeft(b),'number')}</div>
+ <div class="hint">Bisa dicicil: isi nominal lebih kecil dari sisa.</div>
+ <div class="acts2"><button class="btn pri" onclick="billPayGo('${id}',this)">Bayar</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+function billPayGo(id,btn){
+ const b=BILLS().find(x=>x.id===id);if(!b)return;const amt=Math.round(+v('bp_amt')||0),d=v('bp_dt');
+ if(!d||!(amt>0)){alert('Isi tanggal dan nominal');return}
+ if(amt>billLeft(b)){alert('Nominal melebihi sisa ('+rp(billLeft(b))+')');return}
+ const ak=AKUN(),list=(ak.bills||[]).map(x=>x.id===id?{...x,pays:[...(x.pays||[]),{id:'bp'+Date.now().toString(36),ts:new Date(d+'T12:00').getTime(),acc:v('bp_acc'),amount:amt}]}:x);
+ safe(()=>push('akun',{...ak,bills:list}),btn);
+}
+/* ---------- Pembayaran (Kas & Keuangan): bayar gaji dan beban yang sudah dicatat ---------- */
+function vBayar(){
+ const gj=(D.payroll||[]).filter(p=>p.status==='posted').sort((a,b)=>String(a.period).localeCompare(String(b.period))),bl=BILLS().filter(b=>billLeft(b)>0).sort((a,b)=>(+a.due||+a.ts)-(+b.due||+b.ts)),
+  tg=sum(gj,p=>+p.total||0),tb=sum(bl,billLeft),
+  hist=[...(D.payroll||[]).filter(p=>p.status==='paid'&&p.paidTs).map(p=>({ts:+p.paidTs,d:'Gaji '+(p.empName||'')+' '+(p.period||''),acc:payAccOf(p),v:+p.total||0})),...billPays().map(({b,p})=>({ts:+p.ts,d:'Beban '+(b.cat||'')+(b.note?' · '+b.note:''),acc:p.acc,v:+p.amount||0}))].sort((a,b)=>b.ts-a.ts).slice(0,25);
+ return`<div class="kg"><div class="kc"><small>Gaji dicatat, belum dibayar</small><b style="color:var(--${tg?'bad':'ok'})">${rp(tg)}</b></div><div class="kc"><small>Beban belum dibayar</small><b style="color:var(--${tb?'bad':'ok'})">${rp(tb)}</b></div><div class="kc"><small>Total harus dibayar</small><b>${rp(tg+tb)}</b></div></div>
+ <div class="card"><div class="ch"><div><h4>Gaji karyawan</h4><p>Slip yang sudah <b>Dicatat</b> di menu Penggajian dan belum dibayar.</p></div></div><div class="tw">${gj.length?`<table><tr><th>Karyawan</th><th>Periode</th><th class="r">Diterima karyawan</th><th></th></tr>${gj.map(p=>`<tr><td><b>${esc(p.empName||'')}</b></td><td>${esc(ymLabel(p.period))}</td><td class="r">${rp(+p.total||0)}</td><td style="text-align:right"><button class="btn sm pri" onclick="GJ.m='${esc(p.period)}';payPaid('${esc(p.empId)}')">Bayar</button></td></tr>`).join('')}</table>`:'<div class="empty">Tidak ada gaji yang menunggu dibayar.</div>'}</div></div>
+ <div class="card" style="margin-top:12px"><div class="ch"><div><h4>Beban &amp; biaya</h4><p>Dari menu Akuntansi → Beban &amp; Biaya.</p></div></div><div class="tw">${bl.length?`<table><tr><th>Kategori</th><th>Keterangan</th><th>Jatuh tempo</th><th class="r">Sisa</th><th></th></tr>${bl.map(b=>`<tr><td>${esc(b.cat||'')}</td><td>${esc(b.note||'')}</td><td>${b.due?`<span style="color:var(--${+b.due<Date.now()?'bad':'ok'})">${dk(+b.due)}</span>`:'-'}</td><td class="r"><b>${rp(billLeft(b))}</b></td><td style="text-align:right"><button class="btn sm pri" onclick="billPayForm('${b.id}')">Bayar</button></td></tr>`).join('')}</table>`:'<div class="empty">Tidak ada beban yang menunggu dibayar.</div>'}</div></div>
+ <div class="card" style="margin-top:12px"><div class="ch"><div><h4>Pembayaran terakhir</h4></div></div><div class="tw">${hist.length?`<table><tr><th>Tanggal</th><th>Keterangan</th><th>Rekening</th><th class="r">Nominal</th></tr>${hist.map(x=>`<tr><td>${dk(x.ts)}</td><td>${esc(x.d)}</td><td>${esc(accName(x.acc))}</td><td class="r">${rp(x.v)}</td></tr>`).join('')}</table>`:'<div class="empty">Belum ada pembayaran.</div>'}</div></div>
+ <div class="hint" style="margin-top:8px">Hutang pemasok (faktur pembelian) dibayar di menu Pembelian → Faktur Pembelian.</div>`;
 }
 function asetForm(kind,id){
  const a=(AKUN().assets||[]).find(x=>x.id===id)||{},tet=kind==='tetap',bs=BANKS(),life=a.life||(tet?48:12);
@@ -3057,10 +3120,11 @@ function daysPresent(e,ym){
 function payRec(e,ym){return(D.payroll||[]).find(p=>p.empId===e.id&&p.period===ym)}
 function payCalc(e,ym,ca,ov){
  const r=Object.assign({},payRec(e,ym)||{},ov||{});
- if(r.status==='paid'&&!ov)return{days:r.days,base:+r.base||0,allow:+r.allow||0,comm:+r.comm||0,bonus:+r.bonus||0,ded:+r.deduct||0,total:+r.total||0,rec:r,paid:true};
+ if((r.status==='paid'||r.status==='posted')&&!ov)return{days:r.days,base:+r.base||0,allow:+r.allow||0,comm:+r.comm||0,bonus:+r.bonus||0,ded:+r.deduct||0,kasbon:+r.kasbon||0,pph:+r.pph||0,bpjsK:+r.bpjsK||0,bpjsP:+r.bpjsP||0,total:+r.total||0,rec:r,paid:r.status==='paid',st:r.status};
  const harian=e.payType==='harian',days=(r.days!==undefined&&r.days!==''&&r.days!==null)?+r.days:daysPresent(e,ym);
- const base=harian?Math.round((+e.salary||0)*days):(+e.salary||0),allow=+e.allowance||0,row=ca.rows[e.id],comm=row?row.c:0,bonus=+r.bonus||0,ded=+r.deduct||0;
- return{days:harian?days:'',base,allow,comm,bonus,ded,total:base+allow+comm+bonus-ded,rec:r,paid:false};
+ const base=harian?Math.round((+e.salary||0)*days):(+e.salary||0),allow=+e.allowance||0,row=ca.rows[e.id],comm=row?row.c:0,bonus=+r.bonus||0,ded=+r.deduct||0,bs=base+allow;
+ const nv=(x,d)=>(x!==undefined&&x!==''&&x!==null)?Math.max(0,+x||0):d,kasbon=nv(r.kasbon,0),pph=nv(r.pph,Math.max(0,+e.pph||0)),bpjsK=nv(r.bpjsK,Math.round(bs*(+e.bpjsK||0)/100)),bpjsP=nv(r.bpjsP,Math.round(bs*(+e.bpjsP||0)/100));
+ return{days:harian?days:'',base,allow,comm,bonus,ded,kasbon,pph,bpjsK,bpjsP,total:base+allow+comm+bonus-ded-kasbon-pph-bpjsK,rec:r,paid:false,st:'draft'};
 }
 /*ENGINE-END*/
 const ruleTxt=c=>!c.active?'Belum diaktifkan':c.mode==='flat'?'Tarif tetap '+fq(c.flat)+'% dari penjualan':'Bertingkat ('+(c.tierType==='cliff'?'naik kelas':'progresif')+', dasar '+(c.basis==='team'?'total tim':'penjualan pribadi')+'): '+[...c.tiers].sort((a,b)=>a.from-b.from).map(t=>'≥ '+rp(t.from)+' → '+fq(t.rate)+'%').join(' · ');
@@ -3082,7 +3146,7 @@ function empForm(id){
  const e=EMP().find(x=>x.id===id)||{payType:'bulanan',comm:true,active:true},roles=['Kasir','Pelayan','Barista','Koki','Supervisor','Manajer'];
  dlg(`<h3>${id?'Ubah':'Tambah'} Karyawan</h3><datalist id="rl">${roles.map(r=>`<option value="${r}">`).join('')}</datalist>
  <div class="g2">${fld('e_name','Nama (sama dengan nama di kasir bila kasir juga pelayan)',e.name)}${fld('e_role','Jabatan',e.role,'text','','list="rl"')}${fld('e_phone','No. HP / WhatsApp',e.phone,'tel')}${fld('e_join','Tanggal masuk',e.joined,'date')}
- <div><label>Sistem gaji</label><select id="e_pt"><option value="bulanan" ${e.payType!=='harian'?'selected':''}>Bulanan (tetap)</option><option value="harian" ${e.payType==='harian'?'selected':''}>Harian (× hari hadir dari absen dan shift)</option></select></div>${fld('e_sal','Gaji pokok (Rp per bulan / per hari)',e.salary,'number')}${fld('e_all','Tunjangan tetap per bulan (Rp)',e.allowance||0,'number')}${fld('e_note','Catatan',e.note)}</div>
+ <div><label>Sistem gaji</label><select id="e_pt"><option value="bulanan" ${e.payType!=='harian'?'selected':''}>Bulanan (tetap)</option><option value="harian" ${e.payType==='harian'?'selected':''}>Harian (× hari hadir dari absen dan shift)</option></select></div>${fld('e_sal','Gaji pokok (Rp per bulan / per hari)',e.salary,'number')}${fld('e_all','Tunjangan tetap per bulan (Rp)',e.allowance||0,'number')}${fld('e_pph','PPh 21 dipotong per bulan (Rp), opsional',e.pph||'','number')}${fld('e_bk','BPJS dipotong dari karyawan (% dari gaji + tunjangan)',e.bpjsK||'','number')}${fld('e_bp','BPJS ditanggung perusahaan (%)',e.bpjsP||'','number')}${fld('e_note','Catatan',e.note)}</div>
  ${chk('e_cm','Ikut komisi penjualan',e.comm!==false)}${chk('e_ac','Karyawan aktif (tampil di kasir)',e.active!==false)}
  <div class="acts2"><button class="btn pri" onclick="saveEmp('${id||''}',this)">Simpan</button>${id?`<button class="btn del" onclick="delEmp('${id}')">Hapus</button>`:''}<button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
@@ -3090,7 +3154,7 @@ function saveEmp(id,btn){
  const name=v('e_name').trim();
  if(!name){alert('Isi nama karyawan');return}
  if(EMP().some(x=>x.id!==id&&nm_(x.name)===nm_(name))){alert('Nama karyawan sudah ada');return}
- safe(()=>push('employee',{id:id||'e'+Date.now().toString(36),name,role:v('e_role').trim(),phone:v('e_phone').trim(),joined:v('e_join'),payType:v('e_pt'),salary:Math.max(0,+v('e_sal')||0),allowance:Math.max(0,+v('e_all')||0),note:v('e_note').trim(),comm:ck('e_cm'),active:ck('e_ac')}),btn);
+ safe(()=>push('employee',{id:id||'e'+Date.now().toString(36),name,role:v('e_role').trim(),phone:v('e_phone').trim(),joined:v('e_join'),payType:v('e_pt'),salary:Math.max(0,+v('e_sal')||0),allowance:Math.max(0,+v('e_all')||0),pph:Math.max(0,+v('e_pph')||0),bpjsK:Math.max(0,+v('e_bk')||0),bpjsP:Math.max(0,+v('e_bp')||0),note:v('e_note').trim(),comm:ck('e_cm'),active:ck('e_ac')}),btn);
 }
 function delEmp(id){if(confirm('Hapus karyawan ini? Nota lama tetap menyimpan namanya. (Untuk menyembunyikan dari kasir, cukup matikan “Karyawan aktif”.)'))safe(()=>push('employee_del',{id}))}
 
@@ -3160,34 +3224,52 @@ function vGaji(){
  const tot=sum(L,x=>x.c.total),paid=sum(L.filter(x=>x.c.paid),x=>x.c.total);
  return`${monthBar(GJ,'setGJ')}
  <div class="kg"><div class="kc"><small>Total gaji · ${esc(ymLabel(GJ.m))}</small><b>${rp(tot)}</b></div><div class="kc"><small>Total komisi</small><b>${rp(sum(L,x=>x.c.comm))}</b></div><div class="kc"><small>Sudah dibayar</small><b style="color:var(--ok)">${rp(paid)}</b></div><div class="kc"><small>Belum dibayar</small><b style="color:var(--${tot-paid>0?'bad':'ok'})">${rp(tot-paid)}</b></div></div>
- <div class="card"><div class="ch"><div><h4>Gaji Karyawan</h4><p>Gaji pokok + tunjangan + komisi + bonus − potongan. Tekan “Bayar” untuk mengunci angka bulan ini.</p></div><button class="btn" onclick="gjExport()">${ic('dl',16)} Excel</button></div><div class="tw">${L.length?`<table><tr><th>Karyawan</th><th class="r">Hari</th><th class="r">Gaji pokok</th><th class="r">Tunjangan</th><th class="r">Komisi</th><th class="r">Bonus</th><th class="r">Potongan</th><th class="r">Total</th><th>Status</th><th></th></tr>${L.map(({e,c})=>`<tr><td><b>${esc(e.name)}</b>${e.role?'<br><small class="mut">'+esc(e.role)+'</small>':''}</td><td class="r">${c.days===''?'-':c.days}</td><td class="r">${rp(c.base)}</td><td class="r">${rp(c.allow)}</td><td class="r">${rp(c.comm)}</td><td class="r">${rp(c.bonus)}</td><td class="r">${c.ded?'−'+rp(c.ded):'-'}</td><td class="r"><b>${rp(c.total)}</b></td><td>${c.paid?'<span class="badge g">Dibayar</span>':'<span class="badge k">Belum</span>'}</td><td style="text-align:right;white-space:nowrap">${c.paid?`<button class="btn sm" onclick="payUnpaid('${e.id}')">Batalkan</button> `:`<button class="btn sm" onclick="payEdit('${e.id}')">Ubah</button> <button class="btn sm pri" onclick="payPaid('${e.id}')">Bayar</button> `}<button class="btn sm" onclick="paySlip('${e.id}')">Slip</button></td></tr>`).join('')}<tr class="ft"><td>Total</td><td></td><td class="r">${rp(sum(L,x=>x.c.base))}</td><td class="r">${rp(sum(L,x=>x.c.allow))}</td><td class="r">${rp(sum(L,x=>x.c.comm))}</td><td class="r">${rp(sum(L,x=>x.c.bonus))}</td><td class="r">${rp(sum(L,x=>x.c.ded))}</td><td class="r">${rp(tot)}</td><td colspan="2"></td></tr></table>`:'<div class="empty">Belum ada karyawan. Tambahkan di menu Data Karyawan.</div>'}</div></div>
- <div class="note">Gaji harian dihitung dari jumlah hari karyawan membuka shift di kasir (nama staf kasir harus sama dengan nama karyawan); jumlah hari bisa diubah manual lewat “Ubah”. Gaji yang sudah ditandai “Dibayar” otomatis masuk ke Arus Kas (sebagai Gaji dan Komisi) dan ke Ringkasan Penjualan sebagai biaya operasional, pada tanggal pembayarannya. Jangan catat lagi manual agar tidak dobel.</div>`;
+ <div class="card"><div class="ch"><div><h4>Gaji Karyawan</h4><p>Gaji pokok + tunjangan + komisi + bonus − potongan. <b>Catat</b> = gaji diakui sebagai beban dan hutang gaji (belum bayar). <b>Bayar</b> = hutang dilunasi dari rekening yang dipilih. Keduanya mengunci angka.</p></div><button class="btn" onclick="gjExport()">${ic('dl',16)} Excel</button></div><div class="tw">${L.length?`<table><tr><th>Karyawan</th><th class="r">Hari</th><th class="r">Gaji pokok</th><th class="r">Tunjangan</th><th class="r">Komisi</th><th class="r">Bonus</th><th class="r">Potongan</th><th class="r">Kasbon &amp; pajak</th><th class="r">Diterima</th><th>Status</th><th></th></tr>${L.map(({e,c})=>`<tr><td><b>${esc(e.name)}</b>${e.role?'<br><small class="mut">'+esc(e.role)+'</small>':''}</td><td class="r">${c.days===''?'-':c.days}</td><td class="r">${rp(c.base)}</td><td class="r">${rp(c.allow)}</td><td class="r">${rp(c.comm)}</td><td class="r">${rp(c.bonus)}</td><td class="r">${c.ded?'−'+rp(c.ded):'-'}</td><td class="r">${(c.kasbon+c.pph+c.bpjsK)?'−'+rp(c.kasbon+c.pph+c.bpjsK):'-'}</td><td class="r"><b>${rp(c.total)}</b></td><td>${c.st==='paid'?'<span class="badge g">Dibayar</span>':c.st==='posted'?'<span class="badge k">Dicatat</span>':'<span class="badge">Belum dicatat</span>'}</td><td style="text-align:right;white-space:nowrap">${c.st==='paid'?`<button class="btn sm" onclick="payUnpaid('${e.id}')">Batalkan</button> `:c.st==='posted'?`<button class="btn sm" onclick="payUnpost('${e.id}')">Batal catat</button> <button class="btn sm pri" onclick="payPaid('${e.id}')">Bayar</button> `:`<button class="btn sm" onclick="payEdit('${e.id}')">Ubah</button> <button class="btn sm" onclick="payPost('${e.id}')">Catat</button> <button class="btn sm pri" onclick="payPaid('${e.id}')">Bayar</button> `}<button class="btn sm" onclick="paySlip('${e.id}')">Slip</button></td></tr>`).join('')}<tr class="ft"><td>Total</td><td></td><td class="r">${rp(sum(L,x=>x.c.base))}</td><td class="r">${rp(sum(L,x=>x.c.allow))}</td><td class="r">${rp(sum(L,x=>x.c.comm))}</td><td class="r">${rp(sum(L,x=>x.c.bonus))}</td><td class="r">${rp(sum(L,x=>x.c.ded))}</td><td class="r">${rp(sum(L,x=>x.c.kasbon+x.c.pph+x.c.bpjsK))}</td><td class="r">${rp(tot)}</td><td colspan="2"></td></tr></table>`:'<div class="empty">Belum ada karyawan. Tambahkan di menu Data Karyawan.</div>'}</div></div>
+ <div class="note">Gaji harian dihitung dari jumlah hari karyawan membuka shift di kasir (nama staf kasir harus sama dengan nama karyawan); jumlah hari bisa diubah manual lewat “Ubah”. Gaji yang sudah “Dibayar” otomatis masuk ke Arus Kas (dari rekening yang dipilih) dan Ringkasan Penjualan pada tanggal pembayarannya. Jangan catat lagi manual agar tidak dobel. Setoran PPh 21 dan BPJS ke negara dicatat di Arus Kas, kategori <b>Setor PPh 21</b> atau <b>Setor BPJS</b>; kasbon yang diberikan ke karyawan: kategori <b>Kasbon Karyawan</b>.</div>`;
 }
-function gjExport(){csv('Gaji-'+GJ.m,[['Karyawan','Jabatan','Hari','Gaji Pokok','Tunjangan','Komisi','Bonus','Potongan','Total','Status'],...(window._gj||[]).map(({e,c})=>[e.name,e.role||'',c.days,c.base,c.allow,c.comm,c.bonus,c.ded,c.total,c.paid?'Dibayar':'Belum'])])}
-function payPayload(e,c,extra){const r=c.rec||{};return Object.assign({id:'pay-'+GJ.m+'-'+e.id,empId:e.id,empName:e.name,period:GJ.m,days:c.days,bonus:c.bonus,deduct:c.ded,note:r.note||'',status:'draft',base:c.base,allow:c.allow,comm:c.comm,total:c.total},extra||{})}
+function gjExport(){csv('Gaji-'+GJ.m,[['Karyawan','Jabatan','Hari','Gaji Pokok','Tunjangan','Komisi','Bonus','Potongan','Kasbon','PPh 21','BPJS Karyawan','BPJS Perusahaan','Diterima','Status'],...(window._gj||[]).map(({e,c})=>[e.name,e.role||'',c.days,c.base,c.allow,c.comm,c.bonus,c.ded,c.kasbon,c.pph,c.bpjsK,c.bpjsP,c.total,c.st==='paid'?'Dibayar':c.st==='posted'?'Dicatat':'Belum dicatat'])])}
+function payPayload(e,c,extra){const r=c.rec||{};return Object.assign({id:'pay-'+GJ.m+'-'+e.id,empId:e.id,empName:e.name,period:GJ.m,days:c.days,bonus:c.bonus,deduct:c.ded,note:r.note||'',status:'draft',base:c.base,allow:c.allow,comm:c.comm,total:c.total,kasbon:c.kasbon||0,pph:c.pph||0,bpjsK:c.bpjsK||0,bpjsP:c.bpjsP||0,payAcc:r.payAcc||'',postTs:r.postTs||0},extra||{})}
 function payEdit(id){
  const e=EMP().find(x=>x.id===id);if(!e)return;const c=payCalc(e,GJ.m,commAgg(GJ.m));
  dlg(`<h3>Ubah Gaji · ${esc(e.name)}</h3><div class="mut" style="margin-bottom:6px">${esc(ymLabel(GJ.m))} · komisi otomatis ${rp(c.comm)}</div>
- ${e.payType==='harian'?fld('p_days','Jumlah hari hadir',c.days,'number'):''}${fld('p_bonus','Bonus (Rp)',c.bonus||'','number')}${fld('p_ded','Potongan (Rp), mis. kasbon / terlambat',c.ded||'','number')}${fld('p_note','Catatan',(c.rec||{}).note||'')}
+ ${e.payType==='harian'?fld('p_days','Jumlah hari hadir',c.days,'number'):''}${fld('p_bonus','Bonus (Rp)',c.bonus||'','number')}${fld('p_ded','Potongan (Rp), mis. kasbon / terlambat',c.ded||'','number')}${fld('p_kb','Potong kasbon (Rp), jadi pelunasan Piutang Karyawan',c.kasbon||'','number')}${fld('p_pph','PPh 21 dipotong (Rp)',c.pph||'','number')}${fld('p_bk','BPJS dipotong dari karyawan (Rp)',c.bpjsK||'','number')}${fld('p_bp','BPJS ditanggung perusahaan (Rp)',c.bpjsP||'','number')}${fld('p_note','Catatan',(c.rec||{}).note||'')}
  <div class="acts2"><button class="btn pri" onclick="paySave('${id}',this)">Simpan</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
 }
 function paySave(id,btn){
  const e=EMP().find(x=>x.id===id);if(!e)return;
- const ov={bonus:Math.max(0,+v('p_bonus')||0),deduct:Math.max(0,+v('p_ded')||0),note:v('p_note').trim()};
+ const ov={bonus:Math.max(0,+v('p_bonus')||0),deduct:Math.max(0,+v('p_ded')||0),kasbon:Math.max(0,+v('p_kb')||0),pph:Math.max(0,+v('p_pph')||0),bpjsK:Math.max(0,+v('p_bk')||0),bpjsP:Math.max(0,+v('p_bp')||0),note:v('p_note').trim()};
  if(e.payType==='harian')ov.days=Math.max(0,+v('p_days')||0);
  const c=payCalc(e,GJ.m,commAgg(GJ.m),ov);
  safe(()=>push('payroll',payPayload(e,Object.assign(c,{rec:Object.assign({},c.rec,ov)}))),btn);
 }
-function payPaid(id){
+function payPost(id){
  const e=EMP().find(x=>x.id===id);if(!e)return;const c=payCalc(e,GJ.m,commAgg(GJ.m));
- if(!confirm('Tandai gaji '+e.name+' '+ymLabel(GJ.m)+' sebesar '+rp(c.total)+' sudah dibayar? Angka akan dikunci.'))return;
- safe(()=>push('payroll',payPayload(e,c,{status:'paid',paidTs:Date.now()})));
+ if(!confirm('Catat gaji '+e.name+' '+ymLabel(GJ.m)+' sebesar '+rp(c.total)+'? Dicatat sebagai beban dan hutang gaji (belum dibayar). Angka dikunci.'))return;
+ safe(()=>push('payroll',payPayload(e,c,{status:'posted',postTs:Date.now()})));
+}
+function payUnpost(id){
+ const e=EMP().find(x=>x.id===id);if(!e)return;
+ if(!confirm('Batalkan pencatatan gaji '+e.name+'? Beban dan hutang gajinya dihapus dari jurnal, angka dihitung ulang.'))return;
+ const r=payRec(e,GJ.m)||{},c=payCalc(e,GJ.m,commAgg(GJ.m),{status:'draft',bonus:r.bonus,deduct:r.deduct,days:r.days,kasbon:r.kasbon,pph:r.pph,bpjsK:r.bpjsK,bpjsP:r.bpjsP});
+ safe(()=>push('payroll',payPayload(e,Object.assign(c,{rec:r}),{status:'draft',postTs:0,paidTs:0})));
+}
+function payPaid(id){
+ const e=EMP().find(x=>x.id===id);if(!e)return;const c=payCalc(e,GJ.m,commAgg(GJ.m)),bk=BANKS().filter(x=>x.active!==false),def=payAccOf(payRec(e,GJ.m)||{});
+ if(!bk.length){alert('Buat rekening dulu (menu Rekening).');return}
+ dlg(`<h3>Bayar Gaji · ${esc(e.name)}</h3><div class="mut" style="margin-bottom:8px">${esc(ymLabel(GJ.m))} · diterima karyawan <b>${rp(c.total)}</b></div>
+ <label>Dibayar dari rekening</label><select id="pp_acc" style="width:100%">${bk.map(x=>`<option value="${esc(x.id)}" ${x.id===def?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
+ ${(c.pph||c.bpjsK||c.bpjsP)?`<div class="hint" style="margin-top:8px">PPh 21 dan BPJS yang dipotong tidak ikut dibayar ke karyawan. Setor ke negara nanti lewat Arus Kas (Setor PPh 21 / Setor BPJS).</div>`:''}
+ <div class="acts2"><button class="btn pri" onclick="payPaidGo('${id}',this)">Bayar</button><button class="btn" onclick="closeDlg()">Batal</button></div>`);
+}
+function payPaidGo(id,btn){
+ const e=EMP().find(x=>x.id===id);if(!e)return;const c=payCalc(e,GJ.m,commAgg(GJ.m)),acc=v('pp_acc'),r=c.rec||{};
+ safe(()=>push('payroll',payPayload(e,c,{status:'paid',paidTs:Date.now(),payAcc:acc,postTs:r.postTs||Date.now()})),btn);
 }
 function payUnpaid(id){
  const e=EMP().find(x=>x.id===id);if(!e)return;
- if(!confirm('Batalkan status dibayar? Angka akan dihitung ulang dari data terbaru.'))return;
- const r=payRec(e,GJ.m)||{},c=payCalc(e,GJ.m,commAgg(GJ.m),{status:'draft',bonus:r.bonus,deduct:r.deduct,days:r.days});
- safe(()=>push('payroll',payPayload(e,Object.assign(c,{rec:r}),{status:'draft',paidTs:0})));
+ if(!confirm('Batalkan status dibayar? Gaji kembali ke status Dicatat (hutang gaji).'))return;
+ const r=payRec(e,GJ.m)||{},c=payCalc(e,GJ.m,commAgg(GJ.m));
+ safe(()=>push('payroll',payPayload(e,Object.assign(c,{rec:r}),{status:'posted',paidTs:0,payAcc:'',postTs:r.postTs||Date.now()})));
 }
 function slipText(e,ym,c){
  const W=34,two=(a,b)=>{a=String(a);b=String(b);return a+' '.repeat(Math.max(1,W-a.length-b.length))+b},ctr=s=>' '.repeat(Math.max(0,Math.floor((W-s.length)/2)))+s,ln='-'.repeat(W),r=c.rec||{};
@@ -3196,9 +3278,12 @@ function slipText(e,ym,c){
  L.push(ln,two(e.payType==='harian'?'Gaji ('+c.days+' hr x '+Math.round(e.salary||0).toLocaleString('id-ID')+')':'Gaji pokok',rp(c.base)),two('Tunjangan',rp(c.allow)),two('Komisi',rp(c.comm)));
  if(c.bonus)L.push(two('Bonus',rp(c.bonus)));
  if(c.ded)L.push(two('Potongan','-'+rp(c.ded)));
+ if(c.kasbon)L.push(two('Potong kasbon','-'+rp(c.kasbon)));
+ if(c.pph)L.push(two('PPh 21','-'+rp(c.pph)));
+ if(c.bpjsK)L.push(two('BPJS karyawan','-'+rp(c.bpjsK)));
  L.push(ln,two('TOTAL DITERIMA',rp(c.total)),ln);
  if(r.note)L.push('Catatan: '+r.note);
- L.push(c.paid&&r.paidTs?'Dibayar: '+fmtT(r.paidTs):'(belum dibayar)');
+ L.push(c.paid&&r.paidTs?'Dibayar: '+fmtT(r.paidTs):c.st==='posted'?'(dicatat, belum dibayar)':'(belum dibayar)');
  return L.join('\n');
 }
 function paySlip(id){
@@ -3418,7 +3503,7 @@ const FX={piutang:['1-2000','Piutang Usaha','A'],persediaan:['1-3000','Persediaa
  hutang:['2-1000','Hutang Usaha','L'],hutanggaji:['2-1400','Hutang Gaji & Komisi','L'],pajak:['2-2000','Pajak','L'],svc:['2-2100','Service Charge','L'],pinjam:['2-4000','Hutang Pinjaman','L'],
  modalawal:['3-1100','Modal Awal (Saldo Awal)','E'],modal:['3-1000','Modal Pemilik (Setoran)','E'],prive:['3-3000','Prive & Pengeluaran Non-Operasional','E'],
  jual:['4-1000','Penjualan','R'],retur:['4-2000','Retur Penjualan','R'],lain:['4-3000','Pendapatan Lain','R'],dpl:['2-1300','Uang Muka Pelanggan (DP)','L'],
- hpp:['5-1000','Harga Pokok Penjualan','X'],gaji:['6-1000','Beban Gaji','X'],komisi:['6-1100','Beban Komisi','X'],mdr:['6-2000','Beban MDR & Biaya Platform','X'],bebanlain:['6-9900','Beban Lain-lain','X'],asettetap:['1-5000','Aset Tetap','A'],akumsusut:['1-5900','Akumulasi Penyusutan','A'],sewamuka:['1-6000','Biaya Dibayar di Muka','A'],bebansusut:['6-4000','Beban Penyusutan','X'],bebansewa:['6-4100','Beban Sewa','X']};
+ hpp:['5-1000','Harga Pokok Penjualan','X'],gaji:['6-1000','Beban Gaji','X'],komisi:['6-1100','Beban Komisi','X'],mdr:['6-2000','Beban MDR & Biaya Platform','X'],bebanlain:['6-9900','Beban Lain-lain','X'],asettetap:['1-5000','Aset Tetap','A'],akumsusut:['1-5900','Akumulasi Penyusutan','A'],sewamuka:['1-6000','Biaya Dibayar di Muka','A'],bebansusut:['6-4000','Beban Penyusutan','X'],bebansewa:['6-4100','Beban Sewa','X'],tunj:['6-1050','Beban Tunjangan','X'],bonus:['6-1150','Beban Bonus','X'],bpjsb:['6-1200','Beban BPJS Perusahaan','X'],piutangkar:['1-2100','Piutang Karyawan (Kasbon)','A'],hutangpph:['2-1500','Hutang PPh 21','L'],hutangbpjs:['2-1600','Hutang BPJS','L'],hutangbeban:['2-1700','Hutang Beban & Biaya','L']};
 const ATYPE={A:'Aset',L:'Kewajiban',E:'Ekuitas',R:'Pendapatan',X:'Beban'};
 const liabSub=m=>m.sub||(m.id==='pinjam'?'panjang':'pendek');
 const akKind=m=>m.type==='A'?(assetSub(m)==='tetap'?'Aset Tetap':'Aset Lancar'):m.type==='L'?(liabSub(m)==='panjang'?'Kewajiban Jangka Panjang':'Kewajiban Jangka Pendek'):(ATYPE[m.type]||'');
@@ -3429,8 +3514,9 @@ function jStart(){
  const ds=BANKS().map(b=>b.openDate).filter(Boolean).sort();
  return ds.length?new Date(ds[0]+'T00:00').getTime():new Date(new Date().getFullYear(),new Date().getMonth(),1).getTime();
 }
-const expAcc=c=>c==='Gaji'?'gaji':c==='Komisi'?'komisi':c==='Lainnya'?'bebanlain':'exp:'+c;
-const inAcc=c=>/modal/i.test(c)?'modal':/pinjam/i.test(c)?'pinjam':'lain';
+const PAYC=/^(Setor PPh|Setor BPJS|Kasbon Karyawan)/i;
+const expAcc=c=>/^Setor PPh/i.test(c)?'hutangpph':/^Setor BPJS/i.test(c)?'hutangbpjs':/^Kasbon Karyawan/i.test(c)?'piutangkar':c==='Gaji'?'gaji':c==='Komisi'?'komisi':c==='Lainnya'?'bebanlain':'exp:'+c;
+const inAcc=c=>/kasbon/i.test(c)?'piutangkar':/modal/i.test(c)?'modal':/pinjam/i.test(c)?'pinjam':'lain';
 let JC=null;
 
 /* ---------- Plot COA: pemetaan akun + akun sendiri ---------- */
@@ -3578,13 +3664,13 @@ function jBuild(){
   if(cg)add(f.ts,'HPP',(f.komp?'HPP komplimen ':'HPP ')+f.no,hppL(it,cg),f.no);
   (f.returns||[]).forEach(r=>{const a=+r.amount||0,t=+r.tax||0;if(!KAS)add(r.ts,'Retur Penjualan','Retur '+f.no+' · '+(f.customerName||''),[['retur',a-t,0],['pajak',t,0],['piutang',0,a]],f.no);const rc=r.stock?sum(r.items||[],i=>i.qty*(+i.cogs||0)):0;if(rc)add(r.ts,'HPP','Retur HPP '+f.no,[['persediaan',rc,0],...hppR(r.items,rc)],f.no)})});
  D.cash.forEach(x=>{const a=bk(accOf(x.m||(x.src==='luar'?'luar':'tunai'))),m=+x.amount||0,c=x.cat||'Lainnya',n=c+(x.note?' · '+x.note:'');
-  if(x.type==='in')add(x.ts,'Kas Kasir','Kas masuk · '+n,[[a,m,0],[c==='DP Pesanan'?'dpl':inAcc(c),0,m]]);else add(x.ts,'Kas Kasir','Kas keluar · '+n,[[c==='Pengembalian DP'?'dpl':x.nonop?(c==='Pembelian stok'?'persediaan':/pinjam/i.test(c)?'pinjam':'prive'):expAcc(c),m,0],[a,0,m]])});
+  if(x.type==='in')add(x.ts,'Kas Kasir','Kas masuk · '+n,[[a,m,0],[c==='DP Pesanan'?'dpl':inAcc(c),0,m]]);else add(x.ts,'Kas Kasir','Kas keluar · '+n,[[c==='Pengembalian DP'?'dpl':PAYC.test(c)?expAcc(c):x.nonop?(c==='Pembelian stok'?'persediaan':/pinjam/i.test(c)?'pinjam':'prive'):expAcc(c),m,0],[a,0,m]])});
  CFS().forEach(x=>{
   const m=+x.amount||0,c=x.cat||'Lainnya',n=(x.note?' · '+x.note:'');
   if(x.type==='tf')add(x.ts,'Transfer','Transfer '+accName(x.acc)+' → '+accName(x.to)+n,[[bk(x.to),m,0],[bk(x.acc),0,m]]);
   else if(x.type==='in')add(x.ts,'Arus Kas','Dana masuk · '+c+n,[[bk(x.acc),m,0],[x.acct&&FXOK(x.acct,ak)?x.acct:/^(fj|kb):/.test(x.ref||'')||/^Pelunasan /.test(x.note||'')?(KAS?'jual':'piutang'):/^rb:/.test(x.ref||'')?'hutang':inAcc(c),0,m]]);
   else if(x.type==='out'){
-   const fb=String(x.ref||'').indexOf('fb:')===0||/^Faktur /.test(x.note||''),dr=x.nonop?(c==='Pembelian stok'?(fb?(KAS?'persediaan':'hutang'):'persediaan'):c==='Uang muka pemasok'?'hutang':c==='Retur penjualan'?'piutang':/pinjam/i.test(c)?'pinjam':'prive'):expAcc(c);
+   const fb=String(x.ref||'').indexOf('fb:')===0||/^Faktur /.test(x.note||''),dr=PAYC.test(c)?expAcc(c):x.nonop?(c==='Pembelian stok'?(fb?(KAS?'persediaan':'hutang'):'persediaan'):c==='Uang muka pemasok'?'hutang':c==='Retur penjualan'?'piutang':/pinjam/i.test(c)?'pinjam':'prive'):expAcc(c);
    add(x.ts,'Arus Kas','Dana keluar · '+c+n,[[x.acct&&FXOK(x.acct,ak)?x.acct:dr,m,0],[bk(x.acc),0,m]]);
   }
  });
@@ -3597,14 +3683,23 @@ function jBuild(){
  });
  (D.stocklog||[]).filter(x=>x.type==='add'&&+x.buyPrice>0&&/^\[HUTANG\]/i.test(x.note||'')&&!/^\[FB\]/i.test(x.note||'')&&!KAS).forEach(x=>{const v=Math.round((+x.delta||+x.qty||0)*(+x.buyPrice));add(x.ts,'Isi Stok','Isi stok belum dibayar · '+(x.name||''),[['persediaan',v,0],['hutang',0,v]])});
  (D.payroll||[]).forEach(p=>{
-  const paid=p.status==='paid'&&+p.paidTs>0,c=+p.comm||0,tt=+p.total||0,g=Math.max(0,tt-c);if(!(tt>0))return;
-  if(KAS){if(paid&&+p.paidTs>=start)add(+p.paidTs,'Penggajian','Gaji '+(p.empName||'')+' '+(p.period||'')+' (dibayar)',[['gaji',g,0],['komisi',c,0],[bk(accOf('gaji')),0,g+c]],p.id);return}
+  const paid=p.status==='paid'&&+p.paidTs>0,posted=paid||p.status==='posted';if(!posted)return;
+  const c=+p.comm||0,al=+p.allow||0,bn=+p.bonus||0,kb=+p.kasbon||0,pp=+p.pph||0,bK=+p.bpjsK||0,bP=+p.bpjsP||0,net=+p.total||0;
+  if(!(net>0||c+al+bn>0))return;
+  const pr=(a,v)=>v>=0?[a,v,0]:[a,0,-v],nm=(p.empName||'')+' '+(p.period||''),acc=bk(payAccOf(p));
+  const gp=net+kb+pp+bK-c-al-bn;                                   // gaji pokok setelah potongan lain
+  const exp=[pr('gaji',gp),['tunj',al,0],['komisi',c,0],['bonus',bn,0],['bpjsb',bP,0]];
+  const tax=[['piutangkar',0,kb],['hutangpph',0,pp],['hutangbpjs',0,bK+bP]];
+  if(KAS){if(paid&&+p.paidTs>=start)add(+p.paidTs,'Penggajian','Gaji '+nm+' (dibayar)',[...exp,[acc,0,net],...tax],p.id);return}
   const ym=String(p.period||'').split('-'),pe=ym.length===2?new Date(+ym[0],+ym[1],1).getTime()-1:0;   // akhir bulan slip gaji
-  let at=paid?Math.min(+p.paidTs,pe||+p.paidTs):pe;if(!at||at>NOW)return;                          // akrual: beban diakui di bulan slip, bukan saat dibayar
-  if(at<start&&paid&&+p.paidTs>=start)at=start;
-  add(at,'Penggajian','Beban gaji '+(p.empName||'')+' '+(p.period||''),[['gaji',g,0],['komisi',c,0],['hutanggaji',0,g+c]],p.id);
-  if(paid)add(+p.paidTs,'Penggajian','Bayar gaji '+(p.empName||'')+' '+(p.period||''),[['hutanggaji',g+c,0],[bk(accOf('gaji')),0,g+c]],p.id);
+  let at=paid?Math.min(+p.paidTs,pe||+p.paidTs):(pe&&pe<=NOW?pe:(+p.postTs||NOW));if(!at||at>NOW)return;   // akrual: beban diakui di bulan slip, bukan saat dibayar
+  const ref=paid?+p.paidTs:(+p.postTs||NOW);if(at<start&&ref>=start)at=start;
+  add(at,'Penggajian','Beban gaji '+nm,[...exp,['hutanggaji',0,net],...tax],p.id);
+  if(paid&&net>0)add(+p.paidTs,'Penggajian','Bayar gaji '+nm,[['hutanggaji',net,0],[acc,0,net]],p.id);
  });
+ BILLS().forEach(b=>{const amt=Math.round(+b.amount||0);if(!(amt>0))return;const ex=b.acct&&FXOK(b.acct,ak)?b.acct:expAcc(b.cat||'Lainnya'),nm=(b.cat||'Beban')+(b.note?' · '+b.note:'');
+  if(!KAS)add(+b.ts,'Beban','Beban '+nm,[[ex,amt,0],['hutangbeban',0,amt]],b.id);
+  (b.pays||[]).forEach(p=>{const m=Math.round(+p.amount||0);if(!(m>0))return;add(+p.ts,'Beban','Bayar beban '+nm,KAS?[[ex,m,0],[bk(p.acc),0,m]]:[['hutangbeban',m,0],[bk(p.acc),0,m]],b.id)})});
  ents.sort((x,y)=>x.ts-y.ts);ents.forEach((e,i)=>e.no='JU-'+String(i+1).padStart(5,'0'));
  // meta akun
  const used={};ents.forEach(e=>e.lines.forEach(l=>used[l[0]]=1));bs.forEach(b=>used[bk(b.id)]=1);(ak.custom||[]).forEach(c=>{if(c.parent&&/^exp:/.test(c.parent))used[c.parent]=1});
@@ -4103,7 +4198,7 @@ const akFirst=()=>{const g=NAV[0];return g&&g[2][0]?g[2][0][0]:'home'};
  const w=f=>async function(){const p=AKP();if(p&&p.write===false)throw new Error('Peran akun ini hanya boleh melihat, tidak boleh mengubah data');return f.apply(this,arguments)};
  pushPost=w(pushPost);pushQuiet=w(pushQuiet);
 })();
-const AKNEED={employees:['karyawan','komisi','gaji','lapabsen','bep'],payroll:['gaji','komisi'],absen:['lapabsen','karyawan','gaji'],
+const AKNEED={employees:['karyawan','komisi','gaji','lapabsen','bep'],payroll:['gaji','komisi','bayar'],absen:['lapabsen','karyawan','gaji'],
  suppliers:['pemasok','fakturbeli','pbeli','tbarang','hutang','mproduk','jurnal','buku','lapkeu','aset','coa','analisa'],purchases:['pemasok','fakturbeli','hutang','jurnal','buku','lapkeu','aset','coa','analisa','lapstok','arus']};
 function akDeny(tabs){
  const ok=new Set(['home']);NAV_ALL.forEach(([g,gi,l])=>{if(tabs.includes(g))l.forEach(i=>ok.add(i[0]))});
