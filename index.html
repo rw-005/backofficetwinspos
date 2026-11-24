@@ -1959,7 +1959,7 @@ const BILLS=()=>(AKUN().bills||[]);
 const billPaid=b=>sum(b.pays||[],p=>+p.amount||0),billLeft=b=>Math.max(0,Math.round((+b.amount||0)-billPaid(b)));
 function billPays(){const o=[];BILLS().forEach(b=>(b.pays||[]).forEach(p=>o.push({b,p})));return o}
 const BL={st:''};
-const dayTs=(d,keep)=>keep&&dk(keep)===d?keep:(d===dk(Date.now())?Date.now():new Date(d+'T12:00').getTime());   // hari ini: pakai jam sekarang supaya urut di jurnal
+const dayTs=(d,keep)=>keep&&dk(keep)===d&&!(d===dk(Date.now())&&new Date(keep).getHours()===12&&new Date(keep).getMinutes()===0)?keep:(d===dk(Date.now())?Date.now():new Date(d+'T12:00').getTime());   // hari ini: pakai jam sekarang supaya urut di jurnal
 const billSt=b=>billLeft(b)<=0?'Lunas':billPaid(b)>0?'Sebagian':'Belum dibayar';
 const billBadge=b=>{const t=billSt(b);return`<span class="badge ${t==='Lunas'?'g':t==='Sebagian'?'k':'v'}">${t}</span>`};
 function vBeban(){
