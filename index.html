@@ -3626,7 +3626,8 @@ function jBuild(){
  if(JC&&JC.src===D)return JC;
  const ak=AKUN(),bs=BANKS(),start=jStart(),ents=[],R=Math.round,bk=id=>'bank:'+(id&&id!=='-'?id:'-'),KAS=ak.basis==='kas';
  const MP=plotMap(),rm=id=>MP[id]||id;
- const add=(ts,src,desc,lines,ref)=>{if(!(ts>=start))return;const L=lines.map(l=>[rm(l[0]),R(l[1]||0),R(l[2]||0)]).filter(l=>l[1]||l[2]);if(L.length)ents.push({ts,src,desc,lines:L,ref:ref||''})};
+ const add=(ts,src,desc,lines,ref,cr)=>{if(!(ts>=start))return;const L=lines.map(l=>[rm(l[0]),R(l[1]||0),R(l[2]||0)]).filter(l=>l[1]||l[2]);if(L.length)ents.push({ts,src,desc,lines:L,ref:ref||'',cr:cr||0})};
+ const crOf=id=>{const n=parseInt(String(id||'').slice(2),36);return n>1e12&&n<4e12?n:0};   // waktu dibuat (dari id), supaya urutan sehari = urutan input
  const hasCat=pre=>Object.keys(MP).some(k=>k.indexOf(pre)===0);
  const catOf=i=>i.cat||((D.products||[]).find(x=>x.id===i.pid)||{}).cat||'Umum';
  /* bagi nilai ke akun per kategori produk (hanya bila ada pemetaan per kategori) */
@@ -3699,9 +3700,9 @@ function jBuild(){
   if(paid&&net>0)add(+p.paidTs,'Penggajian','Bayar gaji '+nm,[['hutanggaji',net,0],[acc,0,net]],p.id);
  });
  BILLS().forEach(b=>{const amt=Math.round(+b.amount||0);if(!(amt>0))return;const ex=b.acct&&FXOK(b.acct,ak)?b.acct:expAcc(b.cat||'Lainnya'),nm=(b.cat||'Beban')+(b.note?' · '+b.note:'');
-  if(!KAS)add(+b.ts,'Beban','Beban '+nm,[[ex,amt,0],['hutangbeban',0,amt]],b.id);
-  (b.pays||[]).forEach(p=>{const m=Math.round(+p.amount||0);if(!(m>0))return;add(+p.ts,'Beban','Bayar beban '+nm,KAS?[[ex,m,0],[bk(p.acc),0,m]]:[['hutangbeban',m,0],[bk(p.acc),0,m]],b.id)})});
- ents.sort((x,y)=>x.ts-y.ts);ents.forEach((e,i)=>e.no='JU-'+String(i+1).padStart(5,'0'));
+  if(!KAS)add(+b.ts,'Beban','Beban '+nm,[[ex,amt,0],['hutangbeban',0,amt]],b.id,crOf(b.id));
+  (b.pays||[]).forEach(p=>{const m=Math.round(+p.amount||0);if(!(m>0))return;add(+p.ts,'Beban','Bayar beban '+nm,KAS?[[ex,m,0],[bk(p.acc),0,m]]:[['hutangbeban',m,0],[bk(p.acc),0,m]],b.id,crOf(p.id))})});
+ const dk0=t=>new Date(t).setHours(0,0,0,0);ents.sort((x,y)=>(dk0(x.ts)-dk0(y.ts))||((x.cr||x.ts)-(y.cr||y.ts)));ents.forEach((e,i)=>e.no='JU-'+String(i+1).padStart(5,'0'));
  // meta akun
  const used={};ents.forEach(e=>e.lines.forEach(l=>used[l[0]]=1));bs.forEach(b=>used[bk(b.id)]=1);(ak.custom||[]).forEach(c=>{if(c.parent&&/^exp:/.test(c.parent))used[c.parent]=1});
  const N=ak.names||{},meta={},cats=Object.keys(used).filter(k=>k.indexOf('exp:')===0).sort();
