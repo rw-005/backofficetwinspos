@@ -3794,6 +3794,15 @@ function vLapKeu(){
  const T=[['ns','Neraca Saldo'],['lr','Laba Rugi'],['nr','Neraca']],d=lapData();
  return`${akNote()}<div class="card"><div class="tool">${T.map(t=>`<button class="btn ${JL.t===t[0]?'pri':''}" onclick="JL.t='${t[0]}';render()">${t[1]}</button>`).join('')}<span style="margin-left:auto"><button class="btn" onclick="lapCsv()">${ic('dl',16)} Excel</button></span></div>${JL.t==='lr'?lapLR(d):JL.t==='nr'?lapNR(d):lapNS(d)}</div>`;
 }
+function lapDrill(id){
+ const B=bukuRows(id),m=jBuild().meta[id];if(!m)return;
+ const rows=B.rows,show=rows.slice(-300);
+ dlg(`<h3>${esc(m.code)} · ${esc(m.name)}</h3><div class="mut" style="margin-bottom:8px">Rincian jurnal · ${esc(perLabel())}</div>
+ <div class="kg"><div class="kc"><small>Saldo awal periode</small><b>${rp(B.open)}</b></div><div class="kc"><small>Saldo akhir</small><b>${rp(B.close)}</b></div></div>
+ <div class="tw" style="max-height:55vh;overflow:auto">${show.length?`<table><tr><th>Tanggal</th><th>No. jurnal</th><th>Keterangan</th><th class="r">Debit</th><th class="r">Kredit</th><th class="r">Saldo</th></tr>${show.map(r=>`<tr><td>${dk(r.ts)}</td><td><b>${esc(r.no)}</b></td><td>${esc(r.desc)}</td><td class="r">${r.dr?rp(r.dr):''}</td><td class="r">${r.cr?rp(r.cr):''}</td><td class="r">${rp(r.bal)}</td></tr>`).join('')}</table>`:'<div class="empty">Tidak ada mutasi pada periode ini.</div>'}</div>
+ ${rows.length>300?`<div class="hint">Menampilkan 300 mutasi terbaru dari ${rows.length}.</div>`:''}
+ <div class="acts2"><button class="btn pri" onclick="JL.acc='${esc(id)}';closeDlg();go('buku')">Buka di Buku Besar</button><button class="btn" onclick="closeDlg()">Tutup</button></div>`,true);
+}
 function lapNS(d){
  const rows=d.l.map(m=>{const o=d.sA[m.id]||{dr:0,cr:0},n=o.dr-o.cr;return{m,dr:n>0?n:0,cr:n<0?-n:0}}).filter(r=>r.dr||r.cr),td=sum(rows,r=>r.dr),tc=sum(rows,r=>r.cr);
  return`<p class="mut">Neraca saldo per ${esc(asLbl(d.end))}</p><div class="tw"><table><tr><th>Kode</th><th>Akun</th><th class="r">Debit</th><th class="r">Kredit</th></tr>${rows.map(r=>`<tr><td>${esc(r.m.code)}</td><td>${esc(r.m.name)}</td><td class="r">${r.dr?rp(r.dr):''}</td><td class="r">${r.cr?rp(r.cr):''}</td></tr>`).join('')}<tr class="ft"><td colspan="2">Total</td><td class="r">${rp(td)}</td><td class="r">${rp(tc)}</td></tr></table></div><div class="hint">${td===tc?'Seimbang: debit sama dengan kredit.':'Tidak seimbang. Selisih '+rp(td-tc)+'.'}</div>`;
@@ -3810,16 +3819,16 @@ function lrData(d){
  return{jual,ret,hpp,lain,beban,tb,gp,net:gp+lain-tb,sal,hr};
 }
 function lapLR(d){
- const L=lrData(d),ag=agg(d.a,d.b),df=Math.round(L.gp-ag.profit),row=(n,v,b,dp,hd)=>`<tr${b?' class="ft"':''}><td style="${dp?'padding-left:26px':''}${hd?';font-weight:600':''}">${dp?'↳ ':''}${n}</td><td class="r"${hd?' style="font-weight:600"':''}>${rp(v)}</td></tr>`;
- const lines=(a,sg)=>a.map(r=>row(esc(r.m.name),sg*(r.kids.length?r.sub:r.v),0,r.dp,r.kids.length)+(r.kids.length&&r.v?row(r.m.id==='jual'?'Penjualan lainnya':'Lainnya',sg*r.v,0,1):'')).join('');
- const S=L.sal.length>1?lines(L.sal,1)+(L.sal.filter(r=>!r.dp).length>1?row('Total penjualan',L.jual,1):''):row('Penjualan',L.jual);
- const H=L.hr.length>1?lines(L.hr,-1)+row('Total harga pokok penjualan',-L.hpp,1):row('Harga pokok penjualan',-L.hpp);
- return`<p class="mut">Laba rugi · ${esc(perLabel())}</p><div class="tw"><table>${S}${row('Retur penjualan',L.ret)}${row('Total penjualan bersih',L.jual+L.ret,1)}${H}${row('Laba kotor',L.gp,1)}${row('Pendapatan lain',L.lain)}${lines(L.beban,-1)}${row('Total beban',-L.tb)}${row('Laba bersih',L.net,1)}</table></div>
+ const L=lrData(d),ag=agg(d.a,d.b),df=Math.round(L.gp-ag.profit),MPx=plotMap(),row=(n,v,b,dp,hd,id)=>`<tr${b?' class="ft"':id?' class="cl"':''}${id?` onclick="lapDrill('${esc(id)}')" title="Klik untuk melihat rincian jurnal"`:''}><td style="${dp?'padding-left:26px':''}${hd?';font-weight:600':''}">${dp?'↳ ':''}${n}${id?' <span class="mut">↗</span>':''}</td><td class="r"${hd?' style="font-weight:600"':''}>${rp(v)}</td></tr>`;
+ const lines=(a,sg)=>a.map(r=>row(esc(r.m.name),sg*(r.kids.length?r.sub:r.v),0,r.dp,r.kids.length,r.kids.length?'':r.m.id)+(r.kids.length&&r.v?row(r.m.id==='jual'?'Penjualan lainnya':'Lainnya',sg*r.v,0,1,0,r.m.id):'')).join('');
+ const S=L.sal.length>1?lines(L.sal,1)+(L.sal.filter(r=>!r.dp).length>1?row('Total penjualan',L.jual,1):''):row('Penjualan',L.jual,0,0,0,(L.sal[0]&&L.sal[0].m.id)||'jual');
+ const H=L.hr.length>1?lines(L.hr,-1)+row('Total harga pokok penjualan',-L.hpp,1):row('Harga pokok penjualan',-L.hpp,0,0,0,(L.hr[0]&&L.hr[0].m.id)||'hpp');
+ return`<p class="mut">Laba rugi · ${esc(perLabel())}</p><div class="tw"><table>${S}${row('Retur penjualan',L.ret,0,0,0,MPx.retur||'retur')}${row('Total penjualan bersih',L.jual+L.ret,1)}${H}${row('Laba kotor',L.gp,1)}${row('Pendapatan lain',L.lain,0,0,0,MPx.lain||'lain')}${lines(L.beban,-1)}${row('Total beban',-L.tb)}${row('Laba bersih',L.net,1)}</table></div>
  ${Math.abs(df)>1?`<div class="hint">Laba kotor menurut jurnal berbeda ${rp(df)} dari Ringkasan. Biasanya karena pajak/service yang dihitung terpisah atau pembulatan transaksi.</div>`:'<div class="hint">Laba kotor sama dengan angka di Ringkasan.</div>'}<div class="hint">Laporan ini memakai dasar akrual: penjualan faktur dibukukan saat faktur dibuat, pembelian saat faktur pembelian dibuat, dan gaji serta komisi dibebankan pada bulan slip gaji, bukan saat dibayar. Ringkasan memakai tanggal dibayar, jadi laba bersihnya bisa berbeda pada bulan yang gajinya dibayar di bulan berikutnya.</div>`;
 }
 function nrData(d){
  const A=[],Lb=[],Eq=[];
- d.l.forEach(m=>{const v=jSaldo(d.sA,m.id);if(!v&&m.type!=='A')return;if(m.type==='A'&&v)A.push({n:m.name,v,sub:assetSub(m)});else if(m.type==='L'&&v)Lb.push({n:m.name,v,sub:liabSub(m)});else if(m.type==='E'&&v)Eq.push({n:m.name,v})});
+ d.l.forEach(m=>{const v=jSaldo(d.sA,m.id);if(!v&&m.type!=='A')return;if(m.type==='A'&&v)A.push({n:m.name,v,sub:assetSub(m),id:m.id});else if(m.type==='L'&&v)Lb.push({n:m.name,v,sub:liabSub(m),id:m.id});else if(m.type==='E'&&v)Eq.push({n:m.name,v,id:m.id})});
  const laba=sum(d.l.filter(m=>m.type==='R'),m=>jSaldo(d.sA,m.id))-sum(d.l.filter(m=>m.type==='X'),m=>jSaldo(d.sA,m.id));
  const yS=new Date(new Date(Math.min(d.end-1,Date.now())).getFullYear(),0,1).getTime(),sY=jSums(0,yS),
   labaY0=sum(d.l.filter(m=>m.type==='R'),m=>jSaldo(sY,m.id))-sum(d.l.filter(m=>m.type==='X'),m=>jSaldo(sY,m.id));
@@ -3829,14 +3838,15 @@ function nrData(d){
 }
 function asetSec(N){
  const ks=['lancar','tetap'].filter(k=>N.A.some(x=>x.sub===k)),one=ks.length<2,tl={lancar:'Aset Lancar',tetap:'Aset Tetap'};
- return`<tr class="ft"><td colspan="2">Aset</td></tr>`+ks.map(k=>{const l=N.A.filter(x=>x.sub===k);return(one?'':`<tr><td colspan="2" style="padding-left:10px;font-weight:600">${tl[k]}</td></tr>`)+l.map(x=>`<tr><td style="padding-left:20px">${esc(x.n)}</td><td class="r">${rp(x.v)}</td></tr>`).join('')+(one?'':`<tr><td style="padding-left:10px"><i>Total ${tl[k].toLowerCase()}</i></td><td class="r"><i>${rp(sum(l,x=>x.v))}</i></td></tr>`)}).join('')+`<tr class="ft"><td>Total aset</td><td class="r">${rp(N.ta)}</td></tr>`;
+ return`<tr class="ft"><td colspan="2">Aset</td></tr>`+ks.map(k=>{const l=N.A.filter(x=>x.sub===k);return(one?'':`<tr><td colspan="2" style="padding-left:10px;font-weight:600">${tl[k]}</td></tr>`)+l.map(x=>nrRow(x)).join('')+(one?'':`<tr><td style="padding-left:10px"><i>Total ${tl[k].toLowerCase()}</i></td><td class="r"><i>${rp(sum(l,x=>x.v))}</i></td></tr>`)}).join('')+`<tr class="ft"><td>Total aset</td><td class="r">${rp(N.ta)}</td></tr>`;
 }
 function kwjSec(N){
  const ks=['pendek','panjang'].filter(k=>N.Lb.some(x=>(x.sub||'pendek')===k)),one=ks.length<2,tl={pendek:'Kewajiban Jangka Pendek',panjang:'Kewajiban Jangka Panjang'};
- return`<tr class="ft"><td colspan="2">Kewajiban</td></tr>`+ks.map(k=>{const l=N.Lb.filter(x=>(x.sub||'pendek')===k);return(one?'':`<tr><td colspan="2" style="padding-left:10px;font-weight:600">${tl[k]}</td></tr>`)+l.map(x=>`<tr><td style="padding-left:20px">${esc(x.n)}</td><td class="r">${rp(x.v)}</td></tr>`).join('')+(one?'':`<tr><td style="padding-left:10px"><i>Total ${tl[k].toLowerCase()}</i></td><td class="r"><i>${rp(sum(l,x=>x.v))}</i></td></tr>`)}).join('')+`<tr class="ft"><td>Total kewajiban</td><td class="r">${rp(N.tl)}</td></tr>`;
+ return`<tr class="ft"><td colspan="2">Kewajiban</td></tr>`+ks.map(k=>{const l=N.Lb.filter(x=>(x.sub||'pendek')===k);return(one?'':`<tr><td colspan="2" style="padding-left:10px;font-weight:600">${tl[k]}</td></tr>`)+l.map(x=>nrRow(x)).join('')+(one?'':`<tr><td style="padding-left:10px"><i>Total ${tl[k].toLowerCase()}</i></td><td class="r"><i>${rp(sum(l,x=>x.v))}</i></td></tr>`)}).join('')+`<tr class="ft"><td>Total kewajiban</td><td class="r">${rp(N.tl)}</td></tr>`;
 }
+const nrRow=x=>`<tr${x.id?` class="cl" onclick="lapDrill('${esc(x.id)}')" title="Klik untuk melihat rincian jurnal"`:''}><td style="padding-left:20px">${esc(x.n)}${x.id?' <span class="mut">↗</span>':''}</td><td class="r">${rp(x.v)}</td></tr>`;
 function lapNR(d){
- const N=nrData(d),sec=(t,l,tot)=>`<tr class="ft"><td colspan="2">${t}</td></tr>${l.map(x=>`<tr><td style="padding-left:20px">${esc(x.n)}</td><td class="r">${rp(x.v)}</td></tr>`).join('')}<tr class="ft"><td>Total ${t.toLowerCase()}</td><td class="r">${rp(tot)}</td></tr>`;
+ const N=nrData(d),sec=(t,l,tot)=>`<tr class="ft"><td colspan="2">${t}</td></tr>${l.map(x=>nrRow(x)).join('')}<tr class="ft"><td>Total ${t.toLowerCase()}</td><td class="r">${rp(tot)}</td></tr>`;
  return`<p class="mut">Neraca per ${esc(asLbl(d.end))}</p><div class="tw"><table>${asetSec(N)}${kwjSec(N)}${sec('Ekuitas',N.Eq,N.te)}<tr class="ft"><td>Kewajiban + Ekuitas</td><td class="r">${rp(N.tl+N.te)}</td></tr></table></div>
  <div class="hint">${Math.abs(N.ta-N.tl-N.te)<=1?'Seimbang: aset sama dengan kewajiban ditambah ekuitas.':'Tidak seimbang. Selisih '+rp(N.ta-N.tl-N.te)+'.'}${N.adj?` Persediaan dicocokkan ke nilai stok fisik (stok × harga modal) hari ini; selisihnya ${rp(N.adj)} dicatat sebagai penyesuaian di ekuitas.`:''}</div>`;
 }
